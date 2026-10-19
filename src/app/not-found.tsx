@@ -6,7 +6,7 @@ export default function NotFound() {
   const t = getDictionary();
   return (
     <Container className="py-24 text-center">
-      <h1 className="text-3xl font-bold">{t.errors.notFoundTitle}</h1>
+      <h1 className="font-display text-h1 text-ink font-semibold">{t.errors.notFoundTitle}</h1>
       <p className="text-ink-muted mt-3">{t.errors.notFoundText}</p>
       <ButtonLink href="/" className="mt-8">
         {t.common.backHome}

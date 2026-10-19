@@ -19,7 +19,7 @@ export default function ErrorPage({
   }, [error]);
   return (
     <Container className="py-24 text-center">
-      <h1 className="text-3xl font-bold">{t.errors.genericTitle}</h1>
+      <h1 className="font-display text-h1 text-ink font-semibold">{t.errors.genericTitle}</h1>
       <p className="text-ink-muted mt-3">{t.errors.genericText}</p>
       <Button onClick={reset} className="mt-8">
         {t.common.retry}

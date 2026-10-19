@@ -12,6 +12,20 @@ export const fr = {
     ecosystem: "L'écosystème KSP",
     legal: 'Informations légales',
   },
+  nav: {
+    main: 'Navigation principale',
+    metiers: 'Nos métiers',
+    metiersTitle: 'Six métiers, un seul groupe.',
+    metiersText: 'Un seul compte KSP pour suivre tous vos services.',
+    group: 'Le groupe',
+    openMenu: 'Ouvrir le menu',
+    closeMenu: 'Fermer le menu',
+  },
+  account: {
+    soonTitle: 'Votre espace KSP arrive bientôt',
+    soonText:
+      'Un seul compte pour suivre vos dossiers, commandes, factures et paiements, sur tous les sites du groupe.',
+  },
   errors: {
     notFoundTitle: 'Page introuvable',
     notFoundText: "La page que vous cherchez n'existe pas ou a été déplacée.",
