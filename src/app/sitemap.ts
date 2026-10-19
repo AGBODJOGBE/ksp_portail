@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { siteConfig } from '@/config/site';
-import { metiers } from '@/content/metiers';
+import { metiers } from '@/config/metiers';
 
 /** Pages publiques à référencer. Les pages issues du CMS et du catalogue s'ajouteront ici. */
 const PATHS: ReadonlyArray<{

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { WeaveBand, WeaveMark, WeavePattern } from '@/components/brand/weave';
+import { WeaveBand, WeaveMark, WeavePattern } from '@/components/ui/brand/weave';
 import {
   IconArrowRight,
   IconArrowUpRight,
@@ -19,8 +19,8 @@ import {
   IconRecouvrement,
   IconUser,
   IconWhatsApp,
-} from '@/components/icons';
-import { MetierIcon } from '@/components/icons/metier-icon';
+} from '@/components/ui/icons';
+import { MetierIcon } from '@/components/sections/metier-icon';
 import { Badge } from '@/components/ui/badge';
 import { Button, ButtonArrow, ButtonLink } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -29,10 +29,10 @@ import { Eyebrow } from '@/components/ui/eyebrow';
 import { Heading } from '@/components/ui/heading';
 import { Placeholder } from '@/components/ui/placeholder';
 import { Section } from '@/components/ui/section';
-import { metiers } from '@/content/metiers';
+import { metiers } from '@/config/metiers';
 import { siteConfig } from '@/config/site';
 import { cn } from '@/lib/cn';
-import { ContrastPair, TokenValue } from './token-inspector';
+import { ContrastPair, TokenValue } from '@/components/ui/token-inspector';
 
 /**
  * Charte vivante : jetons, police, motif et composants de base, rendus avec le vrai code.

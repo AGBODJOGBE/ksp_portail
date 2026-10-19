@@ -1,13 +1,13 @@
-import { CtaBand } from '@/components/metier/cta-band';
-import { FaqSection } from '@/components/metier/faq-section';
-import { GuidedFormSection } from '@/components/metier/guided-form-section';
-import { MetierHero } from '@/components/metier/metier-hero';
-import { OffersSection } from '@/components/metier/offers-section';
-import { OtherMetiers } from '@/components/metier/other-metiers';
-import { PageActions } from '@/components/metier/page-actions';
-import { StepsSection } from '@/components/metier/steps-section';
-import { getMetier } from '@/content/metiers';
-import { SIMULATOR_ID, nettoyageContent as content } from '@/content/nettoyage';
+import { CtaBand } from '@/components/sections/cta-band';
+import { FaqSection } from '@/components/sections/faq-section';
+import { GuidedFormSection } from '@/components/sections/guided-form-section';
+import { MetierHero } from '@/components/sections/metier-hero';
+import { OffersSection } from '@/components/sections/offers-section';
+import { OtherMetiers } from '@/components/sections/other-metiers';
+import { PageActions } from '@/components/sections/page-actions';
+import { StepsSection } from '@/components/sections/steps-section';
+import { getMetier } from '@/config/metiers';
+import { SIMULATOR_ID, nettoyageContent as content } from '@/features/cleaning';
 import { BreadcrumbJsonLd } from '@/lib/seo/json-ld';
 import { pageMetadata } from '@/lib/seo/metadata';
 

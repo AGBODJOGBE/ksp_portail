@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { WeavePattern } from '@/components/brand/weave';
-import { IconArrowRight, IconClock } from '@/components/icons';
+import { WeavePattern } from '@/components/ui/brand/weave';
+import { IconArrowRight, IconClock } from '@/components/ui/icons';
 import { ButtonArrow, ButtonLink } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { Eyebrow } from '@/components/ui/eyebrow';

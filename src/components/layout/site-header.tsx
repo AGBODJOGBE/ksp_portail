@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Logo } from '@/components/brand/logo';
+import { Logo } from '@/components/ui/brand/logo';
 import {
   IconArrowRight,
   IconArrowUpRight,
@@ -7,8 +7,8 @@ import {
   IconClose,
   IconMenu,
   IconUser,
-} from '@/components/icons';
-import { MetierIcon } from '@/components/icons/metier-icon';
+} from '@/components/ui/icons';
+import { MetierIcon } from '@/components/sections/metier-icon';
 import { buttonClasses, ButtonLink } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { Eyebrow } from '@/components/ui/eyebrow';

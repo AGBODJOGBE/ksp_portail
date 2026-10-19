@@ -1,4 +1,4 @@
-import { IconWhatsApp } from '@/components/icons';
+import { IconWhatsApp } from '@/components/ui/icons';
 import { buttonClasses } from '@/components/ui/button';
 import { publicEnv } from '@/config/env';
 import { getDictionary } from '@/i18n';

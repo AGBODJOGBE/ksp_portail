@@ -1,4 +1,4 @@
-import { metiers } from '@/content/metiers';
+import { metiers } from './metiers';
 
 export type NavItem = { label: string; href: string };
 

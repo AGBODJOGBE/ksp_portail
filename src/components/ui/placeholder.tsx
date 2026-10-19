@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { IconClock } from '@/components/icons';
+import { IconClock } from '@/components/ui/icons';
 import { cn } from '@/lib/cn';
 
 /**

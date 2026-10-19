@@ -1,11 +1,11 @@
-import { CtaBand } from '@/components/metier/cta-band';
-import { MetierHero } from '@/components/metier/metier-hero';
-import { OffersSection } from '@/components/metier/offers-section';
-import { OtherMetiers } from '@/components/metier/other-metiers';
-import { RealisationsSection } from '@/components/metier/pending-section';
-import { StepsSection } from '@/components/metier/steps-section';
-import { impressionContent as content } from '@/content/impression';
-import { getMetier } from '@/content/metiers';
+import { CtaBand } from '@/components/sections/cta-band';
+import { MetierHero } from '@/components/sections/metier-hero';
+import { OffersSection } from '@/components/sections/offers-section';
+import { OtherMetiers } from '@/components/sections/other-metiers';
+import { RealisationsSection } from '@/components/sections/pending-section';
+import { StepsSection } from '@/components/sections/steps-section';
+import { impressionContent as content } from '@/features/print';
+import { getMetier } from '@/config/metiers';
 import { BreadcrumbJsonLd } from '@/lib/seo/json-ld';
 import { pageMetadata } from '@/lib/seo/metadata';
 

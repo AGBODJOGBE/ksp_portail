@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { WeaveBand, WeaveMark } from '@/components/brand/weave';
-import { IconArrowUpRight, IconUser } from '@/components/icons';
+import { WeaveBand, WeaveMark } from '@/components/ui/brand/weave';
+import { IconArrowUpRight, IconUser } from '@/components/ui/icons';
 import { ButtonLink } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { navigation } from '@/config/navigation';

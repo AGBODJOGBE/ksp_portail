@@ -1,17 +1,17 @@
-import { ClosingCta } from '@/components/home/closing-cta';
-import { HomeHero } from '@/components/home/home-hero';
-import { MetiersBento } from '@/components/home/metiers-bento';
+import { metiers } from '@/config/metiers';
 import {
+  ClosingCta,
+  HomeHero,
   KeyFiguresSection,
+  MetiersBento,
   RealisationsSection,
   TestimonialsSection,
-} from '@/components/home/proof-sections';
-import { homeContent } from '@/content/home';
-import { metiers } from '@/content/metiers';
+  homeContent,
+} from '@/features/home';
 
 /**
  * Accueil du portail : promesse, six métiers, preuves (chiffres, réalisations, témoignages), contact.
- * Les contenus viennent de `src/content` (remplacés plus tard par Payload CMS).
+ * Les contenus viennent de `src/features/home` (remplacés plus tard par Payload CMS).
  */
 export default function HomePage() {
   return (
