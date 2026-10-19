@@ -350,6 +350,23 @@
 }
 
 /*
+ * ——— Contenu qui change sur place (étapes d'un formulaire guidé, réponse d'une FAQ) ———
+ * Fondu court et léger glissement à l'arrivée, sans masquer le contenu si l'animation est coupée.
+ */
+@keyframes ksp-swap-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .swap-in,
+  details[open] > .disclosure-body {
+    animation: ksp-swap-in var(--motion-slow) var(--ease-soft) both;
+  }
+}
+
+/*
  * ——— Transitions entre pages (React <ViewTransition>, F-011) ———
  * L'en-tête reste immobile ; seul le contenu principal se fond et monte légèrement.
  */

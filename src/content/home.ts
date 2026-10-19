@@ -19,6 +19,8 @@ export type Realisation = {
   title: string;
   metierId: MetierId;
   place?: string;
+  /** Catégorie servant de filtre dans les galeries (type de projet, secteur…), fournie par le CMS. */
+  category?: string;
   href: string;
   image: { src: string; alt: string; width: number; height: number };
 };

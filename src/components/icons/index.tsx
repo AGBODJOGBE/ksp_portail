@@ -29,6 +29,23 @@ export function IconArrowRight(props: IconProps) {
   );
 }
 
+export function IconArrowLeft(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M19 12H5M11 6l-6 6 6 6" />
+    </Icon>
+  );
+}
+
+export function IconAlert(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.75v5M12 16.25h.01" />
+    </Icon>
+  );
+}
+
 export function IconArrowUpRight(props: IconProps) {
   return (
     <Icon {...props}>

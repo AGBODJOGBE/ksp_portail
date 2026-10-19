@@ -63,3 +63,10 @@ export const metiers: ReadonlyArray<Metier> = [
     summary: 'Faites livrer un colis ou vos courses, et suivez la livraison.',
   },
 ];
+
+/** Un métier par son identifiant (les contenus de page ne transportent que l'identifiant). */
+export function getMetier(id: MetierId): Metier {
+  const metier = metiers.find((item) => item.id === id);
+  if (!metier) throw new Error(`Métier inconnu : ${id}`);
+  return metier;
+}
