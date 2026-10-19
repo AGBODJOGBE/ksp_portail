@@ -113,7 +113,7 @@
 }
 
 @theme {
-  /* Typographie : une police de titres hébergée (F-006), corps en polices système. */
+  /* Typographie : une police de titres hébergée (F-014), corps en polices système. */
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
   --font-display: var(--font-ksp-display, ui-sans-serif), system-ui, -apple-system, 'Segoe UI', sans-serif;
 
@@ -301,7 +301,7 @@
 }
 
 /*
- * ——— Apparitions au défilement (amélioration progressive, F-011) ———
+ * ——— Apparitions au défilement (amélioration progressive, F-013) ———
  * Le contenu est visible par défaut ; il n'est masqué que si le navigateur sait l'animer
  * au défilement et que l'utilisateur n'a pas demandé à réduire les animations.
  */
@@ -367,7 +367,7 @@
 }
 
 /*
- * ——— Transitions entre pages (React <ViewTransition>, F-011) ———
+ * ——— Transitions entre pages (React <ViewTransition>, F-013) ———
  * L'en-tête reste immobile ; seul le contenu principal se fond et monte légèrement.
  */
 ::view-transition {

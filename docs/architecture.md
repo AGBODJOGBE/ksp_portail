@@ -37,7 +37,7 @@ src/
 | `lib/`                      | Code technique sans interface propre au site : `api` (seul endroit où `fetch` est permis), `seo`, `cn`, `typography`, `color`.                                                              | Commun                                            |
 | `config/`                   | `env.ts` (zod), `site.ts`, `navigation.ts` ; pour le portail, `metiers.ts` (les six métiers : identifiants, adresses, libellés).                                                            | Commun (`metiers.ts` propre au portail)           |
 | `i18n/`                     | Textes de l'interface (français ; anglais prévu).                                                                                                                                           | Commun                                            |
-| `app/fonts/`                | Chargement de la police des titres (`next/font/local`, F-006) ; reste à côté du layout racine qui l'utilise.                                                                                | Commun                                            |
+| `app/fonts/`                | Chargement de la police des titres (`next/font/local`, F-014) ; reste à côté du layout racine qui l'utilise.                                                                                | Commun                                            |
 | `scripts/first-load-js.mjs` | Mesure du poids JavaScript par page (`pnpm size`).                                                                                                                                          | Commun                                            |
 
 ### Une fonctionnalité

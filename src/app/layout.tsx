@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         </a>
         <SiteHeader />
         <main id="contenu" tabIndex={-1} className="flex-1 focus:outline-none">
-          {/* Transition entre pages : fondu court du contenu, l'en-tête reste immobile (F-011). */}
+          {/* Transition entre pages : fondu court du contenu, l'en-tête reste immobile (F-013). */}
           <ViewTransition default="page">{children}</ViewTransition>
         </main>
         <SiteFooter />
