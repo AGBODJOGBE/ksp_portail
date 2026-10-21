@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { mockGateway } from './support/gateway';
 
 test('la page d’accueil s’affiche avec son titre', async ({ page }) => {
   await page.goto('/');
@@ -37,11 +38,12 @@ test('l’en-tête donne accès aux six métiers', async ({ page }, testInfo) =>
   await expect(panel).toBeHidden();
 });
 
-test('« Mon espace KSP » mène à la page d’attente', async ({ page }) => {
+test('« Se connecter » mène à la connexion par téléphone', async ({ page }) => {
+  await mockGateway(page);
   await page.goto('/');
-  await page.getByRole('banner').getByRole('link', { name: 'Mon espace KSP' }).first().click();
-  await expect(page).toHaveURL(/\/mon-espace$/);
-  await expect(page.getByRole('heading', { level: 1, name: /arrive bientôt/ })).toBeVisible();
+  await page.getByRole('banner').getByRole('link', { name: 'Se connecter' }).first().click();
+  await expect(page).toHaveURL(/\/connexion$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Se connecter' })).toBeVisible();
 });
 
 test('la page de charte n’existe pas en production', async ({ request }) => {
@@ -96,15 +98,16 @@ for (const { path, links } of METIER_PAGES) {
   });
 }
 
-test('« Déposer un dossier » mène à Mon espace KSP', async ({ page }) => {
+test('« Déposer un dossier » mène à Mon espace KSP, qui demande la connexion', async ({ page }) => {
+  await mockGateway(page);
   await page.goto('/recouvrement');
   await page
     .getByRole('main')
     .getByRole('link', { name: /Déposer un dossier/ })
     .first()
     .click();
-  await expect(page).toHaveURL(/\/mon-espace$/);
-  await expect(page.getByRole('heading', { level: 1, name: /arrive bientôt/ })).toBeVisible();
+  await expect(page).toHaveURL(/\/connexion\?retour=%2Fmon-espace$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Se connecter' })).toBeVisible();
 });
 
 test('« Commander une course » est affiché mais pas encore actif', async ({ page }) => {
