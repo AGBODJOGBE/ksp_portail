@@ -34,7 +34,7 @@ src/
 | `components/ui/`            | Briques sans connaissance du site : bouton, carte, section, titres, badge, emplacement « à venir », icônes, logo, motif, inspecteur de jetons de `/charte`. N'importe que `ui` et `lib`.    | Commun, identique dans les quatre fronts          |
 | `components/layout/`        | Cadre propre au site. Reçoit les éléments d'une fonctionnalité par ses propriétés (`children`, emplacements), ne les importe pas.                                                           | Commun (le contenu est propre au site)            |
 | `components/sections/`      | Sections génériques des pages métiers (bandeau d'ouverture, offres, étapes, FAQ, appel à l'action, galerie, emplacements « à venir »), boutons d'action (`PageAction`) et formulaire guidé. | Propre au portail                                 |
-| `lib/`                      | Code technique sans interface propre au site : `api` (seul endroit où `fetch` est permis), `seo`, `cn`, `typography`, `color`.                                                              | Commun                                            |
+| `lib/`                      | Code technique sans interface propre au site : `api` (seul endroit où `fetch` est permis ; session en mémoire et son hook `useSession`), `seo`, `cn`, `typography`, `color`.                | Commun                                            |
 | `config/`                   | `env.ts` (zod), `site.ts`, `navigation.ts` ; pour le portail, `metiers.ts` (les six métiers : identifiants, adresses, libellés).                                                            | Commun (`metiers.ts` propre au portail)           |
 | `i18n/`                     | Textes de l'interface (français ; anglais prévu).                                                                                                                                           | Commun                                            |
 | `app/fonts/`                | Chargement de la police des titres (`next/font/local`, F-014) ; reste à côté du layout racine qui l'utilise.                                                                                | Commun                                            |
@@ -58,17 +58,18 @@ features/<domaine>/
 
 Le nom d'une fonctionnalité est celui du service du backend, en anglais (le code est en anglais, les adresses en français) :
 
-| Route           | Fonctionnalité        | Service du backend | Contenu actuel                                    |
-| --------------- | --------------------- | ------------------ | ------------------------------------------------- |
-| `/`             | `features/home`       | — (CMS)            | contenus et sections de l'accueil                 |
-| `/recouvrement` | `features/recovery`   | recovery           | page publique                                     |
-| `/nettoyage`    | `features/cleaning`   | cleaning           | page publique et questions du simulateur          |
-| `/immobilier`   | `features/realestate` | realestate         | page publique et questions de la demande de devis |
-| `/impression`   | `features/print`      | print              | page publique (renvoi vers KSP Print)             |
-| `/marketplace`  | `features/catalog`    | catalog            | page publique (renvoi vers KSP Shop)              |
-| `/livraison`    | `features/delivery`   | delivery           | page publique                                     |
+| Route                       | Fonctionnalité        | Service du backend | Contenu actuel                                                                       |
+| --------------------------- | --------------------- | ------------------ | ------------------------------------------------------------------------------------ |
+| `/`                         | `features/home`       | — (CMS)            | contenus et sections de l'accueil                                                    |
+| `/recouvrement`             | `features/recovery`   | recovery           | page publique                                                                        |
+| `/nettoyage`                | `features/cleaning`   | cleaning           | page publique et questions du simulateur                                             |
+| `/immobilier`               | `features/realestate` | realestate         | page publique et questions de la demande de devis                                    |
+| `/impression`               | `features/print`      | print              | page publique (renvoi vers KSP Print)                                                |
+| `/marketplace`              | `features/catalog`    | catalog            | page publique (renvoi vers KSP Shop)                                                 |
+| `/livraison`                | `features/delivery`   | delivery           | page publique                                                                        |
+| `/connexion`, `/mon-espace` | `features/identity`   | identity           | connexion par téléphone, profil, garde et accueil de « Mon espace KSP », déconnexion |
 
-À venir dans le portail : `contact`, `about`, `realisations`, `news` (contenus du CMS), puis pour « Mon espace KSP » `identity` (profil, sécurité, organisation), `billing` (factures), `payment`, `document` (documents à signer), `notification`, `order` (commandes et courses) — et les pages connectées de `recovery`, `cleaning`, `realestate`, `delivery` dans leur propre fonctionnalité.
+À venir dans le portail : `contact`, `about`, `realisations`, `news` (contenus du CMS), puis pour « Mon espace KSP » la suite d'`identity` (sécurité, sessions, organisation), `billing` (factures), `payment`, `document` (documents à signer), `notification`, `order` (commandes et courses) — et les pages connectées de `recovery`, `cleaning`, `realestate`, `delivery` dans leur propre fonctionnalité.
 
 ## Règles de dépendance
 
@@ -138,6 +139,8 @@ Mesure du 19 octobre 2026 (identique avant et après la réorganisation F-012) :
 
 Le socle commun (React, Next, routeur, menus de l'en-tête) pèse 174,8 Ko : chaque page n'ajoute que ses composants client.
 
+Mesure du 21 octobre 2026, après la connexion par téléphone : socle 177,1 Ko (+2,3 Ko : lien de compte de l'en-tête, magasin de session, textes de la connexion) ; `/` 182,6 Ko ; `/recouvrement`, `/impression`, `/livraison` 185,8 Ko ; `/nettoyage` 182,3 Ko ; `/immobilier` 188,5 Ko ; `/connexion` et `/mon-espace` 204,2 Ko (budget « espace connecté » : 215 Ko).
+
 Budgets par type de page (validés le 19 octobre 2026) :
 
 | Type de page                                             | Budget   |
@@ -153,7 +156,7 @@ Règle : une page qui dépasse son budget, ou un socle qui grossit, se justifie 
 
 1. Nommer le domaine comme le service du backend : `src/features/<domaine>/`.
 2. Créer seulement les fichiers utiles : `content.ts` pour un contenu statique, `schemas.ts` + `queries.ts` pour une lecture de la gateway, `actions.ts` pour un envoi, `components/` pour l'interface.
-3. Valider chaque réponse de la gateway avec son schéma zod dans `queries.ts` (`schema.parse(await serverApi().get(…))`) ; les types dérivent des schémas (`z.infer`).
+3. Valider chaque réponse de la gateway avec son schéma zod dans `queries.ts` (`schema.parse(await serverApi().get(…))`) ; les types dérivent des schémas (`z.infer`). Pour une réponse lue dans le navigateur : schéma `zod/mini` et `parseResponse` de `@/lib/api`.
 4. Exporter dans `index.ts` ce dont les routes ont besoin, et rien d'autre.
 5. Créer la route dans `src/app/` : elle importe la fonctionnalité et les sections, et les assemble.
 6. Composant serveur par défaut ; `'use client'` seulement sur la feuille interactive, qui reçoit ses données en propriétés.
@@ -179,7 +182,18 @@ Règle : une page qui dépasse son budget, ou un socle qui grossit, se justifie 
 - Sécurité : aucun jeton dans le navigateur, mais le serveur Next devient un client authentifié : renouvellement et rotation du jeton côté serveur (un composant serveur ne peut pas poser de cookie : passage obligé par `proxy.ts` ou une Server Action), risque de mettre des données personnelles en cache partagé, transmission de l'IP du visiteur à la gateway pour la limitation de débit.
 - F-010 : dépendance plus forte (échange de jeton de serveur à serveur, comportement de la rotation, en-têtes transmis).
 
-**Décision (19 octobre 2026) : option A** pour « Mon espace KSP » et le back-office, en limitant chaque écran à un composant client en feuille qui reçoit une coque déjà rendue, en lançant le renouvellement dès le chargement de l'espace et les lectures en parallèle. Mesurer le premier écran réel (liste des dossiers de recouvrement) en 3G simulée ; si le budget « espace connecté » ou le temps d'affichage n'est pas tenu, rouvrir B pour cet écran. Rien n'est implémenté de ce côté.
+**Décision (19 octobre 2026) : option A** pour « Mon espace KSP » et le back-office, en limitant chaque écran à un composant client en feuille qui reçoit une coque déjà rendue, en lançant le renouvellement dès le chargement de l'espace et les lectures en parallèle. Mesurer le premier écran réel (liste des dossiers de recouvrement) en 3G simulée ; si le budget « espace connecté » ou le temps d'affichage n'est pas tenu, rouvrir B pour cet écran.
+
+**Mise en œuvre (lot 1, connexion par téléphone).**
+
+| Élément                     | Où                                     | Règle                                                                                                                                                                                                                                                                                   |
+| --------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Session en mémoire          | `lib/api/session.ts`                   | Jeton d'accès et utilisateur en mémoire ; renouvellement unique (`POST /api/v1/identity/token/refresh`, cookie `__Secure-ksp_rt` posé par la gateway) chargé au premier besoin. Ce module n'importe ni la configuration ni zod : l'en-tête l'importe directement (`@/lib/api/session`). |
+| Lien de compte de l'en-tête | `components/layout/account-link.tsx`   | « Se connecter » ou « Mon espace KSP » selon la session **en mémoire**, sans appel à la gateway sur les pages publiques.                                                                                                                                                                |
+| Garde des pages connectées  | `features/identity` (`RequireSession`) | Mémoire, sinon renouvellement silencieux ; sans session, `/connexion?retour=<chemin>` ; panne de la gateway, message et « Réessayer » ; profil incomplet, « Compléter mon profil » d'abord.                                                                                             |
+| Retour après connexion      | `features/identity/return-path.ts`     | Chemin interne uniquement (`/…`), jamais `//`, `\`, schéma ou caractère de contrôle : pas de redirection ouverte.                                                                                                                                                                       |
+| Validation des réponses     | `zod/mini`                             | Dans le navigateur, `zod/mini` (quelques Ko) et non `zod` (environ 90 Ko compressés). `config/env.ts`, lu aussi par le navigateur, l'utilise pour la même raison.                                                                                                                       |
+| En-têtes envoyés            | `lib/api/client.ts`                    | Seulement ceux qu'autorise la politique CORS de la gateway (`Content-Type`, `Authorization`, `Idempotency-Key`). L'identifiant de corrélation est créé par la gateway et relu dans la réponse (`X-Correlation-Id`).                                                                     |
 
 ## Volontairement exclu
 
