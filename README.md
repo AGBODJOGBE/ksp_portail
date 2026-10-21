@@ -36,23 +36,11 @@ La gateway locale (`ksp_back`) répond sur http://localhost:3000. Ports des site
 | `pnpm lint` · `pnpm format:check` · `pnpm typecheck` | Contrôles de qualité                        |
 | `pnpm test`                                          | Tests unitaires                             |
 | `pnpm build` puis `pnpm test:e2e`                    | Tests de bout en bout sur le site construit |
+| `pnpm build` puis `pnpm size`                        | Poids JavaScript de chaque page             |
 
-## Organisation
+## Architecture du front
 
-```
-src/
-├── app/                 pages (App Router) ; (legal)/ = pages légales ; api/health = sonde
-├── components/
-│   ├── layout/          en-tête, pied de page, bouton WhatsApp
-│   └── ui/              composants de base (migreront dans ksp-ui)
-├── config/              variables d'environnement, identité du site
-├── i18n/                textes de l'interface (français ; anglais prévu)
-└── lib/
-    ├── api/             client de la gateway et session
-    └── seo/             métadonnées et données structurées
-e2e/                     tests de bout en bout
-docs/decisions.md        décisions propres aux fronts
-```
+Le code est découpé par fonctionnalité (`src/features/<domaine>`, aligné sur les services du backend) autour d'un système de design portable (`src/components/ui`, futur `ksp-ui`), avec des frontières vérifiées par ESLint et un rendu statique par défaut. Le détail (dossiers, règles de dépendance, rendu, budget de poids) est dans [docs/architecture.md](docs/architecture.md).
 
 ## Variables d'environnement
 
@@ -63,5 +51,6 @@ Adresses de préproduction utilisées par défaut en CI (`*.staging.ksp.bj`) : *
 ## Documentation
 
 - [Règles de travail](CONTRIBUTING.md)
+- [Architecture du front](docs/architecture.md)
 - [Décisions des fronts](docs/decisions.md)
 - Architecture et ADR de l'écosystème : dépôt `ksp_back`, dossier `docs/`.
