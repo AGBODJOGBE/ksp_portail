@@ -34,6 +34,8 @@ export const navigation = {
     { label: 'Actualités', href: '/actualites' },
     { label: 'Contact', href: CONTACT_HREF },
   ] satisfies ReadonlyArray<NavItem>,
-  /** Espace client commun à tous les sites. Page « bientôt » tant que les contrats de la gateway ne sont pas prêts. */
+  /** Espace client commun à tous les sites, réservé aux personnes connectées. */
   account: { label: 'Mon espace KSP', href: '/mon-espace' } satisfies NavItem,
+  /** Connexion par téléphone ; `?retour=` ramène à la page demandée (chemin interne uniquement). */
+  login: { label: 'Se connecter', href: '/connexion' } satisfies NavItem,
 } as const;

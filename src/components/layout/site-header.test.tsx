@@ -1,7 +1,28 @@
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
+import { session, type Session } from '@/lib/api/session';
 import { SiteHeader } from './site-header';
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/a-propos' }));
+
+const SESSION: Session = {
+  status: 'authenticated',
+  accessToken: 'jeton',
+  accessTokenExpiresAt: '2099-01-01T00:00:00Z',
+  sessionId: 's1',
+  user: {
+    id: 'u1',
+    status: 'active',
+    firstName: 'Koffi',
+    lastName: 'Adjovi',
+    phone: '+2290197000045',
+    email: null,
+    preferredLanguage: 'fr',
+    createdAt: '2026-10-21T09:00:00Z',
+  },
+  profileIncomplete: false,
+};
+
+afterEach(() => session.clear());
 
 describe('en-tête du site', () => {
   it('ouvre le menu mobile et le panneau des métiers avec l’API popover native', () => {
@@ -34,11 +55,20 @@ describe('en-tête du site', () => {
     );
   });
 
-  it('donne accès à « Mon espace KSP », y compris sur téléphone (icône nommée)', () => {
+  it('propose « Se connecter » sans session, y compris sur téléphone (icône nommée)', () => {
     render(<SiteHeader />);
-    const accountLinks = screen.getAllByRole('link', { name: 'Mon espace KSP' });
-    expect(accountLinks.length).toBeGreaterThanOrEqual(2);
+    const loginLinks = screen.getAllByRole('link', { name: 'Se connecter', hidden: true });
+    expect(loginLinks.length).toBeGreaterThanOrEqual(3);
+    loginLinks.forEach((link) => expect(link).toHaveAttribute('href', '/connexion'));
+  });
+
+  it('donne accès à « Mon espace KSP » une fois connecté', () => {
+    render(<SiteHeader />);
+    act(() => session.set(SESSION));
+    const accountLinks = screen.getAllByRole('link', { name: 'Mon espace KSP', hidden: true });
+    expect(accountLinks.length).toBeGreaterThanOrEqual(3);
     accountLinks.forEach((link) => expect(link).toHaveAttribute('href', '/mon-espace'));
+    expect(screen.queryByRole('link', { name: 'Se connecter', hidden: true })).toBeNull();
   });
 
   it('signale la page courante', () => {

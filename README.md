@@ -28,15 +28,26 @@ pnpm dev                       # http://localhost:3010
 
 La gateway locale (`ksp_back`) répond sur http://localhost:3000. Ports des sites en local : portail 3010, shop 3020, print 3030.
 
+### Se connecter contre la gateway locale
+
+La connexion par téléphone (`/connexion`) et « Mon espace KSP » (`/mon-espace`) appellent la gateway depuis le navigateur. Dans `ksp_back` :
+
+1. **Origine autorisée.** Dans `services/gateway/.env`, ajouter l'adresse du portail aux origines des sites : `CORS_WEB_ORIGINS=http://localhost:3010` (liste séparée par des virgules). Sans elle, le navigateur bloque les réponses (message « Connexion impossible ») et la gateway refuse les routes de connexion (`GATEWAY_CLIENT_UNKNOWN`).
+2. **Cookie de renouvellement.** Sur `http://localhost`, les navigateurs Chrome et Firefox acceptent le cookie `__Secure-ksp_rt` (Secure) : rien à changer. Pour un portail servi en HTTP sur une autre adresse (adresse IP du réseau local, téléphone de test), mettre `REFRESH_COOKIE_INSECURE=true` côté gateway (développement uniquement : refusé en production).
+3. **Lancer les services** : identity, notification et gateway (voir le README de `services/gateway`).
+4. **Code de connexion.** En développement, le service notification utilise le prestataire WhatsApp « console » : le code est écrit dans **le terminal du service notification** (`[notification · développement] WhatsApp vers +229********45 …`), aucun message ne part.
+
+Puis `pnpm dev` et ouvrir http://localhost:3010/mon-espace : sans session, le portail renvoie vers la connexion, puis revient à la page demandée. Le jeton d'accès reste en mémoire (perdu au rechargement, aussitôt repris grâce au cookie) ; aucun jeton n'est écrit dans le stockage du navigateur.
+
 ## Commandes
 
-| Commande                                             | Rôle                                        |
-| ---------------------------------------------------- | ------------------------------------------- |
-| `pnpm dev`                                           | Serveur de développement                    |
-| `pnpm lint` · `pnpm format:check` · `pnpm typecheck` | Contrôles de qualité                        |
-| `pnpm test`                                          | Tests unitaires                             |
-| `pnpm build` puis `pnpm test:e2e`                    | Tests de bout en bout sur le site construit |
-| `pnpm build` puis `pnpm size`                        | Poids JavaScript de chaque page             |
+| Commande                                             | Rôle                                                          |
+| ---------------------------------------------------- | ------------------------------------------------------------- |
+| `pnpm dev`                                           | Serveur de développement                                      |
+| `pnpm lint` · `pnpm format:check` · `pnpm typecheck` | Contrôles de qualité                                          |
+| `pnpm test`                                          | Tests unitaires                                               |
+| `pnpm build` puis `pnpm test:e2e`                    | Tests de bout en bout sur le site construit (gateway simulée) |
+| `pnpm build` puis `pnpm size`                        | Poids JavaScript de chaque page                               |
 
 ## Architecture du front
 

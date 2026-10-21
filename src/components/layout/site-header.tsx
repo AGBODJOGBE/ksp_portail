@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { Logo } from '@/components/ui/brand/logo';
 import {
   IconArrowRight,
@@ -6,16 +5,16 @@ import {
   IconChevronDown,
   IconClose,
   IconMenu,
-  IconUser,
 } from '@/components/ui/icons';
 import { MetierIcon } from '@/components/sections/metier-icon';
-import { buttonClasses, ButtonLink } from '@/components/ui/button';
+import { buttonClasses } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { Eyebrow } from '@/components/ui/eyebrow';
 import { navigation } from '@/config/navigation';
 import { siteConfig } from '@/config/site';
 import { getDictionary } from '@/i18n';
 import { cn } from '@/lib/cn';
+import { AccountLink } from './account-link';
 import { NavLink } from './nav-link';
 import { NavPopover } from './nav-popover';
 
@@ -77,19 +76,8 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <div className="hidden sm:block">
-            <ButtonLink href={navigation.account.href}>
-              <IconUser />
-              {navigation.account.label}
-            </ButtonLink>
-          </div>
-          <Link
-            href={navigation.account.href}
-            aria-label={navigation.account.label}
-            className={buttonClasses({ variant: 'secondary', size: 'icon', className: 'sm:hidden' })}
-          >
-            <IconUser />
-          </Link>
+          {/* « Se connecter » ou « Mon espace KSP » selon la session en mémoire. */}
+          <AccountLink login={navigation.login} account={navigation.account} />
           <button
             type="button"
             popoverTarget={MOBILE_MENU_ID}
@@ -200,10 +188,7 @@ export function SiteHeader() {
               ))}
             </ul>
           </nav>
-          <ButtonLink href={navigation.account.href} size="lg" className="mt-10 w-full">
-            <IconUser />
-            {navigation.account.label}
-          </ButtonLink>
+          <AccountLink login={navigation.login} account={navigation.account} variant="menu" />
           <div className="border-line mt-10 border-t pt-6">
             <p className="text-small text-ink-subtle font-semibold">{t.common.ecosystem}</p>
             <ul className="mt-2 flex flex-wrap gap-x-6">
