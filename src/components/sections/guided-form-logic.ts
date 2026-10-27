@@ -1,4 +1,9 @@
-import type { GuidedFormStep, QuantityMode } from '@/components/sections/guided-form-types';
+import type {
+  GuidedFormStep,
+  MultiChoiceStep,
+  QuantityMode,
+  QuantityStep,
+} from '@/components/sections/guided-form-types';
 import { getDictionary } from '@/i18n';
 
 /*
@@ -11,7 +16,9 @@ export const UNKNOWN = 'unknown';
 export type Answer =
   | { kind: 'choice'; value: string }
   /** `mode` : mode de mesure choisi, ou `UNKNOWN` ; `amount` : saisie brute. */
-  | { kind: 'quantity'; mode: string; amount: string };
+  | { kind: 'quantity'; mode: string; amount: string }
+  /** Cases cochées (aucune possible). */
+  | { kind: 'multi'; values: ReadonlyArray<string> };
 
 export type Answers = Readonly<Record<string, Answer | undefined>>;
 
@@ -35,6 +42,7 @@ export function formatAmount(value: number, mode: QuantityMode): string {
 /** Message d'erreur de l'étape, ou `null` si la réponse permet de continuer. */
 export function validateStep(step: GuidedFormStep, answer: Answer | undefined): string | null {
   const t = getDictionary().guidedForm;
+  if (step.kind === 'multi') return null;
   if (!answer) return t.required;
   if (step.kind === 'choice') {
     return answer.kind === 'choice' && step.options.some((option) => option.value === answer.value)
@@ -42,8 +50,8 @@ export function validateStep(step: GuidedFormStep, answer: Answer | undefined): 
       : t.required;
   }
   if (answer.kind !== 'quantity') return t.required;
-  if (answer.mode === UNKNOWN) return null;
-  const mode = step.modes.find((item) => item.value === answer.mode);
+  if (answer.mode === UNKNOWN) return step.unknownLabel ? null : t.required;
+  const mode = quantityMode(step, answer);
   if (!mode) return t.required;
   const value = parseAmount(answer.amount);
   return value !== null && value >= 1 && value <= mode.max
@@ -51,9 +59,30 @@ export function validateStep(step: GuidedFormStep, answer: Answer | undefined): 
     : t.invalidNumber(numberFormat.format(mode.max));
 }
 
+/** Mode de mesure retenu : celui choisi, ou le seul proposé quand il n'y a pas de choix à faire. */
+export function quantityMode(step: QuantityStep, answer: Answer | undefined): QuantityMode | undefined {
+  const chosen = answer?.kind === 'quantity' ? answer.mode : '';
+  if (!chosen && step.modes.length === 1 && !step.unknownLabel) return step.modes[0];
+  return step.modes.find((item) => item.value === chosen);
+}
+
+/** Cases cochées qui existent encore dans l'étape (la liste peut changer avec une réponse précédente). */
+export function selectedValues(step: MultiChoiceStep, answer: Answer | undefined): string[] {
+  if (answer?.kind !== 'multi') return [];
+  return step.options.filter((option) => answer.values.includes(option.value)).map((option) => option.value);
+}
+
 /** Réponse lisible, pour le récapitulatif et le message WhatsApp. */
 export function answerLabel(step: GuidedFormStep, answer: Answer | undefined): string {
   const t = getDictionary().guidedForm;
+  if (step.kind === 'multi') {
+    const values = selectedValues(step, answer);
+    if (!values.length) return step.noneLabel;
+    return step.options
+      .filter((option) => values.includes(option.value))
+      .map((option) => option.label)
+      .join(', ');
+  }
   if (!answer) return t.notAnswered;
   if (step.kind === 'choice') {
     return (
@@ -62,8 +91,8 @@ export function answerLabel(step: GuidedFormStep, answer: Answer | undefined): s
     );
   }
   if (answer.kind !== 'quantity') return t.notAnswered;
-  if (answer.mode === UNKNOWN) return step.unknownLabel;
-  const mode = step.modes.find((item) => item.value === answer.mode);
+  if (answer.mode === UNKNOWN) return step.unknownLabel ?? t.notAnswered;
+  const mode = quantityMode(step, answer);
   const value = parseAmount(answer.amount);
   if (!mode || value === null) return t.notAnswered;
   return `${mode.label} : ${formatAmount(value, mode)}`;

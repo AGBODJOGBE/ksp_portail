@@ -1,10 +1,91 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { immobilierContent } from '@/features/realestate';
-import { nettoyageContent } from '@/features/cleaning';
+import type { GuidedFormContent } from './guided-form-types';
 import { GuidedForm } from './guided-form';
 import { answerLabel, parseAmount, summaryMessage, validateStep } from './guided-form-logic';
 
-const simulator = nettoyageContent.simulator.form;
+/** Formulaire guidé à étapes fixes (premier simulateur du Nettoyage, avant son branchement sur la gateway). */
+const simulator: GuidedFormContent = {
+  id: 'nettoyage',
+  label: 'Simulateur de prestation de nettoyage',
+  steps: [
+    {
+      kind: 'choice',
+      id: 'prestation',
+      name: 'Prestation',
+      title: 'Quelle prestation vous intéresse ?',
+      options: [
+        { value: 'bureaux', label: 'Nettoyage de bureaux' },
+        { value: 'domicile', label: 'Nettoyage à domicile' },
+        { value: 'fin-de-chantier', label: 'Nettoyage de fin de chantier' },
+        { value: 'vidange', label: 'Vidange' },
+        { value: 'desinsectisation', label: 'Désinsectisation' },
+      ],
+    },
+    {
+      kind: 'choice',
+      id: 'locaux',
+      name: 'Locaux',
+      title: 'Quel type de locaux ?',
+      hint: 'Pour les entreprises, une visite technique est prévue avant le devis.',
+      options: [
+        { value: 'appartement', label: 'Appartement' },
+        { value: 'maison', label: 'Maison ou villa' },
+        { value: 'bureau', label: 'Bureaux' },
+        { value: 'commerce', label: 'Commerce ou local recevant du public' },
+        { value: 'entrepot', label: 'Entrepôt ou local technique' },
+        { value: 'autre', label: 'Autre' },
+      ],
+    },
+    {
+      kind: 'quantity',
+      id: 'taille',
+      name: 'Taille',
+      title: 'Quelle est la taille des locaux ?',
+      hint: 'Une valeur approximative suffit. Vous pourrez la préciser avec notre équipe.',
+      modes: [
+        {
+          value: 'surface',
+          label: 'Surface',
+          inputLabel: 'Surface approximative',
+          format: 'number',
+          unit: 'm²',
+          max: 100000,
+        },
+        {
+          value: 'pieces',
+          label: 'Nombre de pièces',
+          inputLabel: 'Nombre de pièces',
+          format: 'number',
+          unit: 'pièces',
+          max: 500,
+        },
+      ],
+      unknownLabel: 'Je ne sais pas encore',
+    },
+    {
+      kind: 'choice',
+      id: 'frequence',
+      name: 'Fréquence',
+      title: 'À quelle fréquence ?',
+      options: [
+        { value: 'ponctuelle', label: 'Une seule fois' },
+        { value: 'hebdomadaire', label: 'Chaque semaine' },
+        { value: 'mensuelle', label: 'Chaque mois' },
+        { value: 'a-definir', label: 'À définir ensemble' },
+      ],
+    },
+  ],
+  summaryName: 'Récapitulatif',
+  summaryTitle: 'Votre demande',
+  summaryHint: 'Vérifiez vos réponses : vous pouvez encore les modifier.',
+  result: {
+    title: 'Estimation bientôt disponible',
+    text: 'Le calcul du prix en ligne arrive prochainement. En attendant, demandez un devis avec ces informations : notre équipe vous répond avec un prix adapté à vos locaux.',
+    actions: [{ kind: 'contact', label: 'Demander un devis', subject: 'nettoyage-devis' }],
+    whatsappIntro: 'Bonjour KSP, je souhaite un devis de nettoyage :',
+  },
+};
 
 function renderSimulator(whatsappNumber?: string) {
   return render(

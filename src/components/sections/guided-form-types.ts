@@ -2,8 +2,8 @@ import type { PageAction } from './types';
 
 /*
  * Formulaire guidé par étapes (simulateur de nettoyage, demande de devis immobilier).
- * Le front ne fait que recueillir les réponses : aucun prix n'est calculé ici. Le prix viendra de la
- * gateway quand ses contrats seront définis ; d'ici là, l'écran final invite à demander un devis.
+ * Le front ne fait que recueillir les réponses : aucun prix n'est calculé ici. L'écran final est soit
+ * fourni par la fonctionnalité (estimation de la gateway), soit une invitation à demander un devis.
  */
 
 export type ChoiceOption = { value: string; label: string; hint?: string };
@@ -17,6 +17,19 @@ export type ChoiceStep = {
   title: string;
   hint?: string;
   options: ReadonlyArray<ChoiceOption>;
+};
+
+/** Plusieurs réponses possibles, aucune obligatoire (cases à cocher). */
+export type MultiChoiceStep = {
+  kind: 'multi';
+  id: string;
+  /** Nom court de l'étape (liste des étapes, récapitulatif). */
+  name: string;
+  title: string;
+  hint?: string;
+  options: ReadonlyArray<ChoiceOption>;
+  /** Réponse affichée quand rien n'est coché (« Aucune option »). */
+  noneLabel: string;
 };
 
 export type QuantityMode = {
@@ -41,10 +54,11 @@ export type QuantityStep = {
   title: string;
   hint?: string;
   modes: ReadonlyArray<QuantityMode>;
-  unknownLabel: string;
+  /** Choix « Je ne sais pas encore » ; absent, la quantité est obligatoire. */
+  unknownLabel?: string;
 };
 
-export type GuidedFormStep = ChoiceStep | QuantityStep;
+export type GuidedFormStep = ChoiceStep | MultiChoiceStep | QuantityStep;
 
 export type GuidedFormContent = {
   /** Préfixe des identifiants (plusieurs formulaires peuvent coexister). */
@@ -56,10 +70,11 @@ export type GuidedFormContent = {
   summaryName: string;
   summaryTitle: string;
   summaryHint: string;
+  /** Écran final par défaut ; sans titre, la fonctionnalité fournit le sien (`renderResult`). */
   result: {
-    title: string;
-    text: string;
-    actions: ReadonlyArray<PageAction>;
+    title?: string;
+    text?: string;
+    actions?: ReadonlyArray<PageAction>;
     /** Première ligne du message WhatsApp prérempli, suivie du récapitulatif des réponses. */
     whatsappIntro: string;
   };

@@ -28,7 +28,7 @@ export function GuidedFormSection({
       <div className="reveal mt-10 lg:mt-12">
         <GuidedForm
           content={form}
-          resultActions={<PageActions actions={form.result.actions} />}
+          resultActions={<PageActions actions={form.result.actions ?? []} />}
           whatsappNumber={publicEnv.whatsappNumber}
         />
       </div>
