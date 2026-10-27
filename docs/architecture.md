@@ -27,18 +27,18 @@ src/
 └── i18n/                    textes de l'interface
 ```
 
-| Dossier                     | Rôle                                                                                                                                                                                        | Portée                                            |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `app/`                      | Une route = un dossier. La page assemble des sections et des contenus importés ; elle ne calcule rien. Les tests de routes (`metiers.test.tsx`) y restent.                                  | Commun                                            |
-| `features/<domaine>/`       | Tout ce qui est propre à un domaine, de la page publique à l'espace connecté.                                                                                                               | Commun (la liste des domaines est propre au site) |
-| `components/ui/`            | Briques sans connaissance du site : bouton, carte, section, titres, badge, emplacement « à venir », icônes, logo, motif, inspecteur de jetons de `/charte`. N'importe que `ui` et `lib`.    | Commun, identique dans les quatre fronts          |
-| `components/layout/`        | Cadre propre au site. Reçoit les éléments d'une fonctionnalité par ses propriétés (`children`, emplacements), ne les importe pas.                                                           | Commun (le contenu est propre au site)            |
-| `components/sections/`      | Sections génériques des pages métiers (bandeau d'ouverture, offres, étapes, FAQ, appel à l'action, galerie, emplacements « à venir »), boutons d'action (`PageAction`) et formulaire guidé. | Propre au portail                                 |
-| `lib/`                      | Code technique sans interface propre au site : `api` (seul endroit où `fetch` est permis ; session en mémoire et son hook `useSession`), `seo`, `cn`, `typography`, `color`.                | Commun                                            |
-| `config/`                   | `env.ts` (zod), `site.ts`, `navigation.ts` ; pour le portail, `metiers.ts` (les six métiers : identifiants, adresses, libellés).                                                            | Commun (`metiers.ts` propre au portail)           |
-| `i18n/`                     | Textes de l'interface (français ; anglais prévu).                                                                                                                                           | Commun                                            |
-| `app/fonts/`                | Chargement de la police des titres (`next/font/local`, F-014) ; reste à côté du layout racine qui l'utilise.                                                                                | Commun                                            |
-| `scripts/first-load-js.mjs` | Mesure du poids JavaScript par page (`pnpm size`).                                                                                                                                          | Commun                                            |
+| Dossier                     | Rôle                                                                                                                                                                                                                                                                                                             | Portée                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `app/`                      | Une route = un dossier. La page assemble des sections et des contenus importés ; elle ne calcule rien. Les tests de routes (`metiers.test.tsx`) y restent.                                                                                                                                                       | Commun                                            |
+| `features/<domaine>/`       | Tout ce qui est propre à un domaine, de la page publique à l'espace connecté.                                                                                                                                                                                                                                    | Commun (la liste des domaines est propre au site) |
+| `components/ui/`            | Briques sans connaissance du site : bouton, carte, section, titres, badge, emplacement « à venir », icônes, logo, motif, inspecteur de jetons de `/charte`. N'importe que `ui` et `lib`.                                                                                                                         | Commun, identique dans les quatre fronts          |
+| `components/layout/`        | Cadre propre au site. Reçoit les éléments d'une fonctionnalité par ses propriétés (`children`, emplacements), ne les importe pas.                                                                                                                                                                                | Commun (le contenu est propre au site)            |
+| `components/sections/`      | Sections génériques des pages métiers (bandeau d'ouverture, offres, étapes, FAQ, appel à l'action, galerie, emplacements « à venir »), boutons d'action (`PageAction`) et formulaire guidé.                                                                                                                      | Propre au portail                                 |
+| `lib/`                      | Code technique sans interface propre au site : `api` (seul endroit où `fetch` est permis ; session en mémoire et son hook `useSession`), `format` (FCFA, dates à l'heure du Bénin), `use-resource` et `use-paged-list` (lectures et listes à curseur des espaces connectés), `seo`, `cn`, `typography`, `color`. | Commun                                            |
+| `config/`                   | `env.ts` (zod), `site.ts`, `navigation.ts` ; pour le portail, `metiers.ts` (les six métiers : identifiants, adresses, libellés).                                                                                                                                                                                 | Commun (`metiers.ts` propre au portail)           |
+| `i18n/`                     | Textes de l'interface (français ; anglais prévu).                                                                                                                                                                                                                                                                | Commun                                            |
+| `app/fonts/`                | Chargement de la police des titres (`next/font/local`, F-014) ; reste à côté du layout racine qui l'utilise.                                                                                                                                                                                                     | Commun                                            |
+| `scripts/first-load-js.mjs` | Mesure du poids JavaScript par page (`pnpm size`).                                                                                                                                                                                                                                                               | Commun                                            |
 
 ### Une fonctionnalité
 
@@ -54,20 +54,23 @@ features/<domaine>/
 └── components/      interface propre au domaine, tests à côté
 ```
 
+**Écrans client d'une fonctionnalité : relais paresseux.** Next embarque dans une page tous les composants client atteints par ses imports, même ceux qu'elle n'affiche pas. Une fonctionnalité qui a plusieurs écrans client les exporte donc par `components/lazy.tsx` (`next/dynamic`) : importer `@/features/cleaning` pour un texte ou une adresse ne télécharge aucun écran (mesure : `/mon-espace` passait de 204 à 226 Ko sans ce relais, 211 Ko avec).
+
 **Un fichier n'existe que s'il a du contenu.** Aujourd'hui, les fonctionnalités du portail n'ont qu'un `content.ts` (et des composants pour l'accueil) : les autres fichiers apparaîtront avec les contrats de la gateway.
 
 Le nom d'une fonctionnalité est celui du service du backend, en anglais (le code est en anglais, les adresses en français) :
 
-| Route                       | Fonctionnalité        | Service du backend | Contenu actuel                                                                       |
-| --------------------------- | --------------------- | ------------------ | ------------------------------------------------------------------------------------ |
-| `/`                         | `features/home`       | — (CMS)            | contenus et sections de l'accueil                                                    |
-| `/recouvrement`             | `features/recovery`   | recovery           | page publique                                                                        |
-| `/nettoyage`                | `features/cleaning`   | cleaning           | page publique et questions du simulateur                                             |
-| `/immobilier`               | `features/realestate` | realestate         | page publique et questions de la demande de devis                                    |
-| `/impression`               | `features/print`      | print              | page publique (renvoi vers KSP Print)                                                |
-| `/marketplace`              | `features/catalog`    | catalog            | page publique (renvoi vers KSP Shop)                                                 |
-| `/livraison`                | `features/delivery`   | delivery           | page publique                                                                        |
-| `/connexion`, `/mon-espace` | `features/identity`   | identity           | connexion par téléphone, profil, garde et accueil de « Mon espace KSP », déconnexion |
+| Route                                                       | Fonctionnalité        | Service du backend | Contenu actuel                                                                                                    |
+| ----------------------------------------------------------- | --------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `/`                                                         | `features/home`       | — (CMS)            | contenus et sections de l'accueil                                                                                 |
+| `/recouvrement`                                             | `features/recovery`   | recovery           | page publique                                                                                                     |
+| `/nettoyage`, `/nettoyage/devis`, `/mon-espace/nettoyage/…` | `features/cleaning`   | cleaning           | page publique, simulateur branché, demande de devis, « Mes prestations de nettoyage » (demandes, devis, missions) |
+| `/immobilier`                                               | `features/realestate` | realestate         | page publique et questions de la demande de devis                                                                 |
+| `/impression`                                               | `features/print`      | print              | page publique (renvoi vers KSP Print)                                                                             |
+| `/marketplace`                                              | `features/catalog`    | catalog            | page publique (renvoi vers KSP Shop)                                                                              |
+| `/livraison`                                                | `features/delivery`   | delivery           | page publique                                                                                                     |
+| `/connexion`, `/mon-espace`                                 | `features/identity`   | identity           | connexion par téléphone, profil, garde et accueil de « Mon espace KSP », déconnexion                              |
+| `/mon-espace/factures`                                      | `features/billing`    | billing            | « Mes factures » : liste et détail                                                                                |
 
 À venir dans le portail : `contact`, `about`, `realisations`, `news` (contenus du CMS), puis pour « Mon espace KSP » la suite d'`identity` (sécurité, sessions, organisation), `billing` (factures), `payment`, `document` (documents à signer), `notification`, `order` (commandes et courses) — et les pages connectées de `recovery`, `cleaning`, `realestate`, `delivery` dans leur propre fonctionnalité.
 
@@ -140,6 +143,8 @@ Mesure du 19 octobre 2026 (identique avant et après la réorganisation F-012) :
 Le socle commun (React, Next, routeur, menus de l'en-tête) pèse 174,8 Ko : chaque page n'ajoute que ses composants client.
 
 Mesure du 21 octobre 2026, après la connexion par téléphone : socle 177,1 Ko (+2,3 Ko : lien de compte de l'en-tête, magasin de session, textes de la connexion) ; `/` 182,6 Ko ; `/recouvrement`, `/impression`, `/livraison` 185,8 Ko ; `/nettoyage` 182,3 Ko ; `/immobilier` 188,5 Ko ; `/connexion` et `/mon-espace` 204,2 Ko (budget « espace connecté » : 215 Ko).
+
+Mesure du 27 octobre 2026, après le parcours du Nettoyage et « Mes factures » : socle inchangé (177,1 Ko) ; `/nettoyage` 183,3 Ko (simulateur branché ; l'estimation est chargée à la dernière étape) ; `/nettoyage/devis` et `/mon-espace/nettoyage/demandes` 210,0 Ko ; `/mon-espace` 211,1 Ko ; `/mon-espace/factures` 206,6 Ko. Les détails (`…/[id]`) sont rendus à la demande et ne figurent pas dans la mesure : ils chargent les mêmes briques.
 
 Budgets par type de page (validés le 19 octobre 2026) :
 

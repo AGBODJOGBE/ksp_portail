@@ -39,6 +39,23 @@ La connexion par téléphone (`/connexion`) et « Mon espace KSP » (`/mon-espac
 
 Puis `pnpm dev` et ouvrir http://localhost:3010/mon-espace : sans session, le portail renvoie vers la connexion, puis revient à la page demandée. Le jeton d'accès reste en mémoire (perdu au rechargement, aussitôt repris grâce au cookie) ; aucun jeton n'est écrit dans le stockage du navigateur.
 
+### Tester le Nettoyage contre la gateway locale
+
+Le simulateur (`/nettoyage#simulateur`), la demande de devis (`/nettoyage/devis`), « Mes prestations de nettoyage » (`/mon-espace/nettoyage/demandes`) et « Mes factures » (`/mon-espace/factures`) appellent la gateway depuis le navigateur.
+
+1. **Services.** En plus d'identity, notification et gateway (ci-dessus), lancer **cleaning** et **billing** dans `ksp_back` (voir leurs README).
+2. **Prestations et prix.** La grille est vide tant que l'équipe Nettoyage ne l'a pas remplie au back-office : le simulateur répond alors « Prix bientôt disponible ». Pour essayer avec des prix, charger les données de démonstration de `services/cleaning` (`prisma/demo/demo-data.sql`, **prix inventés**, voir le README du service).
+3. **Parcours.** Ouvrir http://localhost:3010/nettoyage#simulateur, répondre aux questions : la fourchette s'affiche en FCFA. « Demander un devis » mène à la connexion, puis revient à la demande avec la simulation (elle voyage dans l'adresse). Choisir une date à partir de J+2 : la gateway refuse un délai plus court.
+4. **Côté KSP.** La visite des lieux, le devis et les paiements se font au back-office (ou par les routes `/api/v1/admin/cleaning/*`). Recharger ensuite la demande dans « Mes prestations » pour accepter le devis : la mission apparaît.
+5. **Zones.** Une commune hors des zones desservies (Cotonou, Porto-Novo, Abomey-Calavi au lancement) reçoit une estimation, mais la demande de devis est refusée (`CLEANING_ZONE_NOT_COVERED`).
+
+Sans gateway, `pnpm build` puis `pnpm test:e2e` joue tout le parcours contre une gateway simulée (`e2e/nettoyage.spec.ts`, `e2e/support/cleaning.ts`). Sous Windows, si le serveur lancé par Playwright ne démarre pas (`PORT=… pnpm start` est une commande POSIX), lancer le site construit à la main sur un port libre puis `PORT=3110 pnpm test:e2e` (le serveur déjà lancé est réutilisé) :
+
+```bash
+cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/
+PORT=3110 node .next/standalone/server.js
+```
+
 ## Commandes
 
 | Commande                                             | Rôle                                                          |
