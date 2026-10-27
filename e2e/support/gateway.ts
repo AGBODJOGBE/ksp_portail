@@ -2,6 +2,7 @@ import type { Page, Route } from '@playwright/test';
 
 /**
  * Gateway simulée par interception des requêtes du navigateur : routes `/api/v1/identity/*` du contrat
+ * (et celles d'autres services passées dans `routes`)
  * `ksp-api.v1.yaml`, en-têtes CORS avec cookies comme la vraie gateway, et état de session côté
  * « serveur » (le cookie de renouvellement n'est pas reproduit : la session vit dans ce simulateur).
  */
@@ -18,6 +19,18 @@ export interface GatewayOptions {
   requestOtp?: { status: number; body: unknown };
   /** Session déjà ouverte (cookie de renouvellement valide). */
   signedIn?: boolean;
+  /** Routes d'un autre service (Nettoyage…) : réponse, ou `undefined` pour laisser la main. */
+  routes?: (request: ExtraRequest) => { status: number; body: unknown } | undefined;
+}
+
+export interface ExtraRequest {
+  method: string;
+  path: string;
+  url: URL;
+  body: Record<string, unknown> | undefined;
+  headers: Record<string, string>;
+  /** Jeton d'accès valide et session ouverte. */
+  authorized: boolean;
 }
 
 export interface FakeGateway {
@@ -90,6 +103,15 @@ export async function mockGateway(page: Page, options: GatewayOptions = {}): Pro
     );
     const reply = (status: number, json: unknown) => route.fulfill({ status, headers: cors, json });
     const authorized = request.headers().authorization === 'Bearer jeton-acces-e2e' && state.signedIn;
+    const extra = options.routes?.({
+      method: request.method(),
+      path,
+      url: new URL(request.url()),
+      body,
+      headers: request.headers(),
+      authorized,
+    });
+    if (extra) return reply(extra.status, extra.body);
 
     switch (`${request.method()} ${path}`) {
       case 'POST /api/v1/identity/otp/request':

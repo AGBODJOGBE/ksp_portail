@@ -71,7 +71,10 @@ const METIER_PAGES = [
   },
   {
     path: '/nettoyage',
-    links: { 'Simuler ma prestation': '#simulateur', 'Demander un devis': '/contact?sujet=nettoyage-devis' },
+    links: {
+      'Simuler ma prestation': '#simulateur',
+      'Mes prestations de nettoyage': '/mon-espace/nettoyage/demandes',
+    },
   },
   {
     path: '/immobilier',
@@ -132,29 +135,4 @@ test('les liens vers KSP Print et KSP Shop pointent vers les sites de l’écosy
   ).toHaveAttribute('href', /^https?:\/\//);
 });
 
-test('le simulateur de nettoyage se parcourt jusqu’au récapitulatif sans afficher de prix', async ({
-  page,
-}) => {
-  await page.goto('/nettoyage');
-  await page
-    .getByRole('main')
-    .getByRole('link', { name: /Simuler ma prestation/ })
-    .first()
-    .click();
-  const form = page.getByRole('form', { name: 'Simulateur de prestation de nettoyage' });
-  await expect(form).toBeInViewport();
-  const submit = form.locator('button[type=submit]');
-  for (let step = 0; step < 4; step++) {
-    await form.locator('input[type=radio]').first().check();
-    const amount = form.locator('input[type=text]');
-    if (await amount.count()) await amount.fill('120');
-    await submit.click();
-  }
-  await expect(form.getByRole('heading', { name: 'Votre demande' })).toBeFocused();
-  await expect(form).toContainText('Estimation bientôt disponible');
-  await expect(form).not.toContainText(/FCFA|F\s?CFA/);
-  await expect(form.getByRole('link', { name: /Demander un devis/ })).toHaveAttribute(
-    'href',
-    '/contact?sujet=nettoyage-devis',
-  );
-});
+// Le simulateur de nettoyage, branché sur la gateway, est parcouru dans nettoyage.spec.ts (gateway simulée).

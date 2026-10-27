@@ -1,13 +1,13 @@
 import { CtaBand } from '@/components/sections/cta-band';
 import { FaqSection } from '@/components/sections/faq-section';
-import { GuidedFormSection } from '@/components/sections/guided-form-section';
+
 import { MetierHero } from '@/components/sections/metier-hero';
 import { OffersSection } from '@/components/sections/offers-section';
 import { OtherMetiers } from '@/components/sections/other-metiers';
 import { PageActions } from '@/components/sections/page-actions';
 import { StepsSection } from '@/components/sections/steps-section';
 import { getMetier } from '@/config/metiers';
-import { SIMULATOR_ID, nettoyageContent as content } from '@/features/cleaning';
+import { CleaningSimulatorSection, SIMULATOR_ID, nettoyageContent as content } from '@/features/cleaning';
 import { BreadcrumbJsonLd } from '@/lib/seo/json-ld';
 import { pageMetadata } from '@/lib/seo/metadata';
 
@@ -15,14 +15,18 @@ const metier = getMetier('nettoyage');
 
 export const metadata = pageMetadata({ ...content.metadata, path: metier.href });
 
-/** Nettoyage et assainissement (phase 1) : prestations, simulateur (interface), étapes (parcours P2), FAQ. */
+/** Nettoyage et assainissement (phase 1) : prestations, simulateur branché sur la gateway, étapes (parcours P2), FAQ. */
 export default function NettoyagePage() {
   const { booking } = content.steps;
   return (
     <>
       <MetierHero content={content.hero} />
       <OffersSection id="prestations" intro={content.services.intro} offers={content.services.items} />
-      <GuidedFormSection id={SIMULATOR_ID} intro={content.simulator.intro} form={content.simulator.form} />
+      <CleaningSimulatorSection
+        id={SIMULATOR_ID}
+        intro={content.simulator.intro}
+        form={content.simulator.form}
+      />
       <StepsSection
         id="etapes"
         intro={content.steps.intro}

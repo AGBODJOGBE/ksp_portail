@@ -10,7 +10,13 @@ import {
   IconWhatsApp,
 } from '@/components/ui/icons';
 import { Button, ButtonArrow, buttonClasses } from '@/components/ui/button';
-import type { ChoiceStep, GuidedFormContent, QuantityStep } from '@/components/sections/guided-form-types';
+import type {
+  ChoiceStep,
+  GuidedFormContent,
+  GuidedFormStep,
+  MultiChoiceStep,
+  QuantityStep,
+} from '@/components/sections/guided-form-types';
 import { getDictionary } from '@/i18n';
 import { cn } from '@/lib/cn';
 import { frenchSpacing } from '@/lib/typography';
@@ -19,14 +25,16 @@ import {
   type Answers,
   UNKNOWN,
   answerLabel,
+  quantityMode,
+  selectedValues,
   summaryMessage,
   validateStep,
 } from './guided-form-logic';
 
 /*
  * Formulaire guidé par étapes : une question par écran, retour possible, récapitulatif modifiable.
- * Rien n'est envoyé (aucun appel réseau) et aucun prix n'est calculé : l'écran final renvoie vers
- * le devis et WhatsApp, en attendant que la gateway fournisse l'estimation.
+ * Le formulaire n'envoie rien et ne calcule aucun prix : l'écran final est soit fourni par la
+ * fonctionnalité (`renderResult`, estimation de la gateway), soit un renvoi vers le devis et WhatsApp.
  */
 
 const OPTION = cn(
@@ -78,6 +86,54 @@ function ChoiceOptions({
   );
 }
 
+function MultiOptions({
+  step,
+  name,
+  answer,
+  onChange,
+  describedBy,
+  labelledBy,
+}: {
+  step: MultiChoiceStep;
+  name: string;
+  answer: Answer | undefined;
+  onChange: (answer: Answer) => void;
+  describedBy: string | undefined;
+  labelledBy: string;
+}) {
+  const selected = selectedValues(step, answer);
+  function toggle(value: string, checked: boolean) {
+    onChange({
+      kind: 'multi',
+      values: checked ? [...selected, value] : selected.filter((item) => item !== value),
+    });
+  }
+  return (
+    <fieldset aria-labelledby={labelledBy} aria-describedby={describedBy} className="mt-6">
+      <div className="grid gap-3 sm:grid-cols-2">
+        {step.options.map((option) => (
+          <label key={option.value} className={OPTION}>
+            <input
+              type="checkbox"
+              name={name}
+              value={option.value}
+              checked={selected.includes(option.value)}
+              onChange={(event) => toggle(option.value, event.target.checked)}
+              className={RADIO}
+            />
+            <span>
+              <span className="text-ink block font-semibold">{option.label}</span>
+              {option.hint ? (
+                <span className="text-small text-ink-muted mt-0.5 block">{option.hint}</span>
+              ) : null}
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
 function QuantityInput({
   step,
   name,
@@ -97,30 +153,34 @@ function QuantityInput({
 }) {
   const inputId = useId();
   const current = answer?.kind === 'quantity' ? answer : { kind: 'quantity' as const, mode: '', amount: '' };
-  const mode = step.modes.find((item) => item.value === current.mode);
+  const mode = quantityMode(step, answer);
+  // Un seul mode de mesure et pas de « Je ne sais pas » : le champ s'affiche directement.
+  const single = step.modes.length === 1 && !step.unknownLabel;
   const choices = [
     ...step.modes.map((item) => ({ value: item.value, label: item.label })),
-    { value: UNKNOWN, label: step.unknownLabel },
+    ...(step.unknownLabel ? [{ value: UNKNOWN, label: step.unknownLabel }] : []),
   ];
   return (
     <>
-      <fieldset aria-labelledby={labelledBy} aria-describedby={describedBy} className="mt-6">
-        <div className="grid gap-3 sm:grid-cols-2">
-          {choices.map((choice) => (
-            <label key={choice.value} className={OPTION}>
-              <input
-                type="radio"
-                name={name}
-                value={choice.value}
-                checked={current.mode === choice.value}
-                onChange={() => onChange({ ...current, mode: choice.value })}
-                className={RADIO}
-              />
-              <span className="text-ink font-semibold">{choice.label}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      {single ? null : (
+        <fieldset aria-labelledby={labelledBy} aria-describedby={describedBy} className="mt-6">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {choices.map((choice) => (
+              <label key={choice.value} className={OPTION}>
+                <input
+                  type="radio"
+                  name={name}
+                  value={choice.value}
+                  checked={current.mode === choice.value}
+                  onChange={() => onChange({ ...current, mode: choice.value })}
+                  className={RADIO}
+                />
+                <span className="text-ink font-semibold">{choice.label}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
       {mode ? (
         <div className="swap-in mt-6 max-w-sm">
           <label htmlFor={inputId} className="text-ink block font-semibold">
@@ -158,12 +218,18 @@ export function GuidedForm({
   content,
   resultActions,
   whatsappNumber,
+  stepsFor,
+  renderResult,
 }: {
   content: GuidedFormContent;
-  /** Boutons de l'écran final (rendus par le serveur : devis, contact). */
-  resultActions: ReactNode;
+  /** Boutons de l'écran final par défaut (rendus par le serveur : devis, contact). */
+  resultActions?: ReactNode;
   /** Numéro WhatsApp configuré ; sans numéro, pas de bouton WhatsApp. */
   whatsappNumber?: string;
+  /** Étapes qui dépendent des réponses (options d'une prestation) ; sinon `content.steps`. */
+  stepsFor?: (answers: Answers) => ReadonlyArray<GuidedFormStep>;
+  /** Écran final fourni par la fonctionnalité (estimation), à la place de l'écran par défaut. */
+  renderResult?: (answers: Answers) => ReactNode;
 }) {
   const t = getDictionary().guidedForm;
   const baseId = useId();
@@ -173,7 +239,7 @@ export function GuidedForm({
   const [answers, setAnswers] = useState<Answers>({});
   const [error, setError] = useState<string | null>(null);
 
-  const { steps } = content;
+  const steps = stepsFor ? stepsFor(answers) : content.steps;
   const total = steps.length + 1;
   const isSummary = index === steps.length;
   const step = steps[index];
@@ -321,6 +387,16 @@ export function GuidedForm({
               labelledBy={titleId}
             />
           ) : null}
+          {step?.kind === 'multi' ? (
+            <MultiOptions
+              step={step}
+              name={`${baseId}-${step.id}`}
+              answer={answers[step.id]}
+              onChange={setAnswer}
+              describedBy={describedBy}
+              labelledBy={titleId}
+            />
+          ) : null}
           {step?.kind === 'quantity' ? (
             <QuantityInput
               step={step}
@@ -365,32 +441,54 @@ export function GuidedForm({
                   </div>
                 ))}
               </dl>
-              <div
-                data-placeholder=""
-                className="rounded-card border-accent-muted bg-accent-soft mt-8 border border-dashed p-5 sm:p-6"
-              >
-                <p className="text-accent-ink inline-flex items-center gap-2 text-xs font-semibold tracking-wide uppercase">
-                  <IconClock className="size-4" />À venir
-                </p>
-                <p className="font-display text-ink mt-3 text-xl font-semibold">
-                  {frenchSpacing(content.result.title)}
-                </p>
-                <p className="text-ink-muted mt-2">{frenchSpacing(content.result.text)}</p>
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                  {resultActions}
+              {renderResult ? (
+                <div className="mt-8 grid gap-4">
+                  {renderResult(answers)}
                   {whatsappHref ? (
                     <a
                       href={whatsappHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={buttonClasses({ variant: 'secondary', size: 'lg' })}
+                      className={buttonClasses({
+                        variant: 'secondary',
+                        size: 'lg',
+                        className: 'sm:justify-self-start',
+                      })}
                     >
                       <IconWhatsApp className="text-whatsapp size-5" />
                       {getDictionary().common.contactWhatsapp}
                     </a>
                   ) : null}
                 </div>
-              </div>
+              ) : null}
+              {!renderResult && content.result.title ? (
+                <div
+                  data-placeholder=""
+                  className="rounded-card border-accent-muted bg-accent-soft mt-8 border border-dashed p-5 sm:p-6"
+                >
+                  <p className="text-accent-ink inline-flex items-center gap-2 text-xs font-semibold tracking-wide uppercase">
+                    <IconClock className="size-4" />À venir
+                  </p>
+                  <p className="font-display text-ink mt-3 text-xl font-semibold">
+                    {frenchSpacing(content.result.title)}
+                  </p>
+                  <p className="text-ink-muted mt-2">{frenchSpacing(content.result.text ?? '')}</p>
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                    {resultActions}
+                    {whatsappHref ? (
+                      <a
+                        href={whatsappHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={buttonClasses({ variant: 'secondary', size: 'lg' })}
+                      >
+                        <IconWhatsApp className="text-whatsapp size-5" />
+                        {getDictionary().common.contactWhatsapp}
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
             </>
           ) : null}
         </div>

@@ -26,7 +26,7 @@ const PAGES: ReadonlyArray<{ path: string; Page: ComponentType; h1: RegExp; acti
     h1: /Des locaux propres et sains/,
     actions: [
       { name: 'Simuler ma prestation', href: '#simulateur' },
-      { name: 'Demander un devis', href: '/contact?sujet=nettoyage-devis' },
+      { name: 'Mes prestations de nettoyage', href: '/mon-espace/nettoyage/demandes' },
     ],
   },
   {

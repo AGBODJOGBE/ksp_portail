@@ -13,14 +13,19 @@ import type {
  * Page Nettoyage et assainissement (phase 1). Textes provisoires (à valider), prêts pour Payload CMS.
  * Parcours P2 de la spécification des fronts.
  *
- * Simulateur : interface seulement. La liste définitive des critères reste à valider avec l'équipe
- * Nettoyage, et le prix sera calculé par la gateway. Aucun prix ni aucune règle de calcul ici.
+ * Simulateur branché sur la gateway : les prestations, options et prix viennent du service cleaning
+ * (questions dans `texts.ts`, construites par `simulator-steps.ts`). Aucun prix ni aucune règle de calcul ici.
  */
 
-const quoteAction: PageAction = { kind: 'contact', label: 'Demander un devis', subject: 'nettoyage-devis' };
-const bookAction: PageAction = { kind: 'account', label: 'Réserver un créneau' };
-
 export const SIMULATOR_ID = 'simulateur';
+
+/** La demande de devis reprend la simulation : elle commence au simulateur. */
+const quoteAction: PageAction = { kind: 'link', label: 'Demander un devis', href: `#${SIMULATOR_ID}` };
+const bookAction: PageAction = {
+  kind: 'link',
+  label: 'Mes prestations de nettoyage',
+  href: '/mon-espace/nettoyage/demandes',
+};
 
 export const nettoyageContent = {
   metadata: {
@@ -32,7 +37,7 @@ export const nettoyageContent = {
     metierId: 'nettoyage',
     title: 'Des locaux propres et sains, sans y passer vos journées',
     lead: 'Bureaux, domicile, fin de chantier, vidange ou désinsectisation : décrivez vos locaux, recevez un devis, puis réservez et suivez la prestation depuis votre espace.',
-    actions: [{ kind: 'link', label: 'Simuler ma prestation', href: `#${SIMULATOR_ID}` }, quoteAction],
+    actions: [{ kind: 'link', label: 'Simuler ma prestation', href: `#${SIMULATOR_ID}` }, bookAction],
     highlightsTitle: 'Avec KSP Nettoyage',
     highlights: [
       'Simulation en décrivant vos locaux',
@@ -74,86 +79,17 @@ export const nettoyageContent = {
     intro: {
       eyebrow: 'Simulateur',
       title: 'Décrivez votre besoin en quelques questions',
-      lead: 'Quelques questions sur vos locaux et la prestation souhaitée. Rien n’est envoyé tant que vous ne nous contactez pas.',
+      lead: 'Quelques questions sur vos locaux et la prestation souhaitée, et vous obtenez une fourchette de prix indicative. Sans compte ni donnée personnelle.',
     } satisfies SectionIntro,
     form: {
       id: 'nettoyage',
       label: 'Simulateur de prestation de nettoyage',
-      steps: [
-        {
-          kind: 'choice',
-          id: 'prestation',
-          name: 'Prestation',
-          title: 'Quelle prestation vous intéresse ?',
-          options: [
-            { value: 'bureaux', label: 'Nettoyage de bureaux' },
-            { value: 'domicile', label: 'Nettoyage à domicile' },
-            { value: 'fin-de-chantier', label: 'Nettoyage de fin de chantier' },
-            { value: 'vidange', label: 'Vidange' },
-            { value: 'desinsectisation', label: 'Désinsectisation' },
-          ],
-        },
-        {
-          kind: 'choice',
-          id: 'locaux',
-          name: 'Locaux',
-          title: 'Quel type de locaux ?',
-          hint: 'Pour les entreprises, une visite technique est prévue avant le devis.',
-          options: [
-            { value: 'appartement', label: 'Appartement' },
-            { value: 'maison', label: 'Maison ou villa' },
-            { value: 'bureau', label: 'Bureaux' },
-            { value: 'commerce', label: 'Commerce ou local recevant du public' },
-            { value: 'entrepot', label: 'Entrepôt ou local technique' },
-            { value: 'autre', label: 'Autre' },
-          ],
-        },
-        {
-          kind: 'quantity',
-          id: 'taille',
-          name: 'Taille',
-          title: 'Quelle est la taille des locaux ?',
-          hint: 'Une valeur approximative suffit. Vous pourrez la préciser avec notre équipe.',
-          modes: [
-            {
-              value: 'surface',
-              label: 'Surface',
-              inputLabel: 'Surface approximative',
-              format: 'number',
-              unit: 'm²',
-              max: 100000,
-            },
-            {
-              value: 'pieces',
-              label: 'Nombre de pièces',
-              inputLabel: 'Nombre de pièces',
-              format: 'number',
-              unit: 'pièces',
-              max: 500,
-            },
-          ],
-          unknownLabel: 'Je ne sais pas encore',
-        },
-        {
-          kind: 'choice',
-          id: 'frequence',
-          name: 'Fréquence',
-          title: 'À quelle fréquence ?',
-          options: [
-            { value: 'ponctuelle', label: 'Une seule fois' },
-            { value: 'hebdomadaire', label: 'Chaque semaine' },
-            { value: 'mensuelle', label: 'Chaque mois' },
-            { value: 'a-definir', label: 'À définir ensemble' },
-          ],
-        },
-      ],
+      // Étapes construites à partir du catalogue de la gateway (simulator-steps.ts).
+      steps: [],
       summaryName: 'Récapitulatif',
       summaryTitle: 'Votre demande',
       summaryHint: 'Vérifiez vos réponses : vous pouvez encore les modifier.',
       result: {
-        title: 'Estimation bientôt disponible',
-        text: 'Le calcul du prix en ligne arrive prochainement. En attendant, demandez un devis avec ces informations : notre équipe vous répond avec un prix adapté à vos locaux.',
-        actions: [quoteAction],
         whatsappIntro: 'Bonjour KSP, je souhaite un devis de nettoyage :',
       },
     } satisfies GuidedFormContent,
@@ -162,7 +98,7 @@ export const nettoyageContent = {
     intro: {
       eyebrow: 'Comment ça marche',
       title: 'De la simulation au compte rendu',
-      lead: 'Chaque étape se suit depuis Mon espace KSP, jusqu’à la facture.',
+      lead: 'Chaque étape se suit depuis Mon espace KSP, dans « Mes prestations de nettoyage ».',
     } satisfies SectionIntro,
     items: [
       {
@@ -173,7 +109,7 @@ export const nettoyageContent = {
       {
         actor: 'client',
         title: 'Vous demandez un devis',
-        text: 'Pour les entreprises, une visite technique est planifiée afin de préparer un devis juste.',
+        text: 'Une visite des lieux est prévue avant le devis, afin de préparer un prix juste.',
       },
       {
         actor: 'ksp',
@@ -183,7 +119,7 @@ export const nettoyageContent = {
       {
         actor: 'client',
         title: 'Vous acceptez et réservez',
-        text: 'Vous acceptez le devis, payez l’acompte et choisissez votre créneau.',
+        text: 'Vous acceptez le devis, choisissez votre créneau et votre façon de payer.',
       },
       {
         actor: 'ksp',
@@ -198,7 +134,7 @@ export const nettoyageContent = {
     ] satisfies ReadonlyArray<Step>,
     booking: {
       title: 'Devis accepté ?',
-      text: 'Réservez votre créneau et payez l’acompte depuis Mon espace KSP.',
+      text: 'Choisissez votre créneau et votre façon de payer depuis Mon espace KSP.',
       action: bookAction,
     },
   },
@@ -206,22 +142,22 @@ export const nettoyageContent = {
     {
       question: 'Comment connaître le prix de ma prestation ?',
       answer:
-        'Le simulateur recueille la description de vos locaux ; le calcul du prix en ligne arrive prochainement. En attendant, demandez un devis : notre équipe vous répond avec un prix adapté.',
+        'Le simulateur vous donne une fourchette indicative à partir de la description de vos locaux. Le prix définitif figure dans le devis établi par KSP, après une visite des lieux.',
     },
     {
-      question: 'Pourquoi une visite technique pour les entreprises ?',
+      question: 'Pourquoi une visite des lieux avant le devis ?',
       answer:
-        'Les locaux professionnels varient beaucoup. La visite permet de préparer un devis qui correspond réellement à vos espaces et à vos contraintes.',
+        'Les locaux varient beaucoup. La visite permet de préparer un devis qui correspond réellement à vos espaces et à vos contraintes.',
     },
     {
       question: 'Intervenez-vous chez moi ?',
       answer:
-        'Indiquez votre adresse dans votre demande de devis : nous vous confirmons si nous intervenons dans votre zone.',
+        'KSP Nettoyage intervient aujourd’hui à Cotonou, Porto-Novo et Abomey-Calavi. Pour une autre commune, contactez-nous : nous vous préviendrons dès qu’elle sera desservie.',
     },
     {
-      question: 'Comment réserver et payer l’acompte ?',
+      question: 'Comment réserver et payer ?',
       answer:
-        'Une fois le devis accepté, vous choisissez votre créneau et payez l’acompte depuis Mon espace KSP.',
+        'En acceptant le devis depuis Mon espace KSP, vous choisissez votre créneau et votre façon de payer : acompte ou totalité, avant ou après la prestation, en espèces ou par Mobile Money.',
     },
     {
       question: 'Que se passe-t-il après la mission ?',
