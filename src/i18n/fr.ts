@@ -22,7 +22,8 @@ export const fr = {
     closeMenu: 'Fermer le menu',
   },
   account: {
-    soonTitle: 'Vos services arrivent bientôt',
+    servicesTitle: 'Vos services',
+    soonTitle: 'D’autres services arrivent bientôt',
     soonText:
       'Un seul compte pour suivre vos dossiers, commandes, factures et paiements, sur tous les sites du groupe.',
     greeting: (firstName: string | null) => (firstName ? `Bonjour ${firstName}` : 'Bonjour'),
