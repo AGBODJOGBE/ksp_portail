@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ApiError } from '@/lib/api';
 
 export interface Page<T> {
@@ -86,5 +86,31 @@ export function usePagedList<T>(
       if (cursor && !loadingMore) requestPage(cursor);
     },
     retry: () => requestPage(started && cursor ? cursor : undefined),
+  };
+}
+
+/**
+ * Vue filtrée d'une liste paginée, quand la gateway ne filtre pas elle-même. Tant que moins de
+ * `minimum` éléments passent le filtre et qu'une page suivante existe, elle est lue d'elle-même : la
+ * liste n'apparaît pas vide alors que des éléments retenus restent à lire. `keep` doit être stable.
+ */
+export function useFilteredList<T>(
+  list: PagedList<T>,
+  keep: (item: T) => boolean,
+  minimum: number,
+): PagedList<T> {
+  const items = useMemo(() => list.items.filter(keep), [list.items, keep]);
+  const { loading, loadingMore, error, hasMore, loadMore } = list;
+  const short = items.length < minimum && hasMore && !error;
+
+  useEffect(() => {
+    if (short && !loading && !loadingMore) loadMore();
+  }, [short, loading, loadingMore, loadMore]);
+
+  return {
+    ...list,
+    items,
+    // Rien d'affichable encore, mais la lecture continue : on reste sur « Chargement… ».
+    loading: loading || (short && items.length === 0),
   };
 }

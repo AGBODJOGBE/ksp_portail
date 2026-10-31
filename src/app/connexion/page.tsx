@@ -10,7 +10,7 @@ import { getDictionary } from '@/i18n';
 import { pageMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = {
-  ...pageMetadata({ title: navigation.login.label, path: navigation.login.href }),
+  ...pageMetadata({ title: getDictionary().login.title, path: navigation.login.href }),
   robots: { index: false, follow: false },
 };
 

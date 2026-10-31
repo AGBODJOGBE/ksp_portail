@@ -43,7 +43,9 @@ test('« Se connecter » mène à la connexion par téléphone', async ({ page }
   await page.goto('/');
   await page.getByRole('banner').getByRole('link', { name: 'Se connecter' }).first().click();
   await expect(page).toHaveURL(/\/connexion$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Se connecter' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Se connecter ou créer un compte' }),
+  ).toBeVisible();
 });
 
 test('la page de charte n’existe pas en production', async ({ request }) => {
@@ -110,7 +112,9 @@ test('« Déposer un dossier » mène à Mon espace KSP, qui demande la connexio
     .first()
     .click();
   await expect(page).toHaveURL(/\/connexion\?retour=%2Fmon-espace$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Se connecter' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Se connecter ou créer un compte' }),
+  ).toBeVisible();
 });
 
 test('« Commander une course » est affiché mais pas encore actif', async ({ page }) => {

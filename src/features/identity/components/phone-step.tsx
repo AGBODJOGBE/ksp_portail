@@ -71,6 +71,7 @@ export function PhoneStep({
         {t.login.title}
       </Heading>
       <p className="text-ink-muted mt-3">{t.login.intro}</p>
+      <p className="text-ink mt-2 font-medium">{t.login.newAccount}</p>
       <form noValidate onSubmit={submit} className="mt-8 grid gap-5">
         <fieldset>
           <legend className="text-ink font-semibold">{t.login.phoneLegend}</legend>

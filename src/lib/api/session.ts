@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { Session } from './session-schema';
+import type { ActiveContext, Session } from './session-schema';
 
 /**
  * Session côté navigateur (F-005).
@@ -14,7 +14,7 @@ import type { Session } from './session-schema';
  * Importer `@/lib/api/session` (et non `@/lib/api`) depuis un composant présent sur toutes les pages.
  */
 
-export type { Session, SessionUser } from './session-schema';
+export type { ActiveContext, Session, SessionUser } from './session-schema';
 
 /** Issue d'une tentative de reprise de session. */
 export type RestoreResult =
@@ -89,6 +89,17 @@ export function createSessionStore(options: {
     updateProfile(profile: Pick<Session, 'user' | 'profileIncomplete'>): void {
       if (current) set({ ...current, user: profile.user, profileIncomplete: profile.profileIncomplete });
     },
+    /**
+     * Change de contexte (particulier ou entreprise, `POST /api/v1/identity/context`) : nouveau jeton
+     * d'accès et nouveau contexte ; le profil et le jeton de renouvellement ne changent pas.
+     */
+    switchContext(next: {
+      accessToken: string;
+      accessTokenExpiresAt: string;
+      activeContext: ActiveContext;
+    }): void {
+      if (current) set({ ...current, ...next });
+    },
     /** Renouvelle la session ; `true` si un nouveau jeton est disponible (utilisé par le client sur 401). */
     refresh(): Promise<boolean> {
       return renew().then((result) => result.status === 'authenticated');
@@ -114,6 +125,15 @@ export const session: SessionStore = createSessionStore({
 });
 
 const noSession = () => null;
+
+/**
+ * Clé du contexte actif (`personal` ou identifiant de l'organisation), `null` sans session. Sert de
+ * `key` aux listes de l'espace : un changement de contexte les relit depuis la première page.
+ */
+export function contextKey(current: Pick<Session, 'activeContext'> | null): string | null {
+  if (!current) return null;
+  return current.activeContext.organizationId ?? 'personal';
+}
 
 /** Session en mémoire dans un composant client, à jour à chaque changement. Rien au rendu serveur. */
 export function useSession(): Session | null {

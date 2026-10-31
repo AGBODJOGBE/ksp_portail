@@ -17,7 +17,9 @@ test('numéro, code, profil, Mon espace, puis déconnexion', async ({ page }) =>
   // Mon espace sans session : direction la connexion, avec retour prévu.
   await page.goto('/mon-espace');
   await expect(page).toHaveURL(/\/connexion\?retour=%2Fmon-espace$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Se connecter' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Se connecter ou créer un compte' }),
+  ).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Indicatif' })).toHaveValue('+229');
 
   await askCode(page);
