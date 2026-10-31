@@ -70,6 +70,7 @@ export function InvoiceDetail({ id }: { id: string }) {
   const sourcePath = SOURCE_PATHS[invoice.source];
   const facts: ReadonlyArray<readonly [string, string | null]> = [
     ['Origine', t.source[invoice.source] ?? invoice.source],
+    ['Mois facturé', t.month(invoice.periodIndex)],
     ['Émission', formatShortDate(invoice.issuedAt)],
     ['Échéance', formatShortDate(invoice.dueAt)],
     [t.total, formatXof(invoice.total)],
@@ -93,9 +94,30 @@ export function InvoiceDetail({ id }: { id: string }) {
         </p>
       </div>
 
-      {invoice.status === 'overdue' ? <FormMessage>{t.overdueNotice}</FormMessage> : null}
+      {invoice.status === 'overdue' ? <FormMessage>{`${t.overdueNotice} ${t.howToPay}`}</FormMessage> : null}
       {invoice.status === 'pending_payment' ? (
         <FormMessage tone="info">{`${t.pendingNotice(formatShortDate(invoice.dueAt))} ${t.howToPay}`}</FormMessage>
+      ) : null}
+      {invoice.status === 'cancelled' ? <FormMessage tone="info">{t.cancelledNotice}</FormMessage> : null}
+
+      {invoice.organization ? (
+        <section
+          aria-labelledby="facture-entete"
+          className="rounded-card border-line bg-surface grid gap-2 border p-5 sm:p-6"
+        >
+          <Heading as="h2" size="h3" id="facture-entete">
+            {t.billedTo}
+          </Heading>
+          <address className="text-ink grid gap-1 not-italic">
+            <span className="font-semibold">{invoice.organization.legalName}</span>
+            <span>{invoice.organization.address}</span>
+            <span className="text-small tabular-nums">
+              {t.ifu} : {invoice.organization.ifu}
+              {invoice.organization.rccm ? ` · ${t.rccm} : ${invoice.organization.rccm}` : ''}
+            </span>
+          </address>
+          <p className="text-small text-ink-muted">{t.headerFrozen}</p>
+        </section>
       ) : null}
 
       <section
@@ -125,7 +147,7 @@ export function InvoiceDetail({ id }: { id: string }) {
             </thead>
             <tbody className="tabular-nums">
               {invoice.lines.map((line) => (
-                <tr key={line.label} className="border-line border-b">
+                <tr key={`${line.label}-${line.amount.amount}`} className="border-line border-b">
                   <th scope="row" className="text-ink py-2 pr-3 font-medium">
                     {line.label}
                   </th>
@@ -137,6 +159,7 @@ export function InvoiceDetail({ id }: { id: string }) {
             </tbody>
           </table>
         </div>
+        <p className="text-small text-ink-muted">{t.prorata}</p>
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[11rem_1fr]">
           {facts
             .filter(([, value]) => value)
