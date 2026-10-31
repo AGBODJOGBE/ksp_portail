@@ -7,7 +7,14 @@ import { OtherMetiers } from '@/components/sections/other-metiers';
 import { PageActions } from '@/components/sections/page-actions';
 import { StepsSection } from '@/components/sections/steps-section';
 import { getMetier } from '@/config/metiers';
-import { CleaningSimulatorSection, SIMULATOR_ID, nettoyageContent as content } from '@/features/cleaning';
+import {
+  CleaningSimulatorSection,
+  SIMULATOR_ID,
+  nettoyageContent as content,
+  nettoyageFaq,
+  zonesSentence,
+} from '@/features/cleaning';
+import { getServedZones } from '@/features/cleaning/server';
 import { BreadcrumbJsonLd } from '@/lib/seo/json-ld';
 import { pageMetadata } from '@/lib/seo/metadata';
 
@@ -15,9 +22,14 @@ const metier = getMetier('nettoyage');
 
 export const metadata = pageMetadata({ ...content.metadata, path: metier.href });
 
-/** Nettoyage et assainissement (phase 1) : prestations, simulateur branché sur la gateway, étapes (parcours P2), FAQ. */
-export default function NettoyagePage() {
+/**
+ * Nettoyage et assainissement (phase 1) : prestations, simulateur branché sur la gateway, étapes
+ * (parcours P2), FAQ. Page statique : les zones desservies sont lues au build puis revalidées
+ * (`getServedZones`) ; si la gateway ne répond pas, le simulateur les relit dans le navigateur.
+ */
+export default async function NettoyagePage() {
   const { booking } = content.steps;
+  const zones = await getServedZones();
   return (
     <>
       <MetierHero content={content.hero} />
@@ -26,6 +38,7 @@ export default function NettoyagePage() {
         id={SIMULATOR_ID}
         intro={content.simulator.intro}
         form={content.simulator.form}
+        zones={zones}
       />
       <StepsSection
         id="etapes"
@@ -39,7 +52,7 @@ export default function NettoyagePage() {
           </div>
         }
       />
-      <FaqSection items={content.faq} />
+      <FaqSection items={nettoyageFaq(zones ? zonesSentence(zones) : null)} />
       <CtaBand content={content.cta} />
       <OtherMetiers current={metier.id} />
       <BreadcrumbJsonLd

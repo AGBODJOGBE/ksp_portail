@@ -5,6 +5,7 @@ import {
   SERVICES,
   SIMULATION,
   UNPRICED,
+  ZONES,
   errorBody,
   stubGateway,
 } from '@/features/cleaning/fake-gateway.test-utils';
@@ -18,8 +19,14 @@ const LAZY = { timeout: 5000 };
 const next = () => fireEvent.click(screen.getByRole('button', { name: /Continuer|Voir le récapitulatif/ }));
 const plain = (text: string | null) => (text ?? '').replace(/\s/g, ' ');
 
-function renderSimulator() {
-  return render(<CleaningSimulator content={nettoyageContent.simulator.form} whatsappNumber="22900000000" />);
+function renderSimulator(zones: typeof ZONES.data | null = ZONES.data) {
+  return render(
+    <CleaningSimulator
+      content={nettoyageContent.simulator.form}
+      zones={zones}
+      whatsappNumber="22900000000"
+    />,
+  );
 }
 
 async function answer(service: string, commune = 'Abomey-Calavi') {
@@ -58,7 +65,7 @@ describe('simulateur du Nettoyage branché sur la gateway', { timeout: 15_000 },
     expect(plain(estimate.textContent)).toBe('Entre 33 500 FCFA et 43 000 FCFA');
     expect(screen.getByText(/Estimation non contractuelle/)).toBeInTheDocument();
     expect(screen.getByText('Équipe recommandée : 2 agents.')).toBeInTheDocument();
-    expect(screen.getByText('Une visite des lieux est prévue avant le devis.')).toBeInTheDocument();
+    expect(screen.getByText('Une visite des lieux, obligatoire, précède le devis.')).toBeInTheDocument();
 
     const simulate = calls.find((call) => call.path === '/api/v1/cleaning/simulations');
     expect(simulate?.body).toEqual({
@@ -112,6 +119,32 @@ describe('simulateur du Nettoyage branché sur la gateway', { timeout: 15_000 },
       await screen.findByText('Nous n’intervenons pas encore dans votre commune', {}, LAZY),
     ).toBeInTheDocument();
     expect(calls.some((call) => call.path.endsWith('/simulations'))).toBe(false);
+  });
+
+  it('relit les zones dans le navigateur si la page ne les a pas reçues du serveur', async () => {
+    const { calls } = stubGateway({
+      [SERVICES_ROUTE]: { status: 200, body: SERVICES },
+      'GET /api/v1/cleaning/zones': [
+        { status: 503, body: errorBody('GATEWAY_UNAVAILABLE', 'Service momentanément indisponible.') },
+        { status: 200, body: { data: [{ code: 'ouidah', commune: 'Ouidah' }] } },
+      ],
+    });
+    renderSimulator(null);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Impossible de charger les communes desservies. Service momentanément indisponible.',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
+    fireEvent.click(await screen.findByLabelText(/^Nettoyage à domicile/));
+    next();
+    fireEvent.click(screen.getByLabelText('Maison ou villa'));
+    next();
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '6' } });
+    next();
+    next();
+    expect(screen.getByLabelText('Ouidah')).toBeInTheDocument();
+    expect(screen.getByText('KSP Nettoyage intervient aujourd’hui à Ouidah.')).toBeInTheDocument();
+    expect(calls.filter((call) => call.path.endsWith('/zones'))).toHaveLength(2);
+    expect(calls.find((call) => call.path.endsWith('/zones'))?.headers.Authorization).toBeUndefined();
   });
 
   it('affiche le message de la gateway et permet de réessayer', async () => {

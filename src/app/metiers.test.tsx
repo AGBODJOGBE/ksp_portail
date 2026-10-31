@@ -1,5 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
-import type { ComponentType } from 'react';
+import type { ReactNode } from 'react';
 import ImmobilierPage from './immobilier/page';
 import ImpressionPage from './impression/page';
 import LivraisonPage from './livraison/page';
@@ -10,7 +10,13 @@ import sitemap from './sitemap';
 
 type Expectation = { name: string; href: string | null };
 
-const PAGES: ReadonlyArray<{ path: string; Page: ComponentType; h1: RegExp; actions: Expectation[] }> = [
+/** Une page : composant serveur, éventuellement asynchrone (lecture des zones du Nettoyage). */
+type PageComponent = () => ReactNode | Promise<ReactNode>;
+
+/** Rend une page serveur, asynchrone ou non. */
+const renderPage = async (Page: PageComponent) => render(await Page());
+
+const PAGES: ReadonlyArray<{ path: string; Page: PageComponent; h1: RegExp; actions: Expectation[] }> = [
   {
     path: '/recouvrement',
     Page: RecouvrementPage,
@@ -68,16 +74,16 @@ const PAGES: ReadonlyArray<{ path: string; Page: ComponentType; h1: RegExp; acti
 ];
 
 describe.each(PAGES)('page métier $path', ({ path, Page, h1, actions }) => {
-  it('a un seul titre de niveau 1, puis des titres de section de niveau 2', () => {
-    render(<Page />);
+  it('a un seul titre de niveau 1, puis des titres de section de niveau 2', async () => {
+    await renderPage(Page);
     const titles = screen.getAllByRole('heading', { level: 1 });
     expect(titles).toHaveLength(1);
     expect(titles[0]).toHaveTextContent(h1);
     expect(screen.getAllByRole('heading', { level: 2 }).length).toBeGreaterThan(1);
   });
 
-  it('mène ses actions principales au bon endroit', () => {
-    render(<Page />);
+  it('mène ses actions principales au bon endroit', async () => {
+    await renderPage(Page);
     const hero = screen.getByRole('region', { name: h1 });
     for (const action of actions) {
       if (action.href === null) {
@@ -91,8 +97,8 @@ describe.each(PAGES)('page métier $path', ({ path, Page, h1, actions }) => {
     }
   });
 
-  it('renvoie vers les cinq autres métiers et figure dans le plan du site', () => {
-    render(<Page />);
+  it('renvoie vers les cinq autres métiers et figure dans le plan du site', async () => {
+    await renderPage(Page);
     const others = screen.getByRole('region', { name: 'Nos autres métiers' });
     const hrefs = within(others)
       .getAllByRole('link')
@@ -102,8 +108,8 @@ describe.each(PAGES)('page métier $path', ({ path, Page, h1, actions }) => {
     expect(sitemap().map((entry) => new URL(entry.url).pathname)).toContain(path);
   });
 
-  it('n’invente aucun prix', () => {
-    const { container } = render(<Page />);
+  it('n’invente aucun prix', async () => {
+    const { container } = await renderPage(Page);
     expect(container.textContent).not.toMatch(/FCFA|F\s?CFA|XOF|\d+\s?%/);
   });
 });

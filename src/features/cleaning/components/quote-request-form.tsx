@@ -7,7 +7,8 @@ import { Button, ButtonLink } from '@/components/ui/button';
 import { FieldError, FormMessage, TextField, fieldIds, inputClasses } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
 import { IconCheck, IconClock } from '@/components/ui/icons';
-import { ProfileForm } from '@/features/identity';
+import { ContextSwitcher, ProfileForm } from '@/features/identity';
+import { useSession } from '@/lib/api';
 import { frenchSpacing } from '@/lib/typography';
 import { requestQuote } from '@/features/cleaning/api';
 import { draftFromParams, type SimulationDraft } from '@/features/cleaning/draft';
@@ -25,15 +26,36 @@ import {
   firstAllowedDate,
   recurrencePeriod,
 } from '@/features/cleaning/request-form';
-import type { QuoteRequest } from '@/features/cleaning/schemas';
+import type { QuoteRequest, ServedZone } from '@/features/cleaning/schemas';
 import { cleaningTexts, frequencies, premisesTypes } from '@/features/cleaning/texts';
 import { optionLabels, quantityLabel, serviceName, useServices } from '@/features/cleaning/use-services';
-import { COVERED_COMMUNES, OTHER_COMMUNE } from '@/features/cleaning/zones';
+import { useZones } from '@/features/cleaning/use-zones';
+import { OTHER_COMMUNE, zoneFor, zonesSentence } from '@/features/cleaning/zones';
 
 const t = cleaningTexts.request;
 
-const RADIO_OPTION =
-  'rounded-control border-line-strong bg-surface has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:focus-visible]:outline-focus flex min-h-12 cursor-pointer items-center gap-3 border px-4 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2';
+/**
+ * Type de client de la demande : celui du contexte actif de la session (`activeContext`), que la gateway
+ * applique elle-même. Il se change ici avec le sélecteur de contexte (ADR-027) : le formulaire suit.
+ */
+function ContextNotice({ kind, organizationName }: { kind: CustomerKind; organizationName: string | null }) {
+  const c = cleaningTexts.context;
+  return (
+    <section aria-labelledby="contexte-titre" className="grid gap-3">
+      <p id="contexte-titre" className="text-ink font-semibold">
+        {t.customerKind}
+      </p>
+      <ContextSwitcher />
+      <p className="text-small text-ink-muted">
+        {frenchSpacing(
+          kind === 'business'
+            ? c.requestBusiness(organizationName)
+            : `${c.requestIndividual} ${c.businessLater}`,
+        )}
+      </p>
+    </section>
+  );
+}
 
 function Recap({ draft }: { draft: SimulationDraft }) {
   const services = useServices();
@@ -85,32 +107,39 @@ function Success({ request }: { request: QuoteRequest }) {
   );
 }
 
-function RequestForm({ draft }: { draft: SimulationDraft }) {
+function RequestForm({ draft, zones }: { draft: SimulationDraft; zones: ReadonlyArray<ServedZone> }) {
   const baseId = useId();
+  const context = useSession()?.activeContext;
+  const kind: CustomerKind = context?.type === 'business' ? 'business' : 'individual';
+  const zonesText = zonesSentence(zones);
   const minDate = useMemo(() => firstAllowedDate(), []);
   const submission = useRef(idempotentSubmission());
   const addressRef = useRef<HTMLInputElement>(null);
   const communeRef = useRef<HTMLSelectElement>(null);
   const daysRef = useRef<HTMLInputElement>(null);
+  const teamRef = useRef<HTMLInputElement>(null);
   const slotsRef = useRef<HTMLFieldSetElement>(null);
   const recurrenceRef = useRef<HTMLFieldSetElement>(null);
-  const [values, setValues] = useState<RequestFormValues>({
-    kind: 'individual',
-    commune: draft.commune,
+  const [values, setValues] = useState<RequestFormValues>(() => ({
+    kind,
+    commune: zoneFor(zones, draft.commune)?.commune ?? OTHER_COMMUNE,
     address: '',
     slots: [{ date: '', period: 'morning' }],
     visits: '',
     months: '',
     days: '',
+    team: '',
     comment: '',
-  });
+  }));
   const [errors, setErrors] = useState<RequestErrors>({});
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [needsProfile, setNeedsProfile] = useState(false);
   const [created, setCreated] = useState<QuoteRequest | null>(null);
 
-  const period = recurrencePeriod(values.kind, draft);
+  // Le contexte de la session fait foi, même s'il change pendant la saisie.
+  const current = { ...values, kind };
+  const period = recurrencePeriod(kind, draft);
   const outOfZone = values.commune === OTHER_COMMUNE;
   const update = (patch: Partial<RequestFormValues>) => setValues((previous) => ({ ...previous, ...patch }));
   const updateSlot = (index: number, patch: Partial<{ date: string; period: PeriodValue }>) =>
@@ -121,6 +150,7 @@ function RequestForm({ draft }: { draft: SimulationDraft }) {
   function focusFirst(found: RequestErrors) {
     if (found.commune) communeRef.current?.focus();
     else if (found.days) daysRef.current?.focus();
+    else if (found.team) teamRef.current?.focus();
     else if (found.address) addressRef.current?.focus();
     else if (found.slots) slotsRef.current?.querySelector('input')?.focus();
     else if (found.recurrence) recurrenceRef.current?.querySelector('input')?.focus();
@@ -130,7 +160,7 @@ function RequestForm({ draft }: { draft: SimulationDraft }) {
     event.preventDefault();
     if (pending || outOfZone) return;
     setMessage(null);
-    const { errors: found, input } = buildQuoteRequest(draft, values);
+    const { errors: found, input } = buildQuoteRequest(draft, current, new Date(), zonesText);
     setErrors(found);
     if (!input) return focusFirst(found);
 
@@ -148,6 +178,8 @@ function RequestForm({ draft }: { draft: SimulationDraft }) {
       } else if (view.kind === 'slots') {
         setErrors({ slots: view.message });
         focusFirst({ slots: view.message });
+      } else if (view.kind === 'organizationSuspended') {
+        setMessage(cleaningTexts.common.organizationSuspendedRequest);
       } else setMessage(view.message);
     } finally {
       setPending(false);
@@ -173,43 +205,22 @@ function RequestForm({ draft }: { draft: SimulationDraft }) {
         <span>{frenchSpacing(t.visitNotice)}</span>
       </p>
 
-      <fieldset className="grid gap-3">
-        <legend className="text-ink font-semibold">{t.customerKind}</legend>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {(['individual', 'business'] as const satisfies ReadonlyArray<CustomerKind>).map((kind) => (
-            <label key={kind} className={RADIO_OPTION}>
-              <input
-                type="radio"
-                name={`${baseId}-type`}
-                value={kind}
-                checked={values.kind === kind}
-                onChange={() => update({ kind })}
-                className="accent-accent size-5"
-              />
-              <span className="text-ink font-semibold">
-                {kind === 'business' ? t.business : t.individual}
-              </span>
-            </label>
-          ))}
-        </div>
-        {values.kind === 'business' ? (
-          <>
-            <p className="text-small text-ink-muted">{t.businessHint}</p>
-            <TextField
-              id={`${baseId}-jours`}
-              inputRef={daysRef}
-              label={t.daysPerWeek}
-              hint={t.daysHint}
-              inputMode="numeric"
-              maxLength={1}
-              value={values.days}
-              onChange={(event) => update({ days: event.target.value })}
-              error={errors.days}
-              className="mt-2 max-w-xs"
-            />
-          </>
-        ) : null}
-      </fieldset>
+      <ContextNotice kind={kind} organizationName={context?.organizationName ?? null} />
+
+      {kind === 'business' ? (
+        <TextField
+          id={`${baseId}-jours`}
+          inputRef={daysRef}
+          label={t.daysPerWeek}
+          hint={t.daysHint}
+          inputMode="numeric"
+          maxLength={1}
+          value={values.days}
+          onChange={(event) => update({ days: event.target.value })}
+          error={errors.days}
+          className="max-w-xs"
+        />
+      ) : null}
 
       {period ? (
         <fieldset
@@ -257,9 +268,9 @@ function RequestForm({ draft }: { draft: SimulationDraft }) {
           aria-describedby={errors.commune || outOfZone ? `${baseId}-commune-erreur` : undefined}
           className={inputClasses({ invalid: !!errors.commune || outOfZone })}
         >
-          {COVERED_COMMUNES.map((commune) => (
-            <option key={commune} value={commune}>
-              {commune}
+          {zones.map((zone) => (
+            <option key={zone.code} value={zone.commune}>
+              {zone.commune}
             </option>
           ))}
           <option value={OTHER_COMMUNE}>{t.otherCommune}</option>
@@ -267,7 +278,7 @@ function RequestForm({ draft }: { draft: SimulationDraft }) {
         {errors.commune || outOfZone ? (
           <FieldError id={`${baseId}-commune-erreur`}>
             {errors.commune ??
-              `${cleaningTexts.simulator.outOfZoneTitle}. ${cleaningTexts.simulator.outOfZoneText}`}
+              `${cleaningTexts.simulator.outOfZoneTitle}. ${cleaningTexts.simulator.outOfZoneText(zonesText)}`}
           </FieldError>
         ) : null}
       </div>
@@ -349,6 +360,19 @@ function RequestForm({ draft }: { draft: SimulationDraft }) {
         ) : null}
       </fieldset>
 
+      <TextField
+        id={`${baseId}-agents`}
+        inputRef={teamRef}
+        label={t.teamSize}
+        hint={t.teamSizeHint}
+        inputMode="numeric"
+        maxLength={2}
+        value={values.team}
+        onChange={(event) => update({ team: event.target.value })}
+        error={errors.team}
+        className="max-w-xs"
+      />
+
       <div>
         <label htmlFor={`${baseId}-commentaire`} className="text-ink block font-semibold">
           {t.comment}
@@ -381,8 +405,12 @@ function RequestForm({ draft }: { draft: SimulationDraft }) {
   );
 }
 
-/** Demande de devis : reprend la simulation transmise dans l'adresse (`/nettoyage/devis?…`). */
-export function QuoteRequestPanel() {
+/**
+ * Demande de devis : reprend la simulation transmise dans l'adresse (`/nettoyage/devis?…`). Les zones
+ * desservies viennent de la page (lues par le serveur), sinon le navigateur les relit.
+ */
+export function QuoteRequestPanel({ zones: initialZones }: { zones: ReadonlyArray<ServedZone> | null }) {
+  const zonesState = useZones(initialZones);
   const params = useSearchParams();
   const draft = useMemo(() => draftFromParams(new URLSearchParams(params.toString())), [params]);
 
@@ -397,10 +425,27 @@ export function QuoteRequestPanel() {
       </div>
     );
   }
+  if (zonesState.status === 'loading') {
+    return (
+      <p role="status" className="text-ink-muted">
+        {t.loadingZones}
+      </p>
+    );
+  }
+  if (zonesState.status === 'error') {
+    return (
+      <div className="grid justify-items-start gap-4">
+        <FormMessage>{`${cleaningTexts.simulator.zonesError} ${describeCleaningError(zonesState.error).message}`}</FormMessage>
+        <Button variant="secondary" onClick={zonesState.retry}>
+          {cleaningTexts.common.retry}
+        </Button>
+      </div>
+    );
+  }
   return (
     <div className="grid gap-8">
       <Recap draft={draft} />
-      <RequestForm draft={draft} />
+      <RequestForm draft={draft} zones={zonesState.zones} />
     </div>
   );
 }

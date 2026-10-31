@@ -3,13 +3,14 @@ import { parseAmount } from '@/components/sections/guided-form-logic';
 import type { GuidedFormStep, QuantityStep } from '@/components/sections/guided-form-types';
 
 import type { Frequency, SimulationDraft } from './draft';
-import type { ServiceOffer } from './schemas';
+import type { ServedZone, ServiceOffer } from './schemas';
 import { frequencies, premisesTypes, simulatorQuestions as q, units } from './texts';
-import { COVERED_COMMUNES, OTHER_COMMUNE } from './zones';
+import { OTHER_COMMUNE, zonesSentence } from './zones';
 
 /*
- * Questions du simulateur construites à partir du catalogue de la gateway : prestations réelles, unité
- * de mesure et options de la prestation choisie. Aucun prix n'est calculé ici.
+ * Questions du simulateur construites à partir du catalogue et des zones de la gateway : prestations
+ * réelles, unité de mesure et options de la prestation choisie, communes desservies. Aucun prix n'est
+ * calculé ici.
  */
 
 export const STEP = {
@@ -58,7 +59,11 @@ function sizeStep(service: ServiceOffer | undefined): QuantityStep {
   };
 }
 
-export function simulatorSteps(services: ReadonlyArray<ServiceOffer>, answers: Answers): GuidedFormStep[] {
+export function simulatorSteps(
+  services: ReadonlyArray<ServiceOffer>,
+  zones: ReadonlyArray<ServedZone>,
+  answers: Answers,
+): GuidedFormStep[] {
   const service = chosenService(services, answers);
   const steps: GuidedFormStep[] = [
     {
@@ -95,9 +100,9 @@ export function simulatorSteps(services: ReadonlyArray<ServiceOffer>, answers: A
       id: STEP.commune,
       name: q.commune.name,
       title: q.commune.title,
-      hint: q.commune.hint,
+      hint: q.commune.hint(zonesSentence(zones)),
       options: [
-        ...COVERED_COMMUNES.map((commune) => ({ value: commune, label: commune })),
+        ...zones.map((zone) => ({ value: zone.commune, label: zone.commune })),
         { value: OTHER_COMMUNE, label: q.commune.other },
       ],
     },

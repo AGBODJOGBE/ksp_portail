@@ -3,7 +3,7 @@
 import { type FormEvent, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FieldError, FormMessage } from '@/components/ui/field';
-import { acceptQuote } from '@/features/cleaning/api';
+import { type AcceptInput, acceptQuote } from '@/features/cleaning/api';
 import { type CleaningErrorView, describeCleaningError } from '@/features/cleaning/errors';
 import { formatSlot, formatXof } from '@/lib/format';
 import { idempotentSubmission } from '@/features/cleaning/idempotency';
@@ -17,12 +17,6 @@ import {
 } from '@/features/cleaning/texts';
 
 const t = cleaningTexts.requestDetail;
-
-/**
- * Une entreprise règle par facture mensuelle : aucun choix de paiement ne lui est proposé. La gateway
- * exige pourtant `paymentPlan` ; on envoie la formule que le service applique aux entreprises.
- */
-export const BUSINESS_PAYMENT_PLAN: PaymentPlan = { option: 'full', timing: 'after', method: 'cash' };
 
 const OPTION =
   'rounded-control border-line-strong bg-surface has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:focus-visible]:outline-focus flex min-h-12 cursor-pointer items-start gap-3 border p-3 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2';
@@ -114,7 +108,8 @@ export function AcceptForm({
       return;
     }
     setSlotError(null);
-    const input = { slotStart: slot, paymentPlan: business ? BUSINESS_PAYMENT_PLAN : plan };
+    // Une entreprise règle par facture mensuelle : `paymentPlan` n'est pas envoyé (contrat, #19).
+    const input: AcceptInput = business ? { slotStart: slot } : { slotStart: slot, paymentPlan: plan };
     setPending(true);
     try {
       const response = await acceptQuote(requestId, input, submission.current.keyFor(input));
@@ -124,6 +119,8 @@ export function AcceptForm({
       const view = describeCleaningError(caught);
       if (view.kind === 'expired' || view.kind === 'stale' || view.kind === 'notFound') onFailure(view);
       else if (view.kind === 'slots') setSlotError(view.message);
+      else if (view.kind === 'organizationSuspended')
+        setError(cleaningTexts.common.organizationSuspendedAccept);
       else setError(view.message);
     } finally {
       setPending(false);

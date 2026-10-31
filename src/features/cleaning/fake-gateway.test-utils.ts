@@ -42,6 +42,15 @@ export const SERVICES = {
   ],
 };
 
+/** `GET /cleaning/zones` (exemple du contrat). */
+export const ZONES = {
+  data: [
+    { code: 'abomey-calavi', commune: 'Abomey-Calavi' },
+    { code: 'cotonou', commune: 'Cotonou' },
+    { code: 'porto-novo', commune: 'Porto-Novo' },
+  ],
+};
+
 export const SIMULATION = {
   serviceCode: 'home_cleaning',
   priced: true,
@@ -129,6 +138,10 @@ export function mission(overrides: Record<string, unknown> = {}) {
     requestId: REQUEST_ID,
     quoteId: QUOTE.id,
     customerId: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d9e11',
+    customerKind: 'individual',
+    organizationId: null,
+    customerName: null,
+    organizationName: null,
     status: 'scheduled',
     serviceCode: 'home_cleaning',
     commune: 'Abomey-Calavi',
@@ -150,6 +163,7 @@ export function mission(overrides: Record<string, unknown> = {}) {
         afterPhotoFileIds: [],
         startedAt: null,
         completedAt: null,
+        cancellationCause: null,
       },
     ],
     payment: {

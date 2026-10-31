@@ -6,6 +6,7 @@ import { Heading } from '@/components/ui/heading';
 import { IconArrowLeft } from '@/components/ui/icons';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import { cleaningTexts } from '@/features/cleaning/texts';
+import { frenchSpacing } from '@/lib/typography';
 
 /** Briques communes aux écrans de détail (demande, mission). */
 
@@ -18,14 +19,18 @@ export function BackLink() {
   );
 }
 
+/** En-tête d'un détail : titre, état (libellé, et ce qui se passe ensuite), étiquette éventuelle. */
 export function DetailHeader({
   title,
   subtitle,
   status,
+  tag,
 }: {
   title: string;
   subtitle: string;
-  status: { label: string; tone: BadgeTone };
+  status: { label: string; tone: BadgeTone; hint?: string };
+  /** Par exemple « Entreprise » pour une demande ou une mission d'organisation. */
+  tag?: string;
 }) {
   return (
     <div className="grid gap-3">
@@ -35,8 +40,10 @@ export function DetailHeader({
           {title}
         </Heading>
         <Badge tone={status.tone}>{status.label}</Badge>
+        {tag ? <Badge>{tag}</Badge> : null}
       </div>
       <p className="text-ink-muted">{subtitle}</p>
+      {status.hint ? <p className="text-ink">{frenchSpacing(status.hint)}</p> : null}
     </div>
   );
 }
@@ -85,10 +92,20 @@ export function LoadError({ message, onRetry }: { message: string; onRetry?: () 
   );
 }
 
+const BONE = 'bg-surface-sunken rounded-control animate-pulse motion-reduce:animate-none';
+
+/** Squelette d'un détail (en-tête puis deux panneaux), annoncé comme chargement. */
 export function Loading() {
   return (
-    <p role="status" className="text-ink-muted">
-      {cleaningTexts.space.loading}
-    </p>
+    <div role="status" className="grid gap-8">
+      <span className="sr-only">{cleaningTexts.space.loading}</span>
+      <div className="grid gap-3" aria-hidden="true">
+        <div className={`${BONE} h-11 w-48`} />
+        <div className={`${BONE} h-9 w-3/4 max-w-md`} />
+        <div className={`${BONE} h-5 w-1/2 max-w-sm`} />
+      </div>
+      <div className={`${BONE} rounded-card h-40`} aria-hidden="true" />
+      <div className={`${BONE} rounded-card h-56`} aria-hidden="true" />
+    </div>
   );
 }

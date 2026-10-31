@@ -11,6 +11,7 @@ import { OTHER_COMMUNE } from './zones';
  * qui évite un aller-retour inutile.
  */
 
+/** Type de client du contexte actif de la session (`ActiveContext.type`), jamais choisi dans le formulaire. */
 export type CustomerKind = 'individual' | 'business';
 export type PeriodValue = (typeof cleaningTexts.periods)[number]['value'];
 
@@ -28,10 +29,12 @@ export interface RequestFormValues {
   months: string;
   /** Entreprise : jours d'intervention par semaine (facultatif). */
   days: string;
+  /** Nombre d'agents souhaité (facultatif). */
+  team: string;
   comment: string;
 }
 
-export type RequestField = 'commune' | 'address' | 'slots' | 'recurrence' | 'days';
+export type RequestField = 'commune' | 'address' | 'slots' | 'recurrence' | 'days' | 'team';
 export type RequestErrors = Partial<Record<RequestField, string>>;
 
 export const MAX_SLOTS = 3;
@@ -54,6 +57,9 @@ export function recurrencePeriod(kind: CustomerKind, draft: SimulationDraft): Re
   return null;
 }
 
+/** Limite du contrat (`RequestCleaningQuoteRequest.requestedTeamSize`). */
+export const MAX_TEAM_SIZE = 50;
+
 const integerIn = (raw: string, min: number, max: number): number | null => {
   const value = /^\d{1,3}$/.test(raw.trim()) ? Number(raw.trim()) : NaN;
   return value >= min && value <= max ? value : null;
@@ -63,6 +69,8 @@ export function buildQuoteRequest(
   draft: SimulationDraft,
   values: RequestFormValues,
   now: Date = new Date(),
+  /** Communes desservies mises en phrase, pour le message hors zone. */
+  zonesText: string | null = null,
 ): { errors: RequestErrors; input: QuoteRequestInput | null } {
   const t = cleaningTexts.request;
   const errors: RequestErrors = {};
@@ -92,7 +100,14 @@ export function buildQuoteRequest(
     else daysPerWeek = days;
   }
 
-  if (values.commune === OTHER_COMMUNE) errors.commune = t.outOfZone;
+  let requestedTeamSize: number | undefined;
+  if (values.team.trim()) {
+    const team = integerIn(values.team, 1, MAX_TEAM_SIZE);
+    if (team === null) errors.team = t.teamSizeInvalid;
+    else requestedTeamSize = team;
+  }
+
+  if (!values.commune || values.commune === OTHER_COMMUNE) errors.commune = t.outOfZone(zonesText);
   if (Object.keys(errors).length) return { errors, input: null };
 
   const periods = cleaningTexts.periods;
@@ -117,6 +132,7 @@ export function buildQuoteRequest(
       preferredSlots,
       ...(comment ? { comment } : {}),
       ...(recurrence ? { recurrence } : {}),
+      ...(requestedTeamSize ? { requestedTeamSize } : {}),
       ...(daysPerWeek ? { daysPerWeek } : {}),
     },
   };

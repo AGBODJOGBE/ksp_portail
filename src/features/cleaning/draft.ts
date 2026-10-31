@@ -1,5 +1,4 @@
 import type { SimulationInput } from './api';
-import { OTHER_COMMUNE, coveredCommune } from './zones';
 
 /**
  * Simulation reprise dans la demande de devis. Elle voyage dans l'adresse de la page de demande
@@ -16,6 +15,7 @@ const CODE = /^[a-z][a-z0-9_]{1,49}$/;
 const PREMISES = new Set(['apartment', 'house', 'office', 'shop', 'warehouse', 'other']);
 const FREQUENCIES = new Set<string>(['once', 'weekly', 'monthly']);
 const MAX_QUANTITY = 1_000_000;
+const MAX_COMMUNE = 100;
 
 const PARAMS = {
   service: 'prestation',
@@ -52,8 +52,9 @@ export function draftFromParams(params: URLSearchParams): SimulationDraft | null
   if (!CODE.test(serviceCode) || !PREMISES.has(premisesType)) return null;
   if (!(quantity >= 1 && quantity <= MAX_QUANTITY)) return null;
   if (options.length > 20 || !options.every((option) => CODE.test(option))) return null;
-  const commune = coveredCommune(communeRaw) ?? (communeRaw ? OTHER_COMMUNE : '');
-  if (!commune) return null;
+  // La commune est reprise telle quelle : le formulaire la compare aux zones desservies de la gateway.
+  const commune = communeRaw.trim();
+  if (!commune || commune.length > MAX_COMMUNE) return null;
 
   return {
     serviceCode,

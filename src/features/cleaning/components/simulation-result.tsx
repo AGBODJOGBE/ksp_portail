@@ -10,9 +10,9 @@ import { simulate } from '@/features/cleaning/api';
 import { requestHref, type SimulationDraft } from '@/features/cleaning/draft';
 import { describeCleaningError } from '@/features/cleaning/errors';
 import { formatNumber, formatXof } from '@/lib/format';
-import type { Simulation } from '@/features/cleaning/schemas';
+import type { ServedZone, Simulation } from '@/features/cleaning/schemas';
 import { cleaningTexts } from '@/features/cleaning/texts';
-import { OTHER_COMMUNE } from '@/features/cleaning/zones';
+import { OTHER_COMMUNE, zonesSentence } from '@/features/cleaning/zones';
 
 const t = cleaningTexts.simulator;
 
@@ -23,11 +23,11 @@ type Outcome = { for: string } & (
 
 const PANEL = 'rounded-card border-line bg-surface-muted border p-5 sm:p-6';
 
-function OutOfZone() {
+function OutOfZone({ zones }: { zones: ReadonlyArray<ServedZone> }) {
   return (
     <div className={PANEL} role="status">
       <p className="font-display text-ink text-xl font-semibold">{t.outOfZoneTitle}</p>
-      <p className="text-ink-muted mt-2">{frenchSpacing(t.outOfZoneText)}</p>
+      <p className="text-ink-muted mt-2">{frenchSpacing(t.outOfZoneText(zonesSentence(zones)))}</p>
       <ButtonLink href={contactHref('nettoyage-devis')} variant="secondary" className="mt-5">
         {t.contactUs}
       </ButtonLink>
@@ -104,7 +104,13 @@ function Estimate({ simulation, draft }: { simulation: Simulation; draft: Simula
 }
 
 /** Écran final du simulateur : estimation demandée à la gateway pour les réponses données. */
-export function SimulationResult({ draft }: { draft: SimulationDraft }) {
+export function SimulationResult({
+  draft,
+  zones,
+}: {
+  draft: SimulationDraft;
+  zones: ReadonlyArray<ServedZone>;
+}) {
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [attempt, setAttempt] = useState(0);
   const outOfZone = draft.commune === OTHER_COMMUNE;
@@ -124,7 +130,7 @@ export function SimulationResult({ draft }: { draft: SimulationDraft }) {
     return () => controller.abort();
   }, [key, attempt, outOfZone]);
 
-  if (outOfZone) return <OutOfZone />;
+  if (outOfZone) return <OutOfZone zones={zones} />;
   const state = outcome?.for === current ? outcome : null;
   if (!state) {
     return (
@@ -143,6 +149,6 @@ export function SimulationResult({ draft }: { draft: SimulationDraft }) {
       </div>
     );
   }
-  if (state.simulation.covered === false) return <OutOfZone />;
+  if (!state.simulation.covered) return <OutOfZone zones={zones} />;
   return <Estimate simulation={state.simulation} draft={draft} />;
 }

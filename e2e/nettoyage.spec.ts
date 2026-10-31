@@ -46,7 +46,8 @@ test('simuler, se connecter, demander un devis, accepter le devis et voir la mis
 
   await expect(page).toHaveURL(/\/nettoyage\/devis\?prestation=home_cleaning/);
   await expect(page.getByRole('heading', { level: 1, name: 'Demander un devis de nettoyage' })).toBeVisible();
-  await expect(page.getByText(/Une visite des lieux est prévue avant le devis/)).toBeVisible();
+  await expect(page.getByText(/Une visite des lieux est obligatoire avant tout devis/)).toBeVisible();
+  await expect(page.getByText('Compte personnel')).toBeVisible();
   await expect(page.getByText('6 pièces')).toBeVisible();
   await page.getByLabel(/Adresse d’intervention/).fill('Lot 12, quartier Zogbadjè');
   await page.getByLabel('Date du créneau 1').fill(inDays(4));

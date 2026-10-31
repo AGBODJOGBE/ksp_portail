@@ -5,6 +5,7 @@ import { Eyebrow } from '@/components/ui/eyebrow';
 import { Heading } from '@/components/ui/heading';
 import { getMetier } from '@/config/metiers';
 import { QuoteRequestPanel, cleaningTexts } from '@/features/cleaning';
+import { getServedZones } from '@/features/cleaning/server';
 import { RequireSession } from '@/features/identity';
 import { pageMetadata } from '@/lib/seo/metadata';
 
@@ -16,10 +17,12 @@ export const metadata: Metadata = {
 };
 
 /**
- * Demande de devis de nettoyage : coque statique ; la garde reprend la session (sinon connexion puis
- * retour ici, simulation comprise dans l'adresse), le formulaire lit la simulation sous Suspense.
+ * Demande de devis de nettoyage : coque statique (zones desservies lues au build puis revalidées) ; la
+ * garde reprend la session (sinon connexion puis retour ici, simulation comprise dans l'adresse), le
+ * formulaire lit la simulation sous Suspense.
  */
-export default function CleaningQuotePage() {
+export default async function CleaningQuotePage() {
+  const zones = await getServedZones();
   return (
     <Container size="reading" className="py-10 sm:py-16">
       <Eyebrow>{getMetier('nettoyage').label}</Eyebrow>
@@ -36,7 +39,7 @@ export default function CleaningQuotePage() {
               </p>
             }
           >
-            <QuoteRequestPanel />
+            <QuoteRequestPanel zones={zones} />
           </Suspense>
         </RequireSession>
       </div>
