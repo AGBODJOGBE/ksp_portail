@@ -603,5 +603,56 @@ describe('Mes prestations de nettoyage', () => {
     expect(screen.getByText('1 passage par semaine, pendant 2 mois')).toBeInTheDocument();
     expect(screen.getByText('Liste de contrôle : 1 sur 2')).toBeInTheDocument();
     expect(screen.getAllByText(/Awa B\./).length).toBeGreaterThan(0);
+    // Acompte reçu : le solde se paie en ligne ; son montant (calculé par KSP) est sur la page de paiement.
+    expect(
+      await screen.findByRole('button', { name: 'Payer le solde par Mobile Money' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Le montant restant dû est calculé par KSP/)).toBeInTheDocument();
+  });
+
+  it('mission d’un particulier, acompte attendu : paiement en ligne de l’acompte (ADR-031)', async () => {
+    const { calls } = stubGateway({
+      [SERVICES_ROUTE]: { status: 200, body: SERVICES },
+      [`GET /api/v1/cleaning/missions/${MISSION_ID}`]: {
+        status: 200,
+        body: mission({
+          payment: {
+            ...mission().payment,
+            status: 'due',
+            paid: { amount: 0, currency: 'XOF' },
+            payments: [],
+          },
+        }),
+      },
+      'POST /api/v1/payment/payments': {
+        status: 422,
+        body: errorBody('PAYMENT_NOTHING_DUE', 'Il n’y a rien à payer pour le moment.'),
+      },
+    });
+    render(<MissionDetail id={MISSION_ID} />);
+    const pay = await screen.findByRole('button', { name: 'Payer l’acompte par Mobile Money' });
+    expect(screen.getByText(/Montant à payer/)).toHaveTextContent(/10\s200\sFCFA/);
+    fireEvent.click(pay);
+    expect(await screen.findByText(/Ce montant est déjà réglé/)).toBeInTheDocument();
+    const create = calls.find((call) => call.method === 'POST');
+    expect(create?.body).toEqual({ subjectType: 'cleaning_mission', subjectId: MISSION_ID, part: 'deposit' });
+    expect(create?.headers['Idempotency-Key']).toBeTruthy();
+    // Refus « rien à payer » : la mission est relue.
+    await waitFor(() =>
+      expect(calls.filter((call) => call.path === `/api/v1/cleaning/missions/${MISSION_ID}`)).toHaveLength(2),
+    );
+  });
+
+  it('mission d’entreprise : pas de paiement en ligne (facture mensuelle)', async () => {
+    stubGateway({
+      [SERVICES_ROUTE]: { status: 200, body: SERVICES },
+      [`GET /api/v1/cleaning/missions/${MISSION_ID}`]: {
+        status: 200,
+        body: mission({ ...BUSINESS_OWNED, payment: { ...mission().payment, status: 'due' } }),
+      },
+    });
+    render(<MissionDetail id={MISSION_ID} />);
+    expect(await screen.findByText(/Contrat d’entreprise/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /par Mobile Money/ })).not.toBeInTheDocument();
   });
 });

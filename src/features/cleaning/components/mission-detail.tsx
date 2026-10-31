@@ -16,6 +16,7 @@ import {
   formatXof,
 } from '@/lib/format';
 import { useResource } from '@/lib/use-resource';
+import { PayButton, paymentTexts } from '@/features/payment';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import { type Intervention, type Mission, suspensionCauses } from '@/features/cleaning/schemas';
 import {
@@ -43,7 +44,31 @@ const TERMINAL = new Set(['completed', 'cancelled']);
 /** Type de client de la mission : `business` (facture mensuelle) ou `individual`. */
 type Kind = 'business' | 'individual';
 
-function PaymentView({ payment, kind }: { payment: Mission['payment']; kind: Kind }) {
+/**
+ * Paiement en ligne proposé au particulier (ADR-031) : l'acompte tant qu'il est attendu, sinon le reste
+ * dû. Le montant affiché est lu tel quel sur la mission (acompte, ou total quand rien n'est encore réglé) ;
+ * après un règlement partiel, la page du prestataire affiche le montant calculé par KSP.
+ */
+function onlinePayment(mission: Mission) {
+  const payment = mission.payment;
+  if (mission.status === 'cancelled' || payment.status === 'paid') return null;
+  const nothingPaid = payment.paid.amount === 0;
+  if (payment.status === 'due' && payment.plan.option === 'deposit' && payment.depositPercent > 0) {
+    return {
+      part: 'deposit' as const,
+      label: paymentTexts.payDeposit,
+      amount: nothingPaid ? payment.depositAmount : null,
+    };
+  }
+  return {
+    part: 'balance' as const,
+    label: nothingPaid ? paymentTexts.pay : paymentTexts.payBalance,
+    amount: nothingPaid ? payment.total : null,
+  };
+}
+
+function PaymentView({ mission, kind, onStale }: { mission: Mission; kind: Kind; onStale: () => void }) {
+  const payment = mission.payment;
   if (kind === 'business') {
     return (
       <div className="grid justify-items-start gap-4">
@@ -57,6 +82,7 @@ function PaymentView({ payment, kind }: { payment: Mission['payment']; kind: Kin
   }
   const status = statusOf(paymentStatuses, payment.status);
   const { plan } = payment;
+  const online = onlinePayment(mission);
   return (
     <div className="grid gap-4">
       <div>
@@ -80,6 +106,14 @@ function PaymentView({ payment, kind }: { payment: Mission['payment']; kind: Kin
           [t.paid, formatXof(payment.paid)],
         ]}
       />
+      {online ? (
+        <PayButton
+          subject={{ subjectType: 'cleaning_mission', subjectId: mission.id, part: online.part }}
+          label={online.label}
+          amount={online.amount}
+          onStale={onStale}
+        />
+      ) : null}
       {payment.status !== 'paid' ? <p className="text-small text-ink-muted">{t.howToPay}</p> : null}
       <div>
         <p className="text-small text-ink-muted">{t.paymentsTitle}</p>
@@ -250,7 +284,7 @@ export function MissionDetail({ id }: { id: string }) {
       </Panel>
 
       <Panel id="paiement-titre" title={t.paymentTitle}>
-        <PaymentView payment={mission.payment} kind={kind} />
+        <PaymentView mission={mission} kind={kind} onStale={refresh} />
       </Panel>
 
       <div className="flex flex-wrap gap-3">
