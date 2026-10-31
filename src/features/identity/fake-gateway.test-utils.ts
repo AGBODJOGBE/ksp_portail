@@ -20,9 +20,12 @@ export const USER = {
   lastName: null as string | null,
   phone: '+2290197000045',
   email: null,
+  emailVerified: false,
   preferredLanguage: 'fr',
   createdAt: '2026-10-21T09:00:00Z',
 };
+
+export const PERSONAL = { type: 'individual', organizationId: null, organizationName: null };
 
 export function sessionBody(overrides: { profileIncomplete?: boolean; firstName?: string | null } = {}) {
   const profileIncomplete = overrides.profileIncomplete ?? true;
@@ -38,6 +41,7 @@ export function sessionBody(overrides: { profileIncomplete?: boolean; firstName?
       lastName: profileIncomplete ? null : 'Adjovi',
     },
     profileIncomplete,
+    activeContext: PERSONAL,
   };
 }
 
