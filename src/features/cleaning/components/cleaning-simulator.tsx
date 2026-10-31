@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { listServices } from '@/features/cleaning/api';
 import { describeCleaningError } from '@/features/cleaning/errors';
-import type { ServiceOffer } from '@/features/cleaning/schemas';
+import type { ServedZone, ServiceOffer } from '@/features/cleaning/schemas';
 import { draftFromAnswers, simulatorSteps } from '@/features/cleaning/simulator-steps';
 import { cleaningTexts } from '@/features/cleaning/texts';
+import { useZones } from '@/features/cleaning/use-zones';
 
 // L'écran d'estimation n'est téléchargé qu'à la dernière étape.
 const SimulationResult = lazy(() =>
@@ -26,16 +27,21 @@ type State =
 
 /**
  * Simulateur du Nettoyage branché sur la gateway : prestations lues dans le catalogue
- * (`GET /cleaning/services`), estimation demandée à la dernière étape (`POST /cleaning/simulations`).
+ * (`GET /cleaning/services`), communes desservies (`GET /cleaning/zones`, lues par le serveur pour la
+ * page), estimation demandée à la dernière étape (`POST /cleaning/simulations`).
  * Sans compte ni donnée personnelle ; rien n'est enregistré.
  */
 export function CleaningSimulator({
   content,
+  zones: initialZones,
   whatsappNumber,
 }: {
   content: GuidedFormContent;
+  /** Zones lues par le serveur ; `null` s'il n'a pas pu les lire (le navigateur les relit). */
+  zones: ReadonlyArray<ServedZone> | null;
   whatsappNumber?: string;
 }) {
+  const zonesState = useZones(initialZones);
   const [state, setState] = useState<State>({ status: 'loading' });
   const [attempt, setAttempt] = useState(0);
 
@@ -52,7 +58,11 @@ export function CleaningSimulator({
   }, [attempt]);
 
   const services = useMemo(() => (state.status === 'ready' ? state.services : []), [state]);
-  const stepsFor = useCallback((answers: Answers) => simulatorSteps(services, answers), [services]);
+  const zones = useMemo(() => (zonesState.status === 'ready' ? zonesState.zones : []), [zonesState]);
+  const stepsFor = useCallback(
+    (answers: Answers) => simulatorSteps(services, zones, answers),
+    [services, zones],
+  );
   const renderResult = useCallback(
     (answers: Answers) => {
       const draft = draftFromAnswers(services, answers);
@@ -65,14 +75,14 @@ export function CleaningSimulator({
             </p>
           }
         >
-          <SimulationResult draft={draft} />
+          <SimulationResult draft={draft} zones={zones} />
         </Suspense>
       );
     },
-    [services],
+    [services, zones],
   );
 
-  if (state.status === 'loading') {
+  if (state.status === 'loading' || zonesState.status === 'loading') {
     return (
       <p role="status" className="rounded-panel border-line bg-surface text-ink-muted border p-8">
         {t.loadingServices}
@@ -90,6 +100,16 @@ export function CleaningSimulator({
             setAttempt((value) => value + 1);
           }}
         >
+          {cleaningTexts.common.retry}
+        </Button>
+      </div>
+    );
+  }
+  if (zonesState.status === 'error') {
+    return (
+      <div className="rounded-panel border-line bg-surface grid justify-items-start gap-4 border p-8">
+        <FormMessage>{`${t.zonesError} ${describeCleaningError(zonesState.error).message}`}</FormMessage>
+        <Button variant="secondary" onClick={zonesState.retry}>
           {cleaningTexts.common.retry}
         </Button>
       </div>

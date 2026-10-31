@@ -1,16 +1,24 @@
 'use client';
 
 import Link from 'next/link';
+import { useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ButtonLink } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { PagedListState } from '@/components/ui/paged-list-state';
-import { listMissions, listRequests } from '@/features/cleaning/api';
+import { listMissions, listRequests, PAGE_SIZE } from '@/features/cleaning/api';
+import { contextKey, useSession } from '@/lib/api';
 import { formatShortDate } from '@/lib/format';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import type { Mission, QuoteRequest } from '@/features/cleaning/schemas';
-import { cleaningTexts, missionStatuses, requestStatuses, statusOf } from '@/features/cleaning/texts';
-import { usePagedList } from '@/lib/use-paged-list';
+import {
+  cleaningTexts,
+  missionStatuses,
+  requestStatuses,
+  statusOf,
+  suspendedStatus,
+} from '@/features/cleaning/texts';
+import { useFilteredList, usePagedList } from '@/lib/use-paged-list';
 import { serviceName, useServices } from '@/features/cleaning/use-services';
 
 const t = cleaningTexts.space;
@@ -33,13 +41,18 @@ function RequestRow({ request, name }: { request: QuoteRequest; name: string }) 
           {request.commune} · {t.requestedOn(formatShortDate(request.createdAt))}
         </p>
       </div>
-      <Badge tone={status.tone}>{status.label}</Badge>
+      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+        {request.customerKind === 'business' ? <Badge>{cleaningTexts.context.businessTag}</Badge> : null}
+        <Badge tone={status.tone}>{status.label}</Badge>
+      </div>
     </li>
   );
 }
 
 function MissionRow({ mission, name }: { mission: Mission; name: string }) {
-  const status = statusOf(missionStatuses, mission.status);
+  const status = mission.suspension
+    ? suspendedStatus(mission.suspension)
+    : statusOf(missionStatuses, mission.status);
   return (
     <li className={ROW}>
       <div>
@@ -55,11 +68,27 @@ function MissionRow({ mission, name }: { mission: Mission; name: string }) {
   );
 }
 
-/** « Mes prestations de nettoyage » : demandes de devis et missions, chacune paginée par curseur. */
+/** Ce qui appartient au contexte : une organisation (`organizationId`), ou le compte personnel (aucune). */
+type Owned = { organizationId: string | null };
+
+/**
+ * « Mes prestations de nettoyage » : demandes de devis et missions du contexte actif, chacune paginée par
+ * curseur. Un changement de contexte relit les deux listes depuis la première page (clé).
+ */
 export function CleaningSpace() {
+  const key = contextKey(useSession());
+  return <CleaningLists key={key ?? 'none'} organizationId={key === 'personal' ? null : key} />;
+}
+
+/**
+ * La gateway renvoie toutes les demandes et missions du client, personnelles comme d'entreprise : on
+ * garde celles du contexte actif (**à valider** : filtrage à porter par le service cleaning).
+ */
+function CleaningLists({ organizationId }: { organizationId: string | null }) {
   const services = useServices();
-  const requests = usePagedList(listRequests);
-  const missions = usePagedList(listMissions);
+  const keep = useCallback((item: Owned) => item.organizationId === organizationId, [organizationId]);
+  const requests = useFilteredList(usePagedList(listRequests), keep, PAGE_SIZE);
+  const missions = useFilteredList(usePagedList(listMissions), keep, PAGE_SIZE);
 
   return (
     <div className="grid gap-12">
@@ -75,7 +104,7 @@ export function CleaningSpace() {
         <PagedListState
           list={requests}
           labels={labels}
-          empty={<p className="text-ink-muted">{t.noRequests}</p>}
+          empty={<p className="text-ink-muted">{organizationId ? t.noRequestsBusiness : t.noRequests}</p>}
         >
           <ul className="grid gap-3">
             {requests.items.map((request) => (
@@ -96,7 +125,7 @@ export function CleaningSpace() {
         <PagedListState
           list={missions}
           labels={labels}
-          empty={<p className="text-ink-muted">{t.noMissions}</p>}
+          empty={<p className="text-ink-muted">{organizationId ? t.noMissionsBusiness : t.noMissions}</p>}
         >
           <ul className="grid gap-3">
             {missions.items.map((mission) => (

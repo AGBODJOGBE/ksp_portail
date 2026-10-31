@@ -1,14 +1,17 @@
 import { ApiError } from '@/lib/api';
 import { draftFromParams, requestHref } from './draft';
 import { describeCleaningError } from './errors';
-import { SERVICES } from './fake-gateway.test-utils';
+import { SERVICES, ZONES } from './fake-gateway.test-utils';
 import { idempotentSubmission } from './idempotency';
 import { buildQuoteRequest, firstAllowedDate, type RequestFormValues } from './request-form';
-import type { ServiceOffer } from './schemas';
+import { missionSchema, type ServiceOffer, suspensionCauses } from './schemas';
+import { mission } from './fake-gateway.test-utils';
+import { suspendedStatus, suspensionText } from './texts';
 import { draftFromAnswers, simulatorSteps } from './simulator-steps';
-import { coveredCommune } from './zones';
+import { OTHER_COMMUNE, zoneFor, zonesSentence } from './zones';
 
 const services = SERVICES.data as ServiceOffer[];
+const zones = ZONES.data;
 const draft = {
   serviceCode: 'home_cleaning',
   premisesType: 'house',
@@ -36,20 +39,27 @@ describe('simulation reprise dans l’adresse de la demande', () => {
     expect(read('prestation=Home!&locaux=house&quantite=6&commune=Cotonou')).toBeNull();
   });
 
-  it('reconnaît une commune desservie, quelle que soit son écriture, et marque les autres', () => {
-    expect(coveredCommune('abomey calavi')).toBe('Abomey-Calavi');
-    expect(coveredCommune('PORTO-NOVO')).toBe('Porto-Novo');
-    expect(coveredCommune('Parakou')).toBeNull();
+  it('garde la commune telle quelle : elle est comparée aux zones de la gateway', () => {
     const other = draftFromParams(
       new URLSearchParams('prestation=home_cleaning&locaux=house&quantite=6&commune=Parakou'),
     );
-    expect(other?.commune).toBe('other');
+    expect(other?.commune).toBe('Parakou');
+    expect(zoneFor(zones, 'Porto-Novo')?.code).toBe('porto-novo');
+    expect(zoneFor(zones, 'porto-novo')?.commune).toBe('Porto-Novo');
+    expect(zoneFor(zones, 'Parakou')).toBeNull();
+  });
+
+  it('met les zones en phrase, dans l’ordre de la gateway', () => {
+    expect(zonesSentence(zones)).toBe('Abomey-Calavi, Cotonou et Porto-Novo');
+    expect(zonesSentence([])).toBeNull();
   });
 });
 
 describe('questions du simulateur', () => {
   it('reprend les prestations du catalogue et l’unité de la prestation choisie', () => {
-    const steps = simulatorSteps(services, { prestation: { kind: 'choice', value: 'home_cleaning' } });
+    const steps = simulatorSteps(services, zones, {
+      prestation: { kind: 'choice', value: 'home_cleaning' },
+    });
     expect(steps.map((step) => step.id)).toEqual([
       'prestation',
       'locaux',
@@ -64,10 +74,17 @@ describe('questions du simulateur', () => {
       'Désinsectisation',
     ]);
     expect(size?.kind === 'quantity' && size.modes[0]?.unit).toBe('pièces');
+    const commune = steps.find((step) => step.id === 'commune');
+    expect(commune?.kind === 'choice' && commune.options.map((option) => option.value)).toEqual([
+      'Abomey-Calavi',
+      'Cotonou',
+      'Porto-Novo',
+      OTHER_COMMUNE,
+    ]);
   });
 
   it('saute l’étape des options quand la prestation n’en a pas', () => {
-    const steps = simulatorSteps(services, { prestation: { kind: 'choice', value: 'pest_control' } });
+    const steps = simulatorSteps(services, zones, { prestation: { kind: 'choice', value: 'pest_control' } });
     expect(steps.map((step) => step.id)).not.toContain('options');
     const size = steps[2];
     expect(size?.kind === 'quantity' && size.modes[0]?.unit).toBe('m²');
@@ -97,6 +114,7 @@ describe('saisie de la demande de devis', () => {
     visits: '',
     months: '',
     days: '',
+    team: '',
     comment: '',
     ...patch,
   });
@@ -137,9 +155,20 @@ describe('saisie de la demande de devis', () => {
   });
 
   it('refuse une commune hors zone', () => {
-    const { errors, input } = buildQuoteRequest(draft, values({ commune: 'other' }), NOW);
+    const { errors, input } = buildQuoteRequest(
+      draft,
+      values({ commune: 'other' }),
+      NOW,
+      zonesSentence(zones),
+    );
     expect(input).toBeNull();
-    expect(errors.commune).toMatch(/Cotonou, Porto-Novo et Abomey-Calavi/);
+    expect(errors.commune).toMatch(/intervient aujourd’hui à Abomey-Calavi, Cotonou et Porto-Novo/);
+  });
+
+  it('envoie le nombre d’agents souhaité (1 à 50), facultatif', () => {
+    expect(buildQuoteRequest(draft, values({ team: '3' }), NOW).input?.requestedTeamSize).toBe(3);
+    expect(buildQuoteRequest(draft, values({ team: '51' }), NOW).errors.team).toBeDefined();
+    expect(buildQuoteRequest(draft, values(), NOW).input).not.toHaveProperty('requestedTeamSize');
   });
 
   it('envoie les jours d’intervention d’une entreprise (1 à 7)', () => {
@@ -187,6 +216,67 @@ describe('erreurs du Nettoyage', () => {
     expect(describeCleaningError(error(422, 'CLEANING_LEAD_TIME_TOO_SHORT')).kind).toBe('slots');
     expect(describeCleaningError(error(409, 'CLEANING_CONCURRENT_UPDATE')).kind).toBe('stale');
     expect(describeCleaningError(error(404, 'CLEANING_REQUEST_NOT_FOUND')).kind).toBe('notFound');
+    expect(describeCleaningError(error(422, 'CLEANING_ORGANIZATION_SUSPENDED')).kind).toBe(
+      'organizationSuspended',
+    );
     expect(describeCleaningError(new Error('x')).kind).toBe('other');
+  });
+});
+
+describe('suspension d’une mission (ADR-030)', () => {
+  const since = '11 décembre 2026';
+
+  it('lit une suspension sans `causes` (gateway antérieure) comme une seule cause', () => {
+    const parsed = missionSchema.parse(
+      mission({
+        suspension: { cause: 'unpaid_interventions', since: '2026-12-11T09:00:00Z', unpaidCount: 1 },
+      }),
+    );
+    expect(parsed.suspension && suspensionCauses(parsed.suspension)).toEqual(['unpaid_interventions']);
+  });
+
+  it('accepte la nouvelle cause et 0 impayé', () => {
+    const suspension = {
+      cause: 'organization_suspended',
+      causes: ['organization_suspended'],
+      since: '2026-12-11T09:00:00Z',
+      unpaidCount: 0,
+    };
+    expect(missionSchema.parse(mission({ suspension })).suspension).toEqual(suspension);
+  });
+
+  it('écrit chaque cas sans jamais citer « 0 » impayé', () => {
+    const organization = { cause: 'organization_suspended', unpaidCount: 0 };
+    expect(suspensionText(organization, since)).toContain(
+      'Votre compte entreprise est suspendu par KSP : le service reprendra à sa réactivation.',
+    );
+    expect(suspensionText(organization, since)).not.toMatch(/0|impayé/);
+    expect(suspendedStatus(organization).label).toBe('Suspendue (compte entreprise)');
+
+    const invoices = { cause: 'unpaid_invoices', unpaidCount: 2 };
+    expect(suspensionText(invoices, since)).toContain('2 factures impayées');
+    expect(suspendedStatus(invoices).label).toBe('Suspendue (impayés)');
+
+    const both = {
+      cause: 'organization_suspended',
+      causes: ['organization_suspended', 'unpaid_invoices'],
+      unpaidCount: 0,
+    };
+    expect(suspensionText(both, since)).toContain('il reste des factures impayées');
+    expect(suspensionText(both, since)).not.toMatch(/0/);
+    expect(suspendedStatus(both).label).toBe('Suspendue (compte entreprise et impayés)');
+
+    const interventions = {
+      cause: 'unpaid_interventions',
+      causes: ['unpaid_interventions', 'organization_suspended'],
+      unpaidCount: 3,
+    };
+    expect(suspensionText(interventions, since)).toContain('il reste 3 passages impayés');
+    expect(suspensionText(interventions, since)).toContain('la régularisation des passages');
+
+    expect(suspensionText({ cause: 'nouvelle_cause', unpaidCount: 0 }, since)).toBe(
+      'Service suspendu depuis le 11 décembre 2026. Les passages à venir sont annulés ; ils seront reprogrammés automatiquement à la reprise du service. Contactez KSP pour en savoir plus.',
+    );
+    expect(suspendedStatus({ cause: 'nouvelle_cause' }).label).toBe('Suspendue');
   });
 });

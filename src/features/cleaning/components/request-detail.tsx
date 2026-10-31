@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { lazy, Suspense, useCallback, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { cancelRequest, declineQuote, getRequest } from '@/features/cleaning/api';
@@ -21,6 +22,7 @@ import type { Quote, QuoteRequest } from '@/features/cleaning/schemas';
 import {
   cleaningTexts,
   premisesTypes,
+  recurrenceLabel,
   requestStatuses,
   statusOf,
   visitStatuses,
@@ -35,13 +37,7 @@ const AcceptForm = lazy(() => import('./accept-form').then((module_) => ({ defau
 const t = cleaningTexts.requestDetail;
 const OPEN = new Set(['received', 'visit_scheduled', 'quote_sent']);
 
-function recurrenceLabel(recurrence: QuoteRequest['recurrence']): string | null {
-  if (!recurrence) return null;
-  const per = recurrence.period === 'month' ? 'par mois' : 'par semaine';
-  return `${recurrence.visitsPerPeriod} passage${recurrence.visitsPerPeriod > 1 ? 's' : ''} ${per}, pendant ${recurrence.durationMonths} mois`;
-}
-
-function QuoteView({ quote, expired }: { quote: Quote; expired: boolean }) {
+function QuoteView({ quote, expired, business }: { quote: Quote; expired: boolean; business: boolean }) {
   return (
     <div className="grid gap-4">
       <div className="overflow-x-auto">
@@ -82,11 +78,16 @@ function QuoteView({ quote, expired }: { quote: Quote; expired: boolean }) {
           [t.subtotal, formatXof(quote.subtotal)],
           ['Nombre de passages', t.interventions(quote.interventionCount)],
           [t.total, <strong key="total">{formatXof(quote.total)}</strong>],
-          [t.deposit(quote.depositPercent), quote.depositPercent > 0 ? formatXof(quote.depositAmount) : null],
+          // Une entreprise règle par facture mensuelle : l'acompte ne la concerne pas.
+          [
+            t.deposit(quote.depositPercent),
+            !business && quote.depositPercent > 0 ? formatXof(quote.depositAmount) : null,
+          ],
           [t.recurrence, recurrenceLabel(quote.recurrence)],
           ['Équipe', t.team(quote.teamSize, formatDuration(quote.durationMinutes))],
         ]}
       />
+      {business ? <p className="text-small text-ink-muted">{t.businessPayment}</p> : null}
       <div>
         <p className="text-small text-ink-muted">{t.proposedSlots}</p>
         <ul className="mt-1 grid gap-1">
@@ -102,6 +103,32 @@ function QuoteView({ quote, expired }: { quote: Quote; expired: boolean }) {
       ) : (
         <p className="text-small text-ink font-semibold">{t.validUntil(formatDateTime(quote.validUntil))}</p>
       )}
+    </div>
+  );
+}
+
+/** Visite des lieux, obligatoire avant tout devis (particulier comme entreprise). */
+function VisitView({ visit }: { visit: QuoteRequest['visit'] }) {
+  if (!visit) return <p className="text-ink-muted">{t.visitPending}</p>;
+  const status = statusOf(visitStatuses, visit.status);
+  return (
+    <div className="grid gap-3">
+      <div>
+        <Badge tone={status.tone}>{status.label}</Badge>
+      </div>
+      <Facts
+        rows={[
+          [
+            'Date',
+            visit.status === 'completed' && visit.completedAt
+              ? t.visitDoneOn(formatDateTime(visit.completedAt))
+              : t.visitOn(formatDateTime(visit.scheduledAt)),
+          ],
+          [t.visitReport, visit.report],
+        ]}
+      />
+      {visit.status === 'scheduled' ? <p className="text-small text-ink-muted">{t.visitScheduled}</p> : null}
+      {visit.status === 'cancelled' ? <FormMessage tone="info">{t.visitCancelled}</FormMessage> : null}
     </div>
   );
 }
@@ -148,23 +175,34 @@ export function RequestDetail({ id }: { id: string }) {
 
   const request = state.data;
   const quote = request.quote;
+  const business = request.customerKind === 'business';
   const expired =
     request.status === 'expired' || (!!quote && request.status === 'quote_sent' && isPast(quote.validUntil));
   const canAnswer = request.status === 'quote_sent' && !!quote && !expired;
   const options = optionLabels(services, request.serviceCode, request.options);
+  const status = statusOf(requestStatuses, request.status);
+
+  const visitPanel = (
+    <Panel id="visite-titre" title={t.visitTitle}>
+      <VisitView visit={request.visit} />
+    </Panel>
+  );
 
   return (
     <div className="grid gap-8">
       <DetailHeader
         title={serviceName(services, request.serviceCode)}
         subtitle={`${t.title} · ${cleaningTexts.space.requestedOn(formatShortDate(request.createdAt))}`}
-        status={statusOf(requestStatuses, request.status)}
+        status={status}
+        tag={business ? cleaningTexts.context.businessTag : undefined}
       />
       <FormMessage tone="info">{notice}</FormMessage>
 
+      {quote ? null : visitPanel}
+
       {quote ? (
         <Panel id="devis-titre" title={t.quoteTitle}>
-          <QuoteView quote={quote} expired={expired} />
+          <QuoteView quote={quote} expired={expired} business={business} />
           {canAnswer ? (
             <div className="grid gap-4 sm:grid-cols-[auto_auto_1fr] sm:items-start">
               {accepting ? (
@@ -173,7 +211,7 @@ export function RequestDetail({ id }: { id: string }) {
                     <AcceptForm
                       requestId={request.id}
                       quote={quote}
-                      business={request.customerKind === 'business'}
+                      business={business}
                       onAccepted={(response) => router.push(cleaningPaths.mission(response.mission.id))}
                       onFailure={afterFailure}
                     />
@@ -205,23 +243,12 @@ export function RequestDetail({ id }: { id: string }) {
         </ButtonLink>
       ) : null}
 
-      <Panel id="visite-titre" title={t.visitTitle}>
-        {request.visit ? (
-          <Facts
-            rows={[
-              ['État', visitStatuses[request.visit.status] ?? request.visit.status],
-              ['Date', t.visitOn(formatDateTime(request.visit.scheduledAt))],
-              [t.visitReport, request.visit.report],
-            ]}
-          />
-        ) : (
-          <p className="text-ink-muted">{t.visitPending}</p>
-        )}
-      </Panel>
+      {quote ? visitPanel : null}
 
       <Panel id="besoin-titre" title={t.need}>
         <Facts
           rows={[
+            [t.customer, business ? cleaningTexts.context.business(null) : cleaningTexts.context.individual],
             [t.premises, premisesTypes[request.premisesType] ?? request.premisesType],
             [t.quantity, quantityLabel(services, request.serviceCode, request.quantity)],
             [t.options, options.join(', ')],
@@ -232,6 +259,8 @@ export function RequestDetail({ id }: { id: string }) {
               t.daysPerWeek,
               request.daysPerWeek ? cleaningTexts.missionDetail.daysPerWeek(request.daysPerWeek) : null,
             ],
+            [t.requestedTeam, request.requestedTeamSize ? t.agents(request.requestedTeamSize) : null],
+            [t.recommendedTeam, t.agents(request.recommendedTeamSize)],
             [
               t.estimate,
               request.estimate

@@ -2,8 +2,9 @@ import * as z from 'zod/mini';
 
 /*
  * Réponses de la gateway pour le Nettoyage (contrat `ksp-api.v1.yaml`, routes `/api/v1/cleaning/*`).
- * Lecture tolérante : un champ ajouté par la gateway est ignoré ; les énumérations restent des chaînes
- * pour qu'un nouvel état ne casse pas l'écran (il s'affiche avec un libellé neutre).
+ * Champ par champ selon le contrat : un champ obligatoire absent rend la réponse invalide ; un champ
+ * ajouté par la gateway est ignoré. Les énumérations restent des chaînes pour qu'un nouvel état ne casse
+ * pas l'écran (il s'affiche avec un libellé neutre).
  * Schémas lus dans le navigateur : `zod/mini`, bien plus léger que `zod`.
  */
 
@@ -21,6 +22,7 @@ export const priceLineSchema = z.object({
 
 export const priceRangeSchema = z.object({ low: moneySchema, high: moneySchema });
 
+/** `CleaningRecurrence` : passages par semaine ou par mois, pendant une durée en mois. */
 export const recurrenceSchema = z.object({
   period: z.string(),
   visitsPerPeriod: z.int(),
@@ -41,8 +43,16 @@ export const serviceOfferSchema = z.object({
 export const serviceListSchema = z.object({ data: z.array(serviceOfferSchema) });
 
 /**
+ * `CleaningServedZone` : commune où le Nettoyage est ouvert. `commune` est le nom affiché, renvoyé tel
+ * quel dans le champ `commune` d'une simulation ou d'une demande de devis.
+ */
+export const servedZoneSchema = z.object({ code: z.string(), commune: z.string() });
+
+export const servedZoneListSchema = z.object({ data: z.array(servedZoneSchema) });
+
+/**
  * `CleaningSimulation`. `covered` : commune desservie ou non (l'estimation est donnée dans tous les cas,
- * mais une demande de devis hors zone est refusée). Facultatif à la lecture pour une gateway plus ancienne.
+ * mais une demande de devis hors zone est refusée, `CLEANING_ZONE_NOT_COVERED`).
  */
 export const simulationSchema = z.object({
   serviceCode: z.string(),
@@ -51,15 +61,19 @@ export const simulationSchema = z.object({
   computedPrice: z.nullable(moneySchema),
   breakdown: z.array(priceLineSchema),
   minimumApplied: z.boolean(),
+  /** Coefficient de la commune en points de base (10000 = 1), 0 sans prix. Non affiché. */
+  communeCoefficientBp: z.int(),
   recommendedTeamSize: z.int(),
   notice: z.string(),
-  covered: z.optional(z.boolean()),
+  covered: z.boolean(),
 });
 
+/** `CleaningSiteVisit` : visite des lieux, obligatoire avant tout devis. */
 export const siteVisitSchema = z.object({
   id: z.string(),
   status: z.string(),
   scheduledAt: z.string(),
+  agentId: z.string(),
   report: z.nullable(z.string()),
   completedAt: z.nullable(z.string()),
 });
@@ -80,11 +94,16 @@ export const quoteSchema = z.object({
   sentAt: z.string(),
 });
 
-/** `CleaningQuoteRequest` : une demande de devis du client. */
+/**
+ * `CleaningQuoteRequest` : une demande de devis du client. `customerKind` et `organizationId` viennent
+ * du contexte actif au moment de la demande (particulier, ou entreprise et son organisation).
+ */
 export const quoteRequestSchema = z.object({
   id: z.string(),
   status: z.string(),
+  customerId: z.string(),
   customerKind: z.string(),
+  organizationId: z.nullable(z.string()),
   serviceCode: z.string(),
   premisesType: z.string(),
   quantity: z.int(),
@@ -94,8 +113,11 @@ export const quoteRequestSchema = z.object({
   preferredSlots: z.array(timeSlotSchema),
   comment: z.nullable(z.string()),
   recurrence: z.nullable(recurrenceSchema),
-  /** Entreprise : jours d'intervention par semaine indiqués à la demande. */
-  daysPerWeek: z.optional(z.nullable(z.int())),
+  /** Nombre d'agents souhaité par le client, null s'il ne l'a pas indiqué. */
+  requestedTeamSize: z.nullable(z.int()),
+  /** Entreprise : jours d'intervention par semaine indiqués à la demande, null sinon. */
+  daysPerWeek: z.nullable(z.int()),
+  recommendedTeamSize: z.int(),
   estimate: z.nullable(priceRangeSchema),
   visit: z.nullable(siteVisitSchema),
   quote: z.nullable(quoteSchema),
@@ -110,15 +132,24 @@ export const quoteRequestListSchema = z.object({
   nextCursor: z.nullable(z.string()),
 });
 
+export const checklistItemSchema = z.object({ code: z.string(), label: z.string(), done: z.boolean() });
+
+/** `CleaningIntervention` : un passage de la mission. */
 export const interventionSchema = z.object({
   id: z.string(),
   status: z.string(),
   scheduledStart: z.string(),
   durationMinutes: z.int(),
   agents: z.array(z.object({ agentId: z.string(), displayName: z.string() })),
+  checklist: z.array(checklistItemSchema),
   incidentNote: z.nullable(z.string()),
+  /** Références du service file (photos avant et après), pas encore lisibles par le portail. */
+  beforePhotoFileIds: z.array(z.string()),
+  afterPhotoFileIds: z.array(z.string()),
   startedAt: z.nullable(z.string()),
   completedAt: z.nullable(z.string()),
+  /** Passage annulé : `suspension` (impayés, reprogrammé au déblocage) ou `manual` ; null sinon. */
+  cancellationCause: z.nullable(z.string()),
 });
 
 export const paymentPlanSchema = z.object({ option: z.string(), timing: z.string(), method: z.string() });
@@ -136,15 +167,39 @@ export const paymentStateSchema = z.object({
       amount: moneySchema,
       method: z.string(),
       reference: z.nullable(z.string()),
+      recordedBy: z.string(),
       recordedAt: z.string(),
     }),
   ),
 });
 
-/** `CleaningMission` : la prestation réservée et ses passages. */
+/**
+ * `CleaningSuspension` : suspension en cours (partie 10 du cahier des charges ; ADR-030). `cause` est la
+ * plus ancienne cause active : `unpaid_invoices`, `unpaid_interventions` ou `organization_suspended`
+ * (compte entreprise suspendu par KSP). `causes` (ajout de l'ADR-030) les donne toutes, la plus ancienne
+ * d'abord ; absent d'une gateway plus ancienne, il vaut `[cause]` (`suspensionCauses`). `unpaidCount` peut
+ * valoir 0 quand seule l'organisation est suspendue.
+ */
+export const suspensionSchema = z.object({
+  cause: z.string(),
+  causes: z.optional(z.array(z.string())),
+  since: z.string(),
+  unpaidCount: z.int().check(z.nonnegative()),
+});
+
+// `suspensionCauses` (repli sur `[cause]`) vit dans `suspension.ts`, sans zod : les textes l'importent.
+export { suspensionCauses } from './suspension';
+
+/** `CleaningMission` : la prestation réservée et ses passages (`customerName`, `organizationName` : back-office). */
 export const missionSchema = z.object({
   id: z.string(),
   requestId: z.string(),
+  quoteId: z.string(),
+  customerId: z.string(),
+  /** Particulier ou entreprise : une mission d'entreprise se règle par sa facture mensuelle. */
+  customerKind: z.string(),
+  /** Organisation de la mission ; null pour un particulier. */
+  organizationId: z.nullable(z.string()),
   status: z.string(),
   serviceCode: z.string(),
   commune: z.string(),
@@ -156,11 +211,8 @@ export const missionSchema = z.object({
   interventions: z.array(interventionSchema),
   payment: paymentStateSchema,
   cancellationReason: z.nullable(z.string()),
-  daysPerWeek: z.optional(z.nullable(z.int())),
-  /** Suspension pour impayés en cours (factures d'entreprise ou passages d'un particulier). */
-  suspension: z.optional(
-    z.nullable(z.object({ cause: z.string(), since: z.string(), unpaidCount: z.int() })),
-  ),
+  daysPerWeek: z.nullable(z.int()),
+  suspension: z.nullable(suspensionSchema),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -177,12 +229,14 @@ export type TimeSlot = z.infer<typeof timeSlotSchema>;
 export type PriceLine = z.infer<typeof priceLineSchema>;
 export type Recurrence = z.infer<typeof recurrenceSchema>;
 export type ServiceOffer = z.infer<typeof serviceOfferSchema>;
+export type ServedZone = z.infer<typeof servedZoneSchema>;
 export type Simulation = z.infer<typeof simulationSchema>;
 export type Quote = z.infer<typeof quoteSchema>;
 export type QuoteRequest = z.infer<typeof quoteRequestSchema>;
 export type QuoteRequestList = z.infer<typeof quoteRequestListSchema>;
 export type Intervention = z.infer<typeof interventionSchema>;
 export type PaymentPlan = z.infer<typeof paymentPlanSchema>;
+export type Suspension = z.infer<typeof suspensionSchema>;
 export type Mission = z.infer<typeof missionSchema>;
 export type MissionList = z.infer<typeof missionListSchema>;
 export type AcceptResponse = z.infer<typeof acceptResponseSchema>;

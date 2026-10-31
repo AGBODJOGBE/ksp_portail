@@ -1,13 +1,23 @@
 import { api, parseResponse } from '@/lib/api';
 import { type Invoice, type InvoiceList, invoiceListSchema, invoiceSchema } from './schemas';
 
-/** Factures du client ou de son organisation active, les plus récentes d'abord (session requise). */
+/**
+ * Factures de l'organisation active (contexte entreprise) ou du client lui-même (contexte personnel),
+ * les plus récentes d'abord (session requise).
+ */
 const INVOICES = '/api/v1/billing/invoices';
 
 export const PAGE_SIZE = 10;
 
-export async function listInvoices(cursor?: string): Promise<InvoiceList> {
-  return parseResponse(invoiceListSchema, await api.get(INVOICES, { query: { limit: PAGE_SIZE, cursor } }));
+/** États filtrables (`InvoiceStatus`). */
+export const INVOICE_STATUSES = ['pending_payment', 'overdue', 'paid', 'cancelled'] as const;
+export type InvoiceStatusFilter = (typeof INVOICE_STATUSES)[number];
+
+export async function listInvoices(cursor?: string, status?: InvoiceStatusFilter): Promise<InvoiceList> {
+  return parseResponse(
+    invoiceListSchema,
+    await api.get(INVOICES, { query: { limit: PAGE_SIZE, cursor, status } }),
+  );
 }
 
 export async function getInvoice(id: string): Promise<Invoice> {

@@ -14,9 +14,21 @@ type NameField = Extract<LoginField, 'firstName' | 'lastName'>;
 /**
  * « Compléter mon profil » : prénom et nom, demandés après la première connexion (`profileIncomplete`)
  * et avant d'entrer dans l'espace. Le nom est obligatoire avant tout paiement (contrat).
+ * En mode `edit` (« Mon profil »), le même formulaire modifie le nom, avec un bouton « Annuler ».
  */
-export function ProfileForm({ onDone, autoFocus = false }: { onDone?: () => void; autoFocus?: boolean }) {
+export function ProfileForm({
+  onDone,
+  onCancel,
+  autoFocus = false,
+  mode = 'complete',
+}: {
+  onDone?: () => void;
+  onCancel?: () => void;
+  autoFocus?: boolean;
+  mode?: 'complete' | 'edit';
+}) {
   const t = getDictionary();
+  const editing = mode === 'edit';
   const current = session.get();
   const [firstName, setFirstName] = useState(current?.user.firstName ?? '');
   const [lastName, setLastName] = useState(current?.user.lastName ?? '');
@@ -62,11 +74,11 @@ export function ProfileForm({ onDone, autoFocus = false }: { onDone?: () => void
 
   return (
     <section aria-labelledby="profil-titre">
-      <Heading as="h1" size="h2" id="profil-titre">
-        {t.profile.title}
+      <Heading as={editing ? 'h3' : 'h1'} size={editing ? 'h3' : 'h2'} id="profil-titre">
+        {editing ? t.profile.editTitle : t.profile.title}
       </Heading>
       <p className="text-ink-muted mt-3">{t.profile.intro}</p>
-      <form noValidate onSubmit={submit} className="mt-8 grid gap-5">
+      <form noValidate onSubmit={submit} className={editing ? 'mt-5 grid gap-5' : 'mt-8 grid gap-5'}>
         <TextField
           id="profil-prenom"
           inputRef={firstNameRef}
@@ -92,9 +104,21 @@ export function ProfileForm({ onDone, autoFocus = false }: { onDone?: () => void
           error={errorOf('lastName')}
         />
         <FormMessage>{error}</FormMessage>
-        <Button type="submit" size="lg" className="w-full sm:w-auto" aria-busy={pending || undefined}>
-          {pending ? t.profile.saving : t.profile.submit}
-        </Button>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
+            type="submit"
+            size={editing ? 'md' : 'lg'}
+            className="w-full sm:w-auto"
+            aria-busy={pending || undefined}
+          >
+            {pending ? t.profile.saving : editing ? t.profile.save : t.profile.submit}
+          </Button>
+          {onCancel ? (
+            <Button variant="ghost" onClick={onCancel}>
+              {t.profile.cancel}
+            </Button>
+          ) : null}
+        </div>
       </form>
     </section>
   );

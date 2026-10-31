@@ -15,10 +15,12 @@ function sessionOf(accessToken: string, accessTokenExpiresAt = '2026-10-21T10:15
       lastName: null,
       phone: '+2290197000045',
       email: null,
+      emailVerified: false,
       preferredLanguage: 'fr',
       createdAt: '2026-10-21T09:00:00Z',
     },
     profileIncomplete: true,
+    activeContext: { type: 'individual', organizationId: null, organizationName: null },
   };
 }
 

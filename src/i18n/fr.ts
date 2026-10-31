@@ -36,9 +36,10 @@ export const fr = {
     signingOut: 'Déconnexion…',
   },
   login: {
-    title: 'Se connecter',
+    title: 'Se connecter ou créer un compte',
     intro:
       'Un seul compte pour tous les services KSP. Pas de mot de passe : vous recevez un code de connexion sur WhatsApp.',
+    newAccount: 'Pas encore de compte ? Il est créé avec votre numéro.',
     checking: 'Vérification de votre session…',
     phoneLegend: 'Votre numéro de téléphone',
     countryCode: 'Indicatif',
@@ -82,6 +83,9 @@ export const fr = {
     nameInvalid: 'Utilisez des lettres, des espaces, le trait d’union, l’apostrophe ou le point.',
     submit: 'Enregistrer et continuer',
     saving: 'Enregistrement…',
+    editTitle: 'Modifier mon nom',
+    save: 'Enregistrer',
+    cancel: 'Annuler',
   },
   metier: {
     breadcrumb: 'Fil d’Ariane',

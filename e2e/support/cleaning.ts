@@ -2,7 +2,7 @@ import type { ExtraRequest } from './gateway';
 
 /**
  * Service Nettoyage simulé (routes `/api/v1/cleaning/*` du contrat `ksp-api.v1.yaml`) : catalogue,
- * simulation, demandes de devis, acceptation et missions. `sendQuote()` joue le superviseur qui envoie
+ * zones desservies, simulation, demandes de devis, acceptation et missions. `sendQuote()` joue le superviseur qui envoie
  * le devis après la visite des lieux.
  */
 
@@ -25,6 +25,14 @@ const SERVICES = {
       priced: true,
       minimumPrice: xof(15000),
     },
+  ],
+};
+
+const ZONES = {
+  data: [
+    { code: 'abomey-calavi', commune: 'Abomey-Calavi' },
+    { code: 'cotonou', commune: 'Cotonou' },
+    { code: 'porto-novo', commune: 'Porto-Novo' },
   ],
 };
 
@@ -83,6 +91,7 @@ export function fakeCleaning(): FakeCleaning {
     if (!path.startsWith('/api/v1/cleaning/')) return undefined;
     const key = `${method} ${path}`;
     if (key === 'GET /api/v1/cleaning/services') return { status: 200, body: SERVICES };
+    if (key === 'GET /api/v1/cleaning/zones') return { status: 200, body: ZONES };
     if (key === 'POST /api/v1/cleaning/simulations') return { status: 200, body: SIMULATION };
     if (!authorized) return unauthorized;
 
@@ -127,6 +136,10 @@ export function fakeCleaning(): FakeCleaning {
           requestId: REQUEST_ID,
           quoteId: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d3001',
           customerId: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d9e11',
+          customerKind: request?.customerKind ?? 'individual',
+          organizationId: request?.organizationId ?? null,
+          customerName: null,
+          organizationName: null,
           status: 'scheduled',
           serviceCode: 'home_cleaning',
           commune: request?.commune,

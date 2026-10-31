@@ -12,25 +12,30 @@ import {
   quoteRequestListSchema,
   quoteRequestSchema,
   type Recurrence,
+  type ServedZone,
+  servedZoneListSchema,
   type ServiceOffer,
   serviceListSchema,
   type Simulation,
   simulationSchema,
   type TimeSlot,
 } from './schemas';
+import { ZONES_PATH } from './zones';
 
 /**
- * Appels du navigateur à la gateway pour le Nettoyage. Le simulateur est public (sans jeton) ; la
- * demande de devis et « Mes prestations de nettoyage » demandent une session (option A, F-005).
+ * Appels du navigateur à la gateway pour le Nettoyage. Le catalogue, les zones et le simulateur sont
+ * publics (sans jeton) ; la demande de devis et « Mes prestations de nettoyage » demandent une session
+ * (option A, F-005).
  */
 
-const BASE = '/api/v1/cleaning';
-const REQUESTS = `${BASE}/quote-requests`;
-const MISSIONS = `${BASE}/missions`;
+export const CLEANING_API = '/api/v1/cleaning';
+const REQUESTS = `${CLEANING_API}/quote-requests`;
+const MISSIONS = `${CLEANING_API}/missions`;
 
 /** Taille d'une page des listes (le contrat accepte 1 à 100, 20 par défaut). */
 export const PAGE_SIZE = 10;
 
+/** `SimulateCleaningRequest`. */
 export interface SimulationInput {
   serviceCode: string;
   premisesType: string;
@@ -40,38 +45,72 @@ export interface SimulationInput {
   frequency?: 'once' | 'weekly' | 'monthly';
 }
 
+/** `RequestCleaningQuoteRequest` : le type de client (particulier ou entreprise) vient du contexte actif. */
 export interface QuoteRequestInput extends Omit<SimulationInput, 'frequency'> {
   address: string;
   preferredSlots: TimeSlot[];
   comment?: string;
   recurrence?: Recurrence;
+  /** Nombre d'agents souhaité (1 à 50), si le client l'indique. */
+  requestedTeamSize?: number;
   /** Entreprise : jours d'intervention par semaine (1 à 7), si connus. */
   daysPerWeek?: number;
 }
 
-/** Catalogue lu une fois par chargement de page : plusieurs écrans s'en servent pour nommer la prestation. */
-let servicesCache: Promise<ServiceOffer[]> | null = null;
-
-export function listServices(): Promise<ServiceOffer[]> {
-  servicesCache ??= api
-    .get(`${BASE}/services`, { auth: false })
-    .then((body) => parseResponse(serviceListSchema, body).data);
-  // Un échec n'est pas gardé : « Réessayer » relance la lecture.
-  servicesCache.catch(() => {
-    servicesCache = null;
-  });
-  return servicesCache;
+/** `AcceptCleaningQuoteRequest` : `paymentPlan` obligatoire pour un particulier, absent pour une entreprise. */
+export interface AcceptInput {
+  slotStart: string;
+  paymentPlan?: PaymentPlan;
 }
 
-/** Réservé aux tests : oublie le catalogue lu. */
+/**
+ * Lecture publique gardée pour la durée de la page : plusieurs écrans s'en servent (nommer la
+ * prestation, proposer les communes). Un échec n'est pas gardé : « Réessayer » relance la lecture.
+ */
+function cachedRead<T>(read: () => Promise<T>) {
+  let cache: Promise<T> | null = null;
+  return {
+    get(): Promise<T> {
+      cache ??= read();
+      cache.catch(() => {
+        cache = null;
+      });
+      return cache;
+    },
+    reset() {
+      cache = null;
+    },
+  };
+}
+
+const services = cachedRead(
+  async () =>
+    parseResponse(serviceListSchema, await api.get(`${CLEANING_API}/services`, { auth: false })).data,
+);
+
+const zones = cachedRead(
+  async () => parseResponse(servedZoneListSchema, await api.get(ZONES_PATH, { auth: false })).data,
+);
+
+export function listServices(): Promise<ServiceOffer[]> {
+  return services.get();
+}
+
+/** Zones desservies, quand la page ne les a pas reçues du serveur. */
+export function listZones(): Promise<ServedZone[]> {
+  return zones.get();
+}
+
+/** Réservé aux tests : oublie le catalogue et les zones lus. */
 export function resetServicesCache(): void {
-  servicesCache = null;
+  services.reset();
+  zones.reset();
 }
 
 export async function simulate(input: SimulationInput, signal?: AbortSignal): Promise<Simulation> {
   return parseResponse(
     simulationSchema,
-    await api.post(`${BASE}/simulations`, input, { auth: false, signal }),
+    await api.post(`${CLEANING_API}/simulations`, input, { auth: false, signal }),
   );
 }
 
@@ -91,7 +130,7 @@ export async function getRequest(id: string): Promise<QuoteRequest> {
 
 export async function acceptQuote(
   id: string,
-  input: { slotStart: string; paymentPlan: PaymentPlan },
+  input: AcceptInput,
   idempotencyKey: string,
 ): Promise<AcceptResponse> {
   return parseResponse(

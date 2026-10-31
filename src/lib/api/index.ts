@@ -1,11 +1,19 @@
-import { publicEnv, serverApiUrl } from '@/config/env';
+import { publicEnv } from '@/config/env';
 import { type ApiClient, createApiClient } from './client';
 import { session } from './session';
 
 export { ApiError } from './errors';
 export type { ApiClient, RequestOptions } from './client';
-export { session, useSession, type RestoreResult, type Session, type SessionUser } from './session';
-export { sessionSchema, sessionUserSchema } from './session-schema';
+export {
+  contextKey,
+  session,
+  useSession,
+  type ActiveContext,
+  type RestoreResult,
+  type Session,
+  type SessionUser,
+} from './session';
+export { activeContextSchema, sessionSchema, sessionUserSchema } from './session-schema';
 export { parseResponse } from './validate';
 
 /** Client à utiliser dans les composants du navigateur (jeton d'accès de la session, cookies inclus). */
@@ -16,10 +24,6 @@ export const api: ApiClient = createApiClient({
   refreshSession: () => session.refresh(),
 });
 
-/**
- * Client à utiliser côté serveur (pages publiques rendues par Next.js, contenus du CMS).
- * Sans cookie ni jeton : uniquement les routes publiques de la gateway.
- */
-export function serverApi(): ApiClient {
-  return createApiClient({ baseUrl: serverApiUrl(), withCredentials: false });
-}
+// Client du serveur : aussi importable seul (`@/lib/api/server`) par un composant serveur, sans la
+// session du navigateur (hook React) que ce module charge.
+export { serverApi } from './server';

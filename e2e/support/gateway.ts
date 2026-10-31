@@ -46,6 +46,7 @@ const user = (firstName: string | null, lastName: string | null) => ({
   lastName,
   phone: '+2290197000045',
   email: null,
+  emailVerified: false,
   preferredLanguage: 'fr',
   createdAt: '2026-10-21T09:00:00Z',
 });
@@ -71,6 +72,7 @@ export async function mockGateway(page: Page, options: GatewayOptions = {}): Pro
     sessionId: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d9e10',
     user: user(state.firstName, state.lastName),
     profileIncomplete: !state.firstName || !state.lastName,
+    activeContext: { type: 'individual', organizationId: null, organizationName: null },
   });
 
   await page.route(`${GATEWAY}/api/v1/**`, async (route: Route) => {
@@ -142,7 +144,12 @@ export async function mockGateway(page: Page, options: GatewayOptions = {}): Pro
         if (!authorized) return reply(401, error('GATEWAY_TOKEN_MISSING', 'Vous devez être connecté.'));
         state.firstName = String(body?.firstName ?? state.firstName);
         state.lastName = String(body?.lastName ?? state.lastName);
-        return reply(200, { user: user(state.firstName, state.lastName), profileIncomplete: false });
+        return reply(200, {
+          user: user(state.firstName, state.lastName),
+          profileIncomplete: false,
+          activeContext: { type: 'individual', organizationId: null, organizationName: null },
+          pendingEmail: null,
+        });
       case 'POST /api/v1/identity/logout':
         if (!authorized) return reply(401, error('GATEWAY_TOKEN_MISSING', 'Vous devez être connecté.'));
         state.signedIn = false;

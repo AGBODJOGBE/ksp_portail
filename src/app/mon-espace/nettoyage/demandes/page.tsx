@@ -1,5 +1,6 @@
 import { Heading } from '@/components/ui/heading';
 import { CleaningSpace, cleaningTexts } from '@/features/cleaning';
+import { ContextSwitcher } from '@/features/identity';
 
 const t = cleaningTexts.space;
 
@@ -12,6 +13,7 @@ export default function CleaningRequestsPage() {
           {t.title}
         </Heading>
         <p className="text-ink-muted mt-3">{t.lead}</p>
+        <ContextSwitcher className="mt-5" />
       </div>
       <CleaningSpace />
     </div>

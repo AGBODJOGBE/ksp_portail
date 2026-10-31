@@ -4,6 +4,7 @@ import {
   challengeBody,
   errorBody,
   NO_SESSION,
+  PERSONAL,
   sessionBody,
   stubGateway,
   USER,
@@ -58,13 +59,23 @@ describe('parcours de connexion', () => {
       ],
       [PATCH_ME]: (body) => ({
         status: 200,
-        body: { user: { ...USER, ...(body as object) }, profileIncomplete: false },
+        body: {
+          user: { ...USER, ...(body as object) },
+          profileIncomplete: false,
+          activeContext: PERSONAL,
+          pendingEmail: null,
+        },
       }),
     });
     render(<LoginFlow />);
 
     // Indicatif +229 par défaut.
     expect(await screen.findByRole('textbox', { name: 'Indicatif' })).toHaveValue('+229');
+    // Connexion et création de compte : un seul parcours, annoncé comme tel.
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Se connecter ou créer un compte' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Pas encore de compte ? Il est créé avec votre numéro.')).toBeInTheDocument();
     await submitPhone();
 
     expect(
@@ -78,12 +89,12 @@ describe('parcours de connexion', () => {
     const codeInput = screen.getByRole('textbox', { name: /Code reçu/ });
     expect(codeInput).toHaveAttribute('autocomplete', 'one-time-code');
     expect(codeInput).toHaveAttribute('inputmode', 'numeric');
-    expect(codeInput).toHaveFocus();
+    await waitFor(() => expect(codeInput).toHaveFocus());
 
     submitCode('000000');
     expect(await screen.findByText('Le code est incorrect. Il vous reste 2 essais.')).toBeInTheDocument();
     expect(codeInput).toHaveAttribute('aria-invalid', 'true');
-    expect(codeInput).toHaveFocus();
+    await waitFor(() => expect(codeInput).toHaveFocus());
     expect(codeInput).toHaveValue('');
 
     submitCode('482 913');
@@ -96,7 +107,7 @@ describe('parcours de connexion', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer et continuer' }));
     expect(await screen.findByText('Indiquez votre prénom.')).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Prénom' })).toHaveFocus();
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Prénom' })).toHaveFocus());
 
     fireEvent.change(screen.getByRole('textbox', { name: 'Prénom' }), { target: { value: ' Koffi ' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'Nom' }), { target: { value: 'Adjovi' } });
@@ -117,7 +128,7 @@ describe('parcours de connexion', () => {
     expect(
       await screen.findByText('Numéro invalide : vérifiez l’indicatif et le numéro.'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Numéro' })).toHaveFocus();
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Numéro' })).toHaveFocus());
     expect(calls.filter((call) => call.path.endsWith('/otp/request'))).toHaveLength(0);
   });
 

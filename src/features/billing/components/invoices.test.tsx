@@ -2,6 +2,11 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { InvoiceDetail } from './invoice-detail';
 import { InvoiceList } from './invoice-list';
 
+let search = '';
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(search),
+}));
+
 const xof = (amount: number) => ({ amount, currency: 'XOF' });
 const INVOICE_ID = '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d6001';
 
@@ -27,6 +32,12 @@ function invoice(overrides: Record<string, unknown> = {}) {
     dueAt: '2026-12-11T08:00:00Z',
     paidAt: null,
     payments: [],
+    organization: {
+      legalName: 'SARL Bénin Propre',
+      address: 'Lot 12, Haie Vive, Cotonou',
+      ifu: '3201912345678',
+      rccm: 'RB/COT/19 B 1234',
+    },
     ...overrides,
   };
 }
@@ -50,6 +61,9 @@ function stub(...responses: Array<{ status: number; body: unknown }>) {
 
 const plain = (text: string | null) => (text ?? '').replace(/\s/g, ' ');
 
+beforeEach(() => {
+  search = '';
+});
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Mes factures', () => {
@@ -73,24 +87,47 @@ describe('Mes factures', () => {
       },
     );
     render(<InvoiceList />);
-    expect(await screen.findByText('En attente de paiement')).toBeInTheDocument();
-    expect(screen.getByText('Impayée')).toBeInTheDocument();
+    // Chaque état apparaît dans le filtre, puis dans le badge de la facture.
+    expect(await screen.findByRole('link', { name: 'Facture FAC-2026-000011' })).toBeInTheDocument();
+    expect(screen.getAllByText('En attente de paiement')).toHaveLength(2);
+    expect(screen.getAllByText('Impayée')).toHaveLength(2);
     expect(screen.getByRole('link', { name: 'Facture FAC-2026-000012' })).toHaveAttribute(
       'href',
       `/mon-espace/factures/${INVOICE_ID}`,
     );
     expect(screen.getAllByText(/Échéance le 11 décembre 2026/)).toHaveLength(2);
+    expect(screen.getAllByText(/SARL Bénin Propre · Mois 1 du contrat/)).toHaveLength(2);
+    expect(calls[0]?.searchParams.get('status')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
-    expect(await screen.findByText('Payée')).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Facture FAC-2026-000010' })).toBeInTheDocument();
+    expect(screen.getAllByText('Payée')).toHaveLength(2);
     expect(screen.getByText(/Réglée le 5 novembre 2026/)).toBeInTheDocument();
     expect(calls[1]?.searchParams.get('cursor')).toBe('0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d6fff');
   });
 
-  it('affiche une liste vide', async () => {
+  it('affiche une liste vide, avec ce qu’elle contiendra', async () => {
     stub({ status: 200, body: { data: [], nextCursor: null } });
     render(<InvoiceList />);
     expect(await screen.findByText('Aucune facture pour le moment.')).toBeInTheDocument();
+    expect(screen.getByText(/Les factures concernent les contrats d’entreprise/)).toBeInTheDocument();
+  });
+
+  it('filtre par état depuis l’adresse (`?etat=impayee`) et signale le reste à régler', async () => {
+    search = 'etat=impayee';
+    const calls = stub({
+      status: 200,
+      body: {
+        data: [invoice({ status: 'overdue', paid: xof(100000), balance: xof(200000) })],
+        nextCursor: null,
+      },
+    });
+    render(<InvoiceList />);
+    expect(await screen.findByText(/Reste à régler : 200\s000\sFCFA/)).toBeInTheDocument();
+    expect(calls[0]?.searchParams.get('status')).toBe('overdue');
+    const filters = screen.getByRole('navigation', { name: 'Filtrer par état' });
+    expect(screen.getAllByRole('link', { name: 'Impayée' })[0]).toHaveAttribute('aria-current', 'page');
+    expect(filters).toBeInTheDocument();
   });
 
   it('détaille une facture impayée : lignes, reste à régler, renvoi vers la mission', async () => {
@@ -101,6 +138,10 @@ describe('Mes factures', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/Cette facture est impayée/)).toBeInTheDocument();
     expect(screen.getByText('Nettoyage de bureaux — novembre')).toBeInTheDocument();
+    const header = screen.getByRole('region', { name: 'Facturé à' });
+    expect(header).toHaveTextContent('SARL Bénin Propre');
+    expect(header).toHaveTextContent('IFU : 3201912345678 · RCCM : RB/COT/19 B 1234');
+    expect(screen.getByText('Mois 1 du contrat')).toBeInTheDocument();
     expect(plain(screen.getByText('Reste à régler').nextElementSibling?.textContent ?? null)).toBe(
       '300 000 FCFA',
     );
@@ -108,6 +149,20 @@ describe('Mes factures', () => {
       'href',
       '/mon-espace/nettoyage/missions/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1000',
     );
+  });
+
+  it('facture d’un particulier ou émise avant l’en-tête : pas de bloc « Facturé à »', async () => {
+    stub({ status: 200, body: invoice({ organization: null, organizationId: null }) });
+    render(<InvoiceDetail id={INVOICE_ID} />);
+    expect(await screen.findByText(/À régler avant le 11 décembre 2026/)).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Facturé à' })).not.toBeInTheDocument();
+  });
+
+  it('refuse une réponse hors contrat (en-tête absent)', async () => {
+    const { organization: _organization, ...withoutHeader } = invoice();
+    stub({ status: 200, body: withoutHeader });
+    render(<InvoiceDetail id={INVOICE_ID} />);
+    expect(await screen.findByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
   });
 
   it('facture introuvable : message, sans « Réessayer »', async () => {

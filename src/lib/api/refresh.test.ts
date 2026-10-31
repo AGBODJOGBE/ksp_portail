@@ -15,10 +15,12 @@ const SESSION = {
     lastName: 'Adjovi',
     phone: '+2290197000045',
     email: null,
+    emailVerified: false,
     preferredLanguage: 'fr',
     createdAt: '2026-10-17T10:00:00Z',
   },
   profileIncomplete: false,
+  activeContext: { type: 'individual', organizationId: null, organizationName: null },
 };
 
 function setup(response: Response | Error) {

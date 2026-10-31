@@ -17,7 +17,7 @@ import {
 } from '@/lib/format';
 import { useResource } from '@/lib/use-resource';
 import { cleaningPaths } from '@/features/cleaning/paths';
-import type { Mission } from '@/features/cleaning/schemas';
+import { type Intervention, type Mission, suspensionCauses } from '@/features/cleaning/schemas';
 import {
   cleaningTexts,
   interventionStatuses,
@@ -26,7 +26,9 @@ import {
   paymentOptions,
   paymentStatuses,
   paymentTimings,
+  recurrenceLabel,
   statusOf,
+  suspendedStatus,
 } from '@/features/cleaning/texts';
 import { serviceName, useServices } from '@/features/cleaning/use-services';
 import { DetailHeader, Facts, LoadError, Loading, Panel } from './detail-parts';
@@ -36,8 +38,23 @@ const t = cleaningTexts.missionDetail;
 /** « Mes factures » (fonctionnalité billing) : règlement des contrats d'entreprise. */
 const INVOICES_PATH = '/mon-espace/factures';
 const CANCELLABLE = new Set(['to_schedule', 'scheduled']);
+const TERMINAL = new Set(['completed', 'cancelled']);
 
-function PaymentView({ payment }: { payment: Mission['payment'] }) {
+/** Type de client de la mission : `business` (facture mensuelle) ou `individual`. */
+type Kind = 'business' | 'individual';
+
+function PaymentView({ payment, kind }: { payment: Mission['payment']; kind: Kind }) {
+  if (kind === 'business') {
+    return (
+      <div className="grid justify-items-start gap-4">
+        <p className="text-ink">{t.businessPayment}</p>
+        <Facts rows={[[t.total, formatXof(payment.total)]]} />
+        <ButtonLink href={INVOICES_PATH} variant="secondary">
+          {t.seeInvoices}
+        </ButtonLink>
+      </div>
+    );
+  }
   const status = statusOf(paymentStatuses, payment.status);
   const { plan } = payment;
   return (
@@ -58,11 +75,12 @@ function PaymentView({ payment }: { payment: Mission['payment'] }) {
           [t.total, formatXof(payment.total)],
           [
             t.deposit(payment.depositPercent),
-            payment.depositPercent > 0 ? formatXof(payment.depositAmount) : null,
+            plan.option === 'deposit' && payment.depositPercent > 0 ? formatXof(payment.depositAmount) : null,
           ],
           [t.paid, formatXof(payment.paid)],
         ]}
       />
+      {payment.status !== 'paid' ? <p className="text-small text-ink-muted">{t.howToPay}</p> : null}
       <div>
         <p className="text-small text-ink-muted">{t.paymentsTitle}</p>
         {payment.payments.length ? (
@@ -83,6 +101,63 @@ function PaymentView({ payment }: { payment: Mission['payment'] }) {
   );
 }
 
+function InterventionItem({ intervention }: { intervention: Intervention }) {
+  const bySuspension = intervention.status === 'cancelled' && intervention.cancellationCause === 'suspension';
+  const status = bySuspension
+    ? { label: t.cancelledBySuspension, tone: 'warning' as const }
+    : statusOf(interventionStatuses, intervention.status);
+  const details = [
+    formatDuration(intervention.durationMinutes),
+    intervention.agents.length
+      ? `${t.agents} : ${intervention.agents.map((agent) => agent.displayName).join(', ')}`
+      : null,
+    intervention.completedAt
+      ? t.completedOn(formatDateTime(intervention.completedAt))
+      : intervention.startedAt
+        ? t.startedOn(formatDateTime(intervention.startedAt))
+        : null,
+  ].filter(Boolean);
+  const checklistDone = intervention.checklist.filter((item) => item.done).length;
+  const photos = intervention.beforePhotoFileIds.length + intervention.afterPhotoFileIds.length;
+
+  return (
+    <li className="border-line grid gap-1 border-l-2 pl-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-ink font-semibold">
+          {formatDate(intervention.scheduledStart)}, {formatTime(intervention.scheduledStart)}
+        </span>
+        <Badge tone={status.tone}>{status.label}</Badge>
+      </div>
+      <p className="text-small text-ink-muted">{details.join(' · ')}</p>
+      {intervention.incidentNote ? (
+        <p className="text-small text-warning">
+          {t.incident} : {intervention.incidentNote}
+        </p>
+      ) : null}
+      {intervention.checklist.length ? (
+        <details className="text-small">
+          <summary className="text-accent-ink min-h-11 cursor-pointer content-center font-semibold">
+            {t.checklist(checklistDone, intervention.checklist.length)}
+          </summary>
+          <ul className="mt-1 grid gap-1">
+            {intervention.checklist.map((item) => (
+              <li key={item.code} className="text-ink">
+                <span aria-hidden="true">{item.done ? '✓' : '○'}</span>{' '}
+                <span className="sr-only">{item.done ? 'Fait :' : 'À faire :'}</span> {item.label}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+      {photos ? (
+        <p className="text-small text-ink-muted">
+          {t.photos(intervention.beforePhotoFileIds.length, intervention.afterPhotoFileIds.length)}
+        </p>
+      ) : null}
+    </li>
+  );
+}
+
 /** Détail d'une mission : créneau, passages, paiement, suspension éventuelle, annulation. */
 export function MissionDetail({ id }: { id: string }) {
   const services = useServices();
@@ -96,6 +171,8 @@ export function MissionDetail({ id }: { id: string }) {
   }
 
   const mission = state.data;
+  const kind: Kind = mission.customerKind === 'business' ? 'business' : 'individual';
+  const causes = mission.suspension ? suspensionCauses(mission.suspension) : [];
   async function cancel(reason: string): Promise<string | null> {
     try {
       set(await cancelMission(mission.id, reason));
@@ -112,24 +189,28 @@ export function MissionDetail({ id }: { id: string }) {
     }
   }
 
+  const resumed =
+    !mission.suspension &&
+    !TERMINAL.has(mission.status) &&
+    mission.interventions.some((item) => item.cancellationCause === 'suspension');
+
   return (
     <div className="grid gap-8">
       <DetailHeader
         title={serviceName(services, mission.serviceCode)}
         subtitle={`${t.title} · ${t.progress(mission.completedInterventions, mission.plannedInterventions)}`}
-        status={statusOf(missionStatuses, mission.status)}
+        status={
+          mission.suspension ? suspendedStatus(mission.suspension) : statusOf(missionStatuses, mission.status)
+        }
+        tag={kind === 'business' ? cleaningTexts.context.businessTag : undefined}
       />
       <FormMessage tone="info">{notice}</FormMessage>
       {mission.suspension ? (
         <div className="grid justify-items-start gap-3">
           <FormMessage>
-            {t.suspended(
-              mission.suspension.cause,
-              mission.suspension.unpaidCount,
-              formatShortDate(mission.suspension.since),
-            )}
+            {t.suspended(mission.suspension, formatShortDate(mission.suspension.since))}
           </FormMessage>
-          {mission.suspension.cause === 'unpaid_invoices' ? (
+          {causes.includes('unpaid_invoices') ? (
             <ButtonLink href={INVOICES_PATH} variant="secondary">
               {t.seeInvoices}
             </ButtonLink>
@@ -137,6 +218,8 @@ export function MissionDetail({ id }: { id: string }) {
         </div>
       ) : mission.status === 'on_hold' ? (
         <FormMessage>{t.onHold}</FormMessage>
+      ) : resumed ? (
+        <FormMessage tone="info">{t.resumed}</FormMessage>
       ) : null}
 
       <Panel id="mission-titre" title={t.bookingTitle}>
@@ -144,6 +227,7 @@ export function MissionDetail({ id }: { id: string }) {
           rows={[
             [t.slot, formatSlot(mission.chosenSlot)],
             [t.address, `${mission.address}, ${mission.commune}`],
+            [t.recurrence, recurrenceLabel(mission.recurrence)],
             [
               cleaningTexts.requestDetail.daysPerWeek,
               mission.daysPerWeek ? t.daysPerWeek(mission.daysPerWeek) : null,
@@ -156,33 +240,9 @@ export function MissionDetail({ id }: { id: string }) {
       <Panel id="passages-titre" title={t.interventionsTitle}>
         {mission.interventions.length ? (
           <ol className="grid gap-3">
-            {mission.interventions.map((intervention) => {
-              const status = statusOf(interventionStatuses, intervention.status);
-              return (
-                <li key={intervention.id} className="border-line grid gap-1 border-l-2 pl-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-ink font-semibold">
-                      {formatDate(intervention.scheduledStart)}, {formatTime(intervention.scheduledStart)}
-                    </span>
-                    <Badge tone={status.tone}>{status.label}</Badge>
-                  </div>
-                  <p className="text-small text-ink-muted">
-                    {formatDuration(intervention.durationMinutes)}
-                    {intervention.agents.length
-                      ? ` · ${t.agents} : ${intervention.agents.map((agent) => agent.displayName).join(', ')}`
-                      : ''}
-                    {intervention.completedAt
-                      ? ` · terminé le ${formatDateTime(intervention.completedAt)}`
-                      : ''}
-                  </p>
-                  {intervention.incidentNote ? (
-                    <p className="text-small text-warning">
-                      {t.incident} : {intervention.incidentNote}
-                    </p>
-                  ) : null}
-                </li>
-              );
-            })}
+            {mission.interventions.map((intervention) => (
+              <InterventionItem key={intervention.id} intervention={intervention} />
+            ))}
           </ol>
         ) : (
           <p className="text-ink-muted">{t.noInterventions}</p>
@@ -190,7 +250,7 @@ export function MissionDetail({ id }: { id: string }) {
       </Panel>
 
       <Panel id="paiement-titre" title={t.paymentTitle}>
-        <PaymentView payment={mission.payment} />
+        <PaymentView payment={mission.payment} kind={kind} />
       </Panel>
 
       <div className="flex flex-wrap gap-3">

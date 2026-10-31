@@ -13,6 +13,11 @@ export type CleaningErrorKind =
   | 'slots'
   /** Commune hors des zones desservies (`CLEANING_ZONE_NOT_COVERED`) : le message va à la commune. */
   | 'zone'
+  /**
+   * Contexte actif sur un compte entreprise suspendu par KSP (`CLEANING_ORGANIZATION_SUSPENDED`, 422,
+   * ADR-030) : ni nouvelle demande ni acceptation de devis jusqu'à sa réactivation.
+   */
+  | 'organizationSuspended'
   | 'notFound'
   | 'other';
 
@@ -37,6 +42,7 @@ export function describeCleaningError(error: unknown): CleaningErrorView {
   if (code === 'CLEANING_QUOTE_EXPIRED') return { message, kind: 'expired' };
   if (SLOT_CODES.has(code)) return { message, kind: 'slots' };
   if (code === 'CLEANING_ZONE_NOT_COVERED') return { message, kind: 'zone' };
+  if (code === 'CLEANING_ORGANIZATION_SUSPENDED') return { message, kind: 'organizationSuspended' };
   if (NOT_FOUND.has(code) || (status === 404 && code !== 'CLEANING_SERVICE_NOT_FOUND')) {
     return { message: t.common.notFound, kind: 'notFound' };
   }
