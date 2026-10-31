@@ -14,9 +14,9 @@ const plain = (text: string) => text.replace(/\s/g, ' ');
 
 describe('montants en FCFA', () => {
   it('affiche des entiers de FCFA, sans décimales ni division par 100', () => {
-    expect(plain(formatXof({ amount: 45000, currency: 'XOF' }))).toBe('45 000 FCFA');
-    expect(plain(formatXof(1500000))).toBe('1 500 000 FCFA');
-    expect(plain(formatXof(0))).toBe('0 FCFA');
+    expect(plain(formatXof({ amount: 45000, currency: 'XOF' }))).toBe('45 000 F CFA');
+    expect(plain(formatXof(1500000))).toBe('1 500 000 F CFA');
+    expect(plain(formatXof(0))).toBe('0 F CFA');
   });
 
   it('garde montant et devise sur la même ligne (espaces insécables)', () => {

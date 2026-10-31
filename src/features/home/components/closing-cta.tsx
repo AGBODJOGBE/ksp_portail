@@ -17,7 +17,7 @@ export function ClosingCta({ content }: { content: HomeContent['closing'] }) {
           lead={content.lead}
         />
         <div className="reveal flex flex-col gap-3 sm:flex-row">
-          <ButtonLink href={content.primaryAction.href} variant="accent" size="lg">
+          <ButtonLink href={content.primaryAction.href} variant="action" size="lg">
             {content.primaryAction.label}
             <ButtonArrow>
               <IconArrowRight />

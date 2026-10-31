@@ -97,7 +97,7 @@ describe('Bouton « Payer par Mobile Money »', () => {
         amount={xof(10200)}
       />,
     );
-    expect(screen.getByText(/Montant à payer/)).toHaveTextContent(/10\s200\sFCFA/);
+    expect(screen.getByText(/Montant à payer/)).toHaveTextContent(/10\s200\sF\sCFA/);
     fireEvent.click(screen.getByRole('button', { name: 'Payer l’acompte par Mobile Money' }));
     await waitFor(() => expect(to).toHaveBeenCalledWith(payment().checkoutUrl));
     expect(calls[0]?.body).toEqual({
@@ -264,7 +264,7 @@ describe('Page de paiement simulée', () => {
       [`POST ${PAYMENTS}/${PAYMENT_ID}/simulate`]: { status: 200, body: payment({ status: 'failed' }) },
     });
     render(<PaymentSimulation id={PAYMENT_ID} />);
-    expect(await screen.findByText(/23\s800\sFCFA/)).toBeInTheDocument();
+    expect(await screen.findByText(/23\s800\sF\sCFA/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Simuler un échec' }));
     await waitFor(() => expect(push).toHaveBeenCalledWith(`/mon-espace/paiements/${PAYMENT_ID}`));
     expect(calls.at(-1)?.body).toEqual({ outcome: 'failed' });

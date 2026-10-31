@@ -34,10 +34,13 @@ export interface RequestFormValues {
   comment: string;
 }
 
-export type RequestField = 'commune' | 'address' | 'slots' | 'recurrence' | 'days' | 'team';
+export type RequestField = 'commune' | 'address' | 'slots' | 'recurrence' | 'days' | 'team' | 'comment';
 export type RequestErrors = Partial<Record<RequestField, string>>;
 
+/** Limites du contrat (`RequestCleaningQuoteRequest`). */
 export const MAX_SLOTS = 3;
+export const MAX_ADDRESS = 500;
+export const MAX_COMMENT = 2000;
 /** Délai minimum avant une intervention (48 heures, réglage de la gateway) : la date proposée commence à J+2. */
 export const LEAD_DAYS = 2;
 
@@ -77,6 +80,7 @@ export function buildQuoteRequest(
 
   const address = values.address.trim();
   if (!address) errors.address = t.addressRequired;
+  else if (address.length > MAX_ADDRESS) errors.address = t.addressTooLong(MAX_ADDRESS);
 
   const minDate = firstAllowedDate(now);
   const filled = values.slots.filter((slot) => slot.date);
@@ -107,6 +111,7 @@ export function buildQuoteRequest(
     else requestedTeamSize = team;
   }
 
+  if (values.comment.trim().length > MAX_COMMENT) errors.comment = t.commentTooLong(MAX_COMMENT);
   if (!values.commune || values.commune === OTHER_COMMUNE) errors.commune = t.outOfZone(zonesText);
   if (Object.keys(errors).length) return { errors, input: null };
 

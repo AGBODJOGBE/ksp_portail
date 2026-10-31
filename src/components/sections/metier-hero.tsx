@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { WeaveEmblem, WeavePattern } from '@/components/ui/brand/weave';
+import { SignatureBackdrop, SignatureRule } from '@/components/ui/brand/signature';
 import { IconCheck, IconClock } from '@/components/ui/icons';
 import { MetierIcon } from '@/components/sections/metier-icon';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +16,7 @@ export const METIER_TITLE_ID = 'metier-titre';
 
 /**
  * En-tête d'une page métier : fil d'Ariane, surtitre, titre (seul `h1` de la page), chapeau, actions,
- * et panneau tissé bleu nuit qui résume ce que le visiteur peut faire. Aucune animation : premier écran.
+ * et panneau bleu nuit qui résume ce que le visiteur peut faire. Aucune animation : premier écran.
  */
 export function MetierHero({ content }: { content: MetierHeroContent }) {
   const t = getDictionary();
@@ -26,7 +26,7 @@ export function MetierHero({ content }: { content: MetierHeroContent }) {
       aria-labelledby={METIER_TITLE_ID}
       className="border-line relative isolate overflow-hidden border-b"
     >
-      <WeavePattern className="text-accent absolute inset-0 -z-10 size-full [mask-image:linear-gradient(100deg,transparent_50%,black_100%)] opacity-[0.08]" />
+      <SignatureBackdrop className="absolute inset-0 -z-10 size-full [mask-image:linear-gradient(100deg,transparent_50%,black_100%)] opacity-[0.06]" />
       <Container className="grid gap-10 pt-6 pb-14 sm:pb-20 lg:grid-cols-12 lg:items-center lg:gap-10 lg:pt-8 lg:pb-24">
         <div className="lg:col-span-7">
           <nav aria-label={t.metier.breadcrumb}>
@@ -70,19 +70,19 @@ export function MetierHero({ content }: { content: MetierHeroContent }) {
             data-tone="inverse"
             className="rounded-panel relative isolate flex flex-col overflow-hidden p-5 sm:p-7 lg:min-h-112"
           >
-            <WeavePattern className="text-accent-bright absolute inset-0 -z-10 size-full opacity-15" />
-            <div className="relative mx-auto my-4 grid w-2/5 max-w-52 place-items-center sm:my-8 lg:w-1/2">
-              <WeaveEmblem className="w-full" />
-              <span className="bg-brand-900 text-accent-bright ring-accent-bright/40 absolute grid size-[34%] place-items-center rounded-full ring-1">
-                <MetierIcon id={metier.id} className="size-[58%]" />
+            <SignatureBackdrop className="absolute inset-0 -z-10 size-full opacity-[0.14]" />
+            <div className="relative mx-auto my-4 grid w-full max-w-60 justify-items-center gap-5 sm:my-8">
+              <span className="text-accent-ink ring-accent-bright/50 grid size-24 place-items-center rounded-full bg-white/5 ring-1 sm:size-28">
+                <MetierIcon id={metier.id} className="size-11 sm:size-12" />
               </span>
+              <SignatureRule size="md" className="w-full" />
             </div>
             <div className="rounded-card border-line bg-surface mt-auto border p-5">
               <p className="font-display text-ink text-lg font-semibold">{content.highlightsTitle}</p>
               <ul className="text-small text-ink-muted mt-3 space-y-2.5">
                 {content.highlights.map((item) => (
                   <li key={item} className="flex gap-2.5">
-                    <IconCheck className="text-accent-ink mt-0.5 size-4" />
+                    <IconCheck className="text-action-ink mt-0.5 size-4" />
                     {item}
                   </li>
                 ))}

@@ -32,7 +32,7 @@ export function StepList({ steps, className }: { steps: ReadonlyArray<Step>; cla
           )}
         >
           <span aria-hidden="true" className="relative grid size-11 place-items-center">
-            <span className="bg-accent-soft border-accent-muted absolute inset-1.5 rotate-45 rounded-[0.375rem] border" />
+            <span className="bg-accent-soft border-accent-muted absolute inset-1.5 rounded-full border" />
             <span className="font-display text-accent-ink relative text-base font-semibold tabular-nums">
               {index + 1}
             </span>

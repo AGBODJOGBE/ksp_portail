@@ -169,7 +169,7 @@ export function PaymentReturn({ id }: { id: string }) {
 
       <div className="flex flex-wrap gap-3">
         {checkout ? (
-          <a href={checkout} className={buttonClasses({ variant: 'accent' })}>
+          <a href={checkout} className={buttonClasses({ variant: 'action' })}>
             {t.resume}
           </a>
         ) : null}

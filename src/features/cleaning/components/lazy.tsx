@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { cleaningTexts } from '@/features/cleaning/texts';
+import { LOADING, LOADING_SERVICES } from '@/features/cleaning/loading-texts';
 
 /*
  * Points d'entrée des écrans du Nettoyage, chargés à la demande. Next embarque dans une page tous les
@@ -12,7 +12,7 @@ import { cleaningTexts } from '@/features/cleaning/texts';
 function Loading() {
   return (
     <p role="status" className="text-ink-muted">
-      {cleaningTexts.space.loading}
+      {LOADING}
     </p>
   );
 }
@@ -22,11 +22,15 @@ export const CleaningSimulator = dynamic(
   {
     loading: () => (
       <p role="status" className="rounded-panel border-line bg-surface text-ink-muted border p-8">
-        {cleaningTexts.simulator.loadingServices}
+        {LOADING_SERVICES}
       </p>
     ),
   },
 );
+
+export const CleaningTodo = dynamic(() => import('./cleaning-todo').then((module_) => module_.CleaningTodo), {
+  loading: Loading,
+});
 
 export const QuoteRequestPanel = dynamic(
   () => import('./quote-request-form').then((module_) => module_.QuoteRequestPanel),

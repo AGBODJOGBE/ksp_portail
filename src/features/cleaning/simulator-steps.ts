@@ -22,7 +22,8 @@ export const STEP = {
   frequency: 'frequence',
 } as const;
 
-const MAX_QUANTITY = 100_000;
+/** `SimulateCleaningRequest.quantity` : entier de 1 à 1 000 000 (contrat). */
+const MAX_QUANTITY = 1_000_000;
 
 const choice = (answers: Answers, id: string): string | undefined => {
   const answer = answers[id];

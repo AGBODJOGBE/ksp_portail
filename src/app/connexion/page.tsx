@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import { WeavePattern } from '@/components/ui/brand/weave';
+import { SignatureBackdrop } from '@/components/ui/brand/signature';
 import { Card } from '@/components/ui/card';
 import { Container } from '@/components/ui/container';
 import { Eyebrow } from '@/components/ui/eyebrow';
@@ -19,7 +19,7 @@ export default function LoginPage() {
   const t = getDictionary();
   return (
     <div className="relative overflow-hidden">
-      <WeavePattern className="text-accent absolute inset-y-0 right-0 hidden h-full w-1/3 [mask-image:linear-gradient(to_left,black,transparent)] opacity-15 md:block" />
+      <SignatureBackdrop className="absolute inset-y-0 right-0 hidden h-full w-1/3 [mask-image:linear-gradient(to_left,black,transparent)] opacity-10 md:block" />
       <Container size="reading" className="relative py-10 sm:py-16">
         <Eyebrow>{navigation.account.label}</Eyebrow>
         <Card className="mt-5 p-5 sm:p-8">

@@ -2,7 +2,13 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { WeaveBand, WeaveMark, WeavePattern } from '@/components/ui/brand/weave';
+import { LogoMark } from '@/components/ui/brand/logo';
+import {
+  SignatureArrow,
+  SignatureBackdrop,
+  SignatureProgress,
+  SignatureRule,
+} from '@/components/ui/brand/signature';
 import {
   IconArrowRight,
   IconArrowUpRight,
@@ -48,25 +54,32 @@ const SECTIONS = [
   { id: 'typographie', label: 'Typographie' },
   { id: 'espaces', label: 'Espaces et formes' },
   { id: 'mouvement', label: 'Mouvement' },
-  { id: 'motif', label: 'Motif signature' },
+  { id: 'logo', label: 'Logo' },
+  { id: 'signature', label: 'Signature' },
   { id: 'composants', label: 'Composants' },
 ] as const;
 
 /* Noms de jetons uniquement : les valeurs sont lues dans le navigateur (TokenValue). */
 const SCALES: ReadonlyArray<{ name: string; prefix: string; steps: ReadonlyArray<number | string> }> = [
   {
-    name: 'Bleu nuit — marque',
+    name: 'Bleu nuit du logo (#0F2850 = 900) — marque',
     prefix: 'brand',
     steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950],
   },
   {
-    name: 'Ocre — accent du portail',
-    prefix: 'ochre',
-    steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900],
+    name: 'Vert du logo (#008651 = 600) — action et succès',
+    prefix: 'green',
+    steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950],
   },
-  { name: 'Neutres chauds', prefix: 'neutral', steps: [25, 50, 100, 200, 300, 400, 500, 600, 700] },
+  {
+    name: 'Or de la flèche (#D4A018 = 500) — accent, jamais en texte sur fond clair',
+    prefix: 'gold',
+    steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950],
+  },
+  { name: 'Neutres froids', prefix: 'neutral', steps: [25, 50, 100, 200, 300, 400, 500, 600, 700] },
 ];
 
+const ROLE_SWATCHES = ['brand', 'action', 'accent', 'focus'] as const;
 const STATE_SWATCHES = ['success', 'warning', 'danger', 'whatsapp'] as const;
 
 const PAIRS: ReadonlyArray<{ label: string; fg: string; bg: string }> = [
@@ -74,12 +87,17 @@ const PAIRS: ReadonlyArray<{ label: string; fg: string; bg: string }> = [
   { label: 'Texte secondaire', fg: '--color-ink-muted', bg: '--color-canvas' },
   { label: 'Texte discret', fg: '--color-ink-subtle', bg: '--color-canvas' },
   { label: 'Texte secondaire sur fond doux', fg: '--color-ink-muted', bg: '--color-surface-muted' },
-  { label: 'Bouton principal', fg: '--color-on-brand', bg: '--color-brand' },
-  { label: 'Bouton d’accent', fg: '--color-on-accent', bg: '--color-accent' },
-  { label: 'Survol du bouton d’accent', fg: '--color-on-accent', bg: '--color-accent-strong' },
-  { label: 'Lien et surtitre ocre', fg: '--color-accent-ink', bg: '--color-canvas' },
-  { label: 'Étiquette ocre', fg: '--color-accent-ink', bg: '--color-accent-soft' },
+  { label: 'Bouton de marque (bleu nuit)', fg: '--color-on-brand', bg: '--color-brand' },
+  { label: 'Bouton d’action (vert)', fg: '--color-on-action', bg: '--color-action' },
+  { label: 'Survol du bouton d’action', fg: '--color-on-action', bg: '--color-action-strong' },
+  { label: 'Lien d’action (vert foncé)', fg: '--color-action-ink', bg: '--color-canvas' },
+  { label: 'Étiquette verte', fg: '--color-action-ink', bg: '--color-action-soft' },
+  { label: 'Surtitre (bleu nuit sur fond clair)', fg: '--color-accent-ink', bg: '--color-canvas' },
+  { label: 'Étiquette or (texte bleu nuit)', fg: '--color-ink', bg: '--color-accent-soft' },
+  { label: 'Texte bleu nuit sur or', fg: '--color-on-accent', bg: '--color-accent' },
   { label: 'Étiquette bleu nuit', fg: '--color-brand-ink', bg: '--color-brand-soft' },
+  { label: 'Or sur fond clair (interdit en texte)', fg: '--color-accent', bg: '--color-canvas' },
+  { label: 'Bordure de champ (3:1 exigé)', fg: '--color-line-control', bg: '--color-surface' },
   { label: 'Succès', fg: '--color-success', bg: '--color-success-soft' },
   { label: 'Avertissement', fg: '--color-warning', bg: '--color-warning-soft' },
   { label: 'Erreur', fg: '--color-danger', bg: '--color-danger-soft' },
@@ -89,8 +107,10 @@ const PAIRS: ReadonlyArray<{ label: string; fg: string; bg: string }> = [
 const INVERSE_PAIRS: ReadonlyArray<{ label: string; fg: string; bg: string }> = [
   { label: 'Texte sur bleu nuit', fg: '--color-ink', bg: '--color-canvas' },
   { label: 'Texte secondaire sur bleu nuit', fg: '--color-ink-muted', bg: '--color-canvas' },
-  { label: 'Ocre sur bleu nuit', fg: '--color-accent-ink', bg: '--color-canvas' },
-  { label: 'Bouton principal inversé', fg: '--color-on-brand', bg: '--color-brand' },
+  { label: 'Surtitre or sur bleu nuit', fg: '--color-accent-ink', bg: '--color-canvas' },
+  { label: 'Lien vert sur bleu nuit', fg: '--color-action-ink', bg: '--color-canvas' },
+  { label: 'Bouton inversé (blanc)', fg: '--color-on-brand', bg: '--color-brand' },
+  { label: 'Bouton d’action sur bleu nuit', fg: '--color-on-action', bg: '--color-action' },
 ];
 
 const TYPE_SCALE: ReadonlyArray<{ token: string; label: string; className: string; sample: string }> = [
@@ -244,18 +264,20 @@ export default function ChartePage() {
     <>
       {/* En-tête de la charte */}
       <div className="border-line relative overflow-hidden border-b">
-        <WeavePattern className="text-accent absolute inset-0 size-full [mask-image:linear-gradient(105deg,transparent_35%,black_85%)] opacity-[0.12]" />
+        <SignatureBackdrop className="absolute inset-0 size-full [mask-image:linear-gradient(105deg,transparent_35%,black_85%)] opacity-[0.08]" />
         <Container className="relative py-16 sm:py-24">
           <Badge tone="warning">
             <IconClock className="size-3.5" />
             Développement uniquement — absente en production
           </Badge>
           <Heading as="h1" size="display" className="mt-6 max-w-4xl">
-            Charte KSP, fondations
+            Charte KSP, tirée du logo
           </Heading>
           <p className="text-lead text-ink-muted mt-6 max-w-2xl">
-            Direction « éditorial + signature » : fond clair, grande typographie, bleu nuit profond et accent
-            ocre, motif tissé discret. Tout ce qui suit est rendu avec les vrais jetons et composants du site.
+            Trois couleurs mesurées sur le logo du groupe (F-017) : le bleu nuit pour la marque, le vert pour
+            l’action, l’or pour l’accent. La barre bleu nuit, la barre verte et la flèche or forment la
+            signature, fil de progression des parcours. Tout ce qui suit est rendu avec les vrais jetons et
+            composants du site.
           </p>
           <nav aria-label="Sections de la charte" className="mt-10">
             <ul className="flex flex-wrap gap-2">
@@ -276,9 +298,9 @@ export default function ChartePage() {
 
       {/* Couleurs */}
       <Section id="couleurs" labelledBy="couleurs-titre">
-        <SectionTitle id="couleurs-titre" eyebrow="1 · Couleurs" title="Bleu nuit, ocre et papier">
-          Teintes proposées, à valider. Les composants n’utilisent que les rôles sémantiques ; seule la
-          famille d’accent change d’un site à l’autre.
+        <SectionTitle id="couleurs-titre" eyebrow="1 · Couleurs" title="Bleu nuit, vert et or">
+          Gammes construites en OKLCH autour des trois teintes du logo, qui y gardent leur valeur exacte. Les
+          composants n’utilisent que les rôles sémantiques : marque (bleu nuit), action (vert), accent (or).
         </SectionTitle>
         <div className="mt-12 space-y-10">
           {SCALES.map((scale) => (
@@ -296,6 +318,14 @@ export default function ChartePage() {
             </div>
           ))}
           <div>
+            <p className="text-small text-ink font-semibold">Rôles</p>
+            <ul className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-6 lg:grid-cols-11">
+              {ROLE_SWATCHES.map((role) => (
+                <Swatch key={role} token={`--color-${role}`} label={role} />
+              ))}
+            </ul>
+          </div>
+          <div>
             <p className="text-small text-ink font-semibold">États</p>
             <ul className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-6 lg:grid-cols-11">
               {STATE_SWATCHES.map((state) => (
@@ -308,7 +338,8 @@ export default function ChartePage() {
         <SubTitle>Rôles et contrastes mesurés</SubTitle>
         <p className="text-small text-ink-muted max-w-reading mt-3">
           Rapports calculés dans le navigateur à partir des jetons appliqués. Exigence : 4,5:1 pour le texte
-          courant, 3:1 pour les grands titres.
+          courant, 3:1 pour les grands titres et les composants d’interface. La ligne « Or sur fond clair »
+          montre pourquoi l’or n’y est jamais un texte ni une icône seule.
         </p>
         <div className="mt-6 grid gap-3 md:grid-cols-2">
           {PAIRS.map((pair) => (
@@ -466,7 +497,7 @@ export default function ChartePage() {
                 {metiers.map((metier) => (
                   <li
                     key={metier.id}
-                    className="rounded-control bg-surface border-line text-accent-ink grid aspect-[4/3] place-items-center border"
+                    className="rounded-control bg-surface border-line text-ink grid aspect-[4/3] place-items-center border"
                   >
                     <MetierIcon id={metier.id} className="size-7" />
                   </li>
@@ -499,55 +530,102 @@ export default function ChartePage() {
         </div>
       </Section>
 
-      {/* Motif */}
-      <Section id="motif" labelledBy="motif-titre">
-        <SectionTitle id="motif-titre" eyebrow="5 · Motif signature" title="Le tissage, en filigrane">
-          Inspiré des pagnes tissés du Bénin : chevrons, losanges et points en bandes. Un SVG de quelques
-          centaines d’octets, toujours décoratif, à 10–20 % d’opacité.
+      {/* Logo */}
+      <Section id="logo" labelledBy="logo-titre">
+        <SectionTitle id="logo-titre" eyebrow="5 · Logo" title="Le logo, en tracés vectoriels">
+          Redessiné en SVG d’après l’image fournie, en attendant le fichier officiel : toutes les lettres sont
+          des tracés, aucune police. Un seul composant à remplacer le jour venu
+          (src/components/ui/brand/logo.tsx).
         </SectionTitle>
         <div className="mt-12 grid gap-4 md:grid-cols-2">
-          <div className="rounded-panel border-line bg-surface relative h-64 overflow-hidden border">
-            <WeavePattern className="text-accent absolute inset-0 size-full opacity-20" />
-            <p className="text-small text-ink bg-surface/90 absolute bottom-4 left-4 rounded-full px-3 py-1 font-semibold">
-              Trame ocre sur papier
-            </p>
+          <div className="rounded-panel border-line bg-surface grid justify-items-center gap-6 border p-10">
+            <LogoMark title="Logo KSP Group, version composée" className="w-full max-w-72" />
+            <p className="text-small text-ink-muted">Composé (pages, documents)</p>
           </div>
-          <div data-tone="inverse" className="rounded-panel relative h-64 overflow-hidden">
-            <WeavePattern className="text-accent-bright absolute inset-0 size-full opacity-15" />
-            <p className="text-small text-ink bg-surface/90 absolute bottom-4 left-4 rounded-full px-3 py-1 font-semibold">
-              Trame sur bleu nuit
+          <div data-tone="inverse" className="rounded-panel grid justify-items-center gap-6 p-10">
+            <LogoMark title="Logo KSP Group, version claire" className="w-full max-w-72" />
+            <p className="text-small text-ink-muted">Version claire, sur bleu nuit (pied de page)</p>
+          </div>
+          <div className="rounded-panel border-line bg-surface grid gap-5 border p-8 md:col-span-2">
+            <LogoMark
+              variant="horizontal"
+              title="Logo KSP Group, version horizontale"
+              className="h-12 w-auto"
+            />
+            <LogoMark variant="horizontal" className="h-9 w-auto" />
+            <p className="text-small text-ink-muted">
+              Version horizontale compacte (en-tête : 36 px de haut sur téléphone, 40 px sur ordinateur).
+              Favicon : src/app/icon.svg (K blanc et signature sur bleu nuit).
             </p>
           </div>
         </div>
-        <div className="mt-8 space-y-3">
-          <p className="text-small text-ink font-semibold">Bande tissée (haut du pied de page)</p>
-          <WeaveBand className="rounded-sm" />
-        </div>
-        <div className="mt-8 flex items-end gap-6">
-          <WeaveMark className="size-16" />
-          <WeaveMark className="size-10" />
-          <WeaveMark className="size-6" />
-          <p className="text-small text-ink-muted">
-            Emblème provisoire du logo, en attendant le logo officiel.
-          </p>
+      </Section>
+
+      {/* Signature */}
+      <Section id="signature" labelledBy="signature-titre" tone="muted">
+        <SectionTitle
+          id="signature-titre"
+          eyebrow="6 · Signature"
+          title="Barre bleu nuit, barre verte, flèche or"
+        >
+          Le motif du logo remplace le tissage. Il sert de fil de progression dans les parcours (étapes
+          franchies en bleu nuit, étape en cours en vert, la flèche or vers la suite) et de séparateur
+          discret.
+        </SectionTitle>
+        <div className="mt-12 grid gap-8">
+          <div className="grid gap-3">
+            <p className="text-small text-ink font-semibold">Séparateur</p>
+            <SignatureRule />
+            <SignatureRule size="md" />
+          </div>
+          <div className="rounded-card border-line bg-surface grid gap-8 border p-6">
+            <SignatureProgress
+              steps={[
+                { label: 'Votre demande' },
+                { label: 'Visite des lieux' },
+                { label: 'Devis' },
+                { label: 'Réservation' },
+              ]}
+              current={2}
+              label="Exemple : avancement d’une demande"
+            />
+            <SignatureProgress
+              steps={[
+                { label: 'Votre demande' },
+                { label: 'Visite des lieux' },
+                { label: 'Devis' },
+                { label: 'Réservation' },
+              ]}
+              current={2}
+              stopped
+              label="Exemple : demande arrêtée (devis refusé)"
+            />
+          </div>
+          <div data-tone="inverse" className="rounded-panel relative h-56 overflow-hidden">
+            <SignatureBackdrop className="absolute inset-0 size-full opacity-25" />
+            <p className="text-small text-ink absolute bottom-4 left-4 inline-flex items-center gap-2 font-semibold">
+              <SignatureArrow className="h-2.5 w-2" />
+              Toile de fond des panneaux bleu nuit
+            </p>
+          </div>
         </div>
       </Section>
 
       {/* Composants */}
       <Section id="composants" labelledBy="composants-titre" tone="muted">
-        <SectionTitle id="composants-titre" eyebrow="6 · Composants" title="Composants de base">
+        <SectionTitle id="composants-titre" eyebrow="7 · Composants" title="Composants de base">
           Rendus serveur, sans dépendance. Cibles d’au moins 44 px, focus visible au clavier (essayez Tab).
         </SectionTitle>
 
         <SubTitle>Boutons</SubTitle>
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <Button>Principal</Button>
-          <Button variant="accent">
+          <Button variant="action">
             Demander un devis
             <ButtonArrow>
               <IconArrowRight />
             </ButtonArrow>
           </Button>
+          <Button>Marque (bleu nuit)</Button>
           <Button variant="secondary">Secondaire</Button>
           <Button variant="ghost">Discret</Button>
           <Button disabled>Indisponible</Button>
@@ -556,19 +634,19 @@ export default function ChartePage() {
           </Button>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button size="lg">Grand bouton</Button>
-          <Button size="lg" variant="accent">
+          <Button size="lg" variant="action">
             Simuler ma prestation
           </Button>
+          <Button size="lg">Grand bouton de marque</Button>
           <ButtonLink href="/mon-espace" size="lg" variant="secondary">
             <IconUser />
             Lien en forme de bouton
           </ButtonLink>
         </div>
         <div data-tone="inverse" className="rounded-card mt-4 flex flex-wrap items-center gap-3 p-6">
-          <Button>Principal sur bleu nuit</Button>
+          <Button variant="action">Action sur bleu nuit</Button>
           <Button variant="inverse">Inversé</Button>
-          <Button variant="accent">Accent</Button>
+          <Button>Marque sur bleu nuit</Button>
           <Button variant="ghost">Discret</Button>
         </div>
 
@@ -576,7 +654,10 @@ export default function ChartePage() {
         <div className="mt-6 flex flex-wrap items-center gap-2">
           <Badge>Neutre</Badge>
           <Badge tone="brand">Bleu nuit</Badge>
-          <Badge tone="accent">Nouveau</Badge>
+          <Badge tone="accent">Nouveau (or)</Badge>
+          <Badge tone="action" dot>
+            À vous d’agir
+          </Badge>
           <Badge tone="success">
             <IconCheck className="size-3.5" />
             Payé
@@ -604,7 +685,7 @@ export default function ChartePage() {
                 </Link>
               </h4>
               <p className="text-small text-ink-muted mt-2">{metier.summary}</p>
-              <span className="text-accent-ink mt-5 inline-flex items-center gap-1.5 text-sm font-semibold">
+              <span className="text-action-ink mt-5 inline-flex items-center gap-1.5 text-sm font-semibold">
                 Découvrir
                 <IconArrowRight className="ease-soft size-4 transition-transform duration-(--motion-base) group-hover/card:translate-x-1" />
               </span>

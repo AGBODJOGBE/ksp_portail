@@ -19,7 +19,12 @@ import {
 } from '@/features/billing/texts';
 
 const ROW =
-  'rounded-card border-line bg-surface hover:border-line-strong has-[.stretched-link:focus-visible]:outline-focus relative grid gap-2 border p-4 has-[.stretched-link:focus-visible]:outline-2 has-[.stretched-link:focus-visible]:outline-offset-2 sm:grid-cols-[1fr_auto] sm:items-center sm:p-5';
+  'rounded-card border-line bg-surface hover:border-line-strong has-[.stretched-link:focus-visible]:outline-focus relative grid gap-3 border p-4 shadow-xs has-[.stretched-link:focus-visible]:outline-2 has-[.stretched-link:focus-visible]:outline-offset-2 sm:grid-cols-[1fr_auto] sm:items-center sm:p-5';
+/** Facture à régler : liseré à gauche (rouge si impayée, vert si en attente de paiement). */
+const DUE: Record<string, string> = {
+  overdue: 'border-l-4 border-l-danger',
+  pending_payment: 'border-l-4 border-l-action',
+};
 
 const CHIP =
   'rounded-full border px-4 text-sm font-semibold inline-flex min-h-11 items-center focus-visible:outline-focus focus-visible:outline-2 focus-visible:outline-offset-2';
@@ -48,8 +53,8 @@ function Filters({ current }: { current: InvoiceStatusFilter | undefined }) {
                 className={cn(
                   CHIP,
                   active
-                    ? 'border-accent bg-accent-soft text-accent-ink'
-                    : 'border-line-strong bg-surface text-ink hover:border-accent',
+                    ? 'border-brand bg-brand text-on-brand'
+                    : 'border-line-strong bg-surface text-ink hover:border-brand',
                 )}
               >
                 {label}
@@ -80,11 +85,11 @@ function Invoices({ status }: { status: InvoiceStatusFilter | undefined }) {
           const label = invoiceStatus(invoice.status);
           const partial = invoice.status !== 'paid' && invoice.paid.amount > 0;
           return (
-            <li key={invoice.id} className={ROW}>
-              <div>
+            <li key={invoice.id} className={cn(ROW, DUE[invoice.status])}>
+              <div className="min-w-0">
                 <Link
                   href={billingPaths.invoice(invoice.id)}
-                  className="stretched-link text-ink font-semibold underline-offset-4 hover:underline focus-visible:outline-none"
+                  className="stretched-link font-display text-ink text-lg font-semibold underline-offset-4 hover:underline focus-visible:outline-none"
                 >
                   {t.invoice(invoice.number)}
                 </Link>
@@ -106,9 +111,13 @@ function Invoices({ status }: { status: InvoiceStatusFilter | undefined }) {
                   </p>
                 ) : null}
               </div>
-              <div className="flex flex-wrap items-center gap-3 sm:justify-end">
-                <span className="text-ink font-semibold tabular-nums">{formatXof(invoice.total)}</span>
-                <Badge tone={label.tone}>{label.label}</Badge>
+              <div className="flex flex-wrap items-center gap-3 sm:flex-col sm:items-end sm:gap-1.5">
+                <Badge tone={label.tone} dot>
+                  {label.label}
+                </Badge>
+                <span className="font-display text-ink text-xl font-semibold tabular-nums">
+                  {formatXof(invoice.total)}
+                </span>
               </div>
             </li>
           );

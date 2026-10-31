@@ -3,40 +3,46 @@ type Money = { amount: number; currency: 'XOF' };
 type TimeSlot = { start: string; end: string };
 
 /*
- * Formats d'affichage communs : montants en entiers de FCFA, dates à l'heure du Bénin
- * (Africa/Porto-Novo, UTC+1 toute l'année), quel que soit le fuseau de l'appareil.
+ * Formats d'affichage communs, en français du Bénin (`fr-BJ`) : montants en entiers de francs CFA (XOF),
+ * dates à l'heure du Bénin (Africa/Porto-Novo, UTC+1 toute l'année), quel que soit le fuseau de l'appareil.
  */
+const LOCALE = 'fr-BJ';
 
 export const BENIN_TIME_ZONE = 'Africa/Porto-Novo';
 /** Décalage du Bénin par rapport à UTC : pas d'heure d'été. */
 const BENIN_OFFSET = '+01:00';
 
-const numberFormat = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+const numberFormat = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0 });
+const currencyFormat = new Intl.NumberFormat(LOCALE, {
+  style: 'currency',
+  currency: 'XOF',
+  maximumFractionDigits: 0,
+});
 
-/** `45 000 FCFA` (espaces insécables) : jamais de décimales, jamais de division par 100. */
+/** `45 000 F CFA` (espaces insécables) : entiers de francs CFA, jamais de décimales ni de division par 100. */
 export function formatXof(value: Money | number): string {
   const amount = typeof value === 'number' ? value : value.amount;
-  return `${numberFormat.format(amount)} FCFA`;
+  return currencyFormat.format(amount);
 }
 
 export function formatNumber(value: number): string {
   return numberFormat.format(value);
 }
 
-const dateFormat = new Intl.DateTimeFormat('fr-FR', {
+const dateFormat = new Intl.DateTimeFormat(LOCALE, {
   timeZone: BENIN_TIME_ZONE,
   weekday: 'long',
   day: 'numeric',
   month: 'long',
   year: 'numeric',
 });
-const shortDateFormat = new Intl.DateTimeFormat('fr-FR', {
+const shortDateFormat = new Intl.DateTimeFormat(LOCALE, {
   timeZone: BENIN_TIME_ZONE,
   day: 'numeric',
   month: 'long',
   year: 'numeric',
 });
-const timeFormat = new Intl.DateTimeFormat('fr-FR', {
+const timeFormat = new Intl.DateTimeFormat(LOCALE, {
   timeZone: BENIN_TIME_ZONE,
   hour: '2-digit',
   minute: '2-digit',

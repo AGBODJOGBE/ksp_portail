@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button, ButtonArrow, ButtonLink } from '@/components/ui/button';
+import { Eyebrow } from '@/components/ui/eyebrow';
 import { FormMessage } from '@/components/ui/field';
 import { IconArrowRight, IconClock } from '@/components/ui/icons';
 import { contactHref } from '@/config/navigation';
@@ -35,14 +36,16 @@ function OutOfZone({ zones }: { zones: ReadonlyArray<ServedZone> }) {
   );
 }
 
+/** Étape suivante de la démarche : la demande de devis, qui reprend la simulation. */
 function RequestQuote({ draft }: { draft: SimulationDraft }) {
   return (
-    <div className="mt-6 grid gap-3">
-      <p className="text-small text-ink-muted inline-flex items-center gap-2">
-        <IconClock className="text-accent-ink size-4" />
+    <div className="rounded-control border-action-muted bg-action-soft mt-6 grid gap-3 border p-4 sm:p-5">
+      <p className="text-ink font-semibold">{t.nextTitle}</p>
+      <p className="text-small text-ink-muted inline-flex items-start gap-2">
+        <IconClock className="text-action-ink mt-0.5 size-4 shrink-0" />
         {t.visitNotice}
       </p>
-      <ButtonLink href={requestHref(draft)} size="lg" className="sm:justify-self-start">
+      <ButtonLink href={requestHref(draft)} size="lg" variant="action" className="sm:justify-self-start">
         {t.requestQuote}
         <ButtonArrow>
           <IconArrowRight />
@@ -64,18 +67,18 @@ function Estimate({ simulation, draft }: { simulation: Simulation; draft: Simula
   }
   const { low, high } = simulation.estimate;
   return (
-    <div className="rounded-card border-accent-muted bg-accent-soft border p-5 sm:p-6" role="status">
-      <p className="text-accent-ink text-xs font-semibold tracking-wide uppercase">{t.estimateTitle}</p>
-      <p className="font-display text-ink mt-2 text-2xl font-semibold tabular-nums sm:text-3xl">
+    <div className="rounded-card border-line bg-surface border p-5 shadow-xs sm:p-6" role="status">
+      <Eyebrow as="p">{t.estimateTitle}</Eyebrow>
+      <p className="font-display text-ink mt-3 text-3xl font-semibold tabular-nums sm:text-4xl">
         {t.estimateRange(formatXof(low), formatXof(high))}
       </p>
       <p className="text-small text-ink-muted mt-1">{t.perVisit}</p>
       {simulation.breakdown.length ? (
         <details className="mt-4">
-          <summary className="text-accent-ink min-h-11 cursor-pointer content-center font-semibold">
+          <summary className="text-action-ink min-h-11 cursor-pointer content-center font-semibold">
             {t.breakdownTitle}
           </summary>
-          <ul className="divide-line border-line mt-2 divide-y border-y">
+          <ul className="disclosure-body divide-line border-line mt-2 divide-y border-y">
             {simulation.breakdown.map((line) => (
               <li key={line.label} className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-2">
                 <span className="text-ink">

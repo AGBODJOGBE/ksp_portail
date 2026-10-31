@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { billingTexts } from '@/features/billing/texts';
+import { LOADING } from '@/features/billing/loading-texts';
 
 /*
  * Écrans de « Mes factures » chargés à la demande : importer la fonctionnalité (pour un texte ou une
@@ -11,12 +11,16 @@ import { billingTexts } from '@/features/billing/texts';
 function Loading() {
   return (
     <p role="status" className="text-ink-muted">
-      {billingTexts.loading}
+      {LOADING}
     </p>
   );
 }
 
 export const InvoiceList = dynamic(() => import('./invoice-list').then((module_) => module_.InvoiceList), {
+  loading: Loading,
+});
+
+export const InvoiceTodo = dynamic(() => import('./invoice-todo').then((module_) => module_.InvoiceTodo), {
   loading: Loading,
 });
 

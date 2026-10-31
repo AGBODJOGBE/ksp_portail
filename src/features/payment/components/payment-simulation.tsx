@@ -81,7 +81,7 @@ export function PaymentSimulation({ id }: { id: string }) {
       {pending ? (
         <div className="flex flex-wrap gap-3">
           <Button
-            variant="accent"
+            variant="action"
             disabled={sending !== null}
             aria-busy={sending === 'succeeded' || undefined}
             onClick={() => simulate('succeeded')}

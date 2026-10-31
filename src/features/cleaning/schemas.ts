@@ -3,8 +3,11 @@ import * as z from 'zod/mini';
 /*
  * Réponses de la gateway pour le Nettoyage (contrat `ksp-api.v1.yaml`, routes `/api/v1/cleaning/*`).
  * Champ par champ selon le contrat : un champ obligatoire absent rend la réponse invalide ; un champ
- * ajouté par la gateway est ignoré. Les énumérations restent des chaînes pour qu'un nouvel état ne casse
- * pas l'écran (il s'affiche avec un libellé neutre).
+ * facultatif du contrat est `z.optional` ; un champ inconnu du contrat est ignoré. Les énumérations restent
+ * des chaînes pour qu'un nouvel état ne casse pas l'écran (il s'affiche avec un libellé neutre) ; leurs
+ * valeurs sont listées dans `texts.ts`.
+ * Les champs « Back-office » du contrat (`customerName`, `organizationName`, `agentName`,
+ * `recordedByName`, ADR-029) valent null dans l'espace client : décrits, jamais affichés.
  * Schémas lus dans le navigateur : `zod/mini`, bien plus léger que `zod`.
  */
 
@@ -76,6 +79,8 @@ export const siteVisitSchema = z.object({
   agentId: z.string(),
   report: z.nullable(z.string()),
   completedAt: z.nullable(z.string()),
+  /** Back-office (ADR-029), facultatif. */
+  agentName: z.optional(z.nullable(z.string())),
 });
 
 export const quoteSchema = z.object({
@@ -125,6 +130,9 @@ export const quoteRequestSchema = z.object({
   closingReason: z.nullable(z.string()),
   createdAt: z.string(),
   updatedAt: z.string(),
+  /** Back-office (ADR-029), facultatifs ; null dans l'espace client. */
+  customerName: z.optional(z.nullable(z.string())),
+  organizationName: z.optional(z.nullable(z.string())),
 });
 
 export const quoteRequestListSchema = z.object({
@@ -168,6 +176,8 @@ export const paymentStateSchema = z.object({
       method: z.string(),
       reference: z.nullable(z.string()),
       recordedBy: z.string(),
+      /** Back-office (ADR-029), facultatif. */
+      recordedByName: z.optional(z.nullable(z.string())),
       recordedAt: z.string(),
     }),
   ),
@@ -176,13 +186,13 @@ export const paymentStateSchema = z.object({
 /**
  * `CleaningSuspension` : suspension en cours (partie 10 du cahier des charges ; ADR-030). `cause` est la
  * plus ancienne cause active : `unpaid_invoices`, `unpaid_interventions` ou `organization_suspended`
- * (compte entreprise suspendu par KSP). `causes` (ajout de l'ADR-030) les donne toutes, la plus ancienne
- * d'abord ; absent d'une gateway plus ancienne, il vaut `[cause]` (`suspensionCauses`). `unpaidCount` peut
- * valoir 0 quand seule l'organisation est suspendue.
+ * (compte entreprise suspendu par KSP). `causes` (ajout de l'ADR-030, obligatoire au contrat, au moins
+ * une) les donne toutes, la plus ancienne d'abord. `unpaidCount` peut valoir 0 quand seule l'organisation
+ * est suspendue.
  */
 export const suspensionSchema = z.object({
   cause: z.string(),
-  causes: z.optional(z.array(z.string())),
+  causes: z.array(z.string()).check(z.minLength(1)),
   since: z.string(),
   unpaidCount: z.int().check(z.nonnegative()),
 });
@@ -190,16 +200,23 @@ export const suspensionSchema = z.object({
 // `suspensionCauses` (repli sur `[cause]`) vit dans `suspension.ts`, sans zod : les textes l'importent.
 export { suspensionCauses } from './suspension';
 
-/** `CleaningMission` : la prestation réservée et ses passages (`customerName`, `organizationName` : back-office). */
+/**
+ * `CleaningMission` : la prestation réservée et ses passages. `customerKind` et `organizationId` ne sont
+ * pas obligatoires au contrat (la gateway les renvoie toujours) : absents, la mission est lue comme celle
+ * d'un particulier, sans organisation.
+ */
 export const missionSchema = z.object({
   id: z.string(),
   requestId: z.string(),
   quoteId: z.string(),
   customerId: z.string(),
   /** Particulier ou entreprise : une mission d'entreprise se règle par sa facture mensuelle. */
-  customerKind: z.string(),
+  customerKind: z.optional(z.string()),
   /** Organisation de la mission ; null pour un particulier. */
-  organizationId: z.nullable(z.string()),
+  organizationId: z.optional(z.nullable(z.string())),
+  /** Back-office (ADR-029), facultatifs ; null dans l'espace client. */
+  customerName: z.optional(z.nullable(z.string())),
+  organizationName: z.optional(z.nullable(z.string())),
   status: z.string(),
   serviceCode: z.string(),
   commune: z.string(),

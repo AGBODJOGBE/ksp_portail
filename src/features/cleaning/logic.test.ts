@@ -223,16 +223,44 @@ describe('erreurs du Nettoyage', () => {
   });
 });
 
+describe('erreurs de la gateway pour les écrans du Nettoyage', () => {
+  it('renvoie le champ en cause d’un refus de validation, sans indice de tableau', () => {
+    const error = new ApiError(400, 'CLEANING_VALIDATION_FAILED', 'Date attendue.', {
+      field: 'preferredSlots[0].start',
+    });
+    expect(describeCleaningError(error)).toEqual({
+      message: 'Date attendue.',
+      kind: 'field',
+      field: 'preferredSlots',
+    });
+  });
+
+  it('reconnaît « trop de demandes en cours »', () => {
+    const error = new ApiError(422, 'CLEANING_TOO_MANY_OPEN_REQUESTS', 'Trop de demandes.', { maximum: 3 });
+    expect(describeCleaningError(error).kind).toBe('tooManyOpen');
+  });
+});
+
 describe('suspension d’une mission (ADR-030)', () => {
   const since = '11 décembre 2026';
 
-  it('lit une suspension sans `causes` (gateway antérieure) comme une seule cause', () => {
-    const parsed = missionSchema.parse(
-      mission({
-        suspension: { cause: 'unpaid_interventions', since: '2026-12-11T09:00:00Z', unpaidCount: 1 },
-      }),
-    );
-    expect(parsed.suspension && suspensionCauses(parsed.suspension)).toEqual(['unpaid_interventions']);
+  it('exige `causes`, obligatoire au contrat (au moins une cause)', () => {
+    const base = { cause: 'unpaid_interventions', since: '2026-12-11T09:00:00Z', unpaidCount: 1 };
+    expect(missionSchema.safeParse(mission({ suspension: base })).success).toBe(false);
+    expect(missionSchema.safeParse(mission({ suspension: { ...base, causes: [] } })).success).toBe(false);
+    // Les textes, eux, se contentent de `cause` quand la liste manque.
+    expect(suspensionCauses({ cause: 'unpaid_interventions' })).toEqual(['unpaid_interventions']);
+  });
+
+  it('accepte une mission sans `customerKind` ni `organizationId` (facultatifs au contrat)', () => {
+    const {
+      customerKind: _kind,
+      organizationId: _organization,
+      ...rest
+    } = mission({}) as Record<string, unknown>;
+    const parsed = missionSchema.parse(rest);
+    expect(parsed.customerKind).toBeUndefined();
+    expect(parsed.organizationId).toBeUndefined();
   });
 
   it('accepte la nouvelle cause et 0 impayé', () => {

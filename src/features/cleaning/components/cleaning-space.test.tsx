@@ -177,6 +177,48 @@ describe('demande de devis', () => {
     );
   });
 
+  it('affiche un champ refusé par le service près du champ (`details.field`, contrat)', async () => {
+    search = DRAFT;
+    stubGateway({
+      [SERVICES_ROUTE]: { status: 200, body: SERVICES },
+      [`POST ${REQUESTS}`]: {
+        status: 400,
+        body: errorBody('CLEANING_VALIDATION_FAILED', 'Ce champ est obligatoire.', { field: 'address' }),
+      },
+    });
+    render(<QuoteRequestPanel zones={ZONES.data} />);
+    await screen.findByText('6 pièces');
+    fill();
+    fireEvent.click(screen.getByRole('button', { name: 'Envoyer ma demande' }));
+    const address = screen.getByLabelText(/Adresse d’intervention/);
+    await waitFor(() => expect(address).toHaveFocus());
+    expect(address).toHaveAttribute('aria-invalid', 'true');
+    expect(address).toHaveAccessibleDescription(/Ce champ est obligatoire\./);
+  });
+
+  it('trop de demandes en cours : message de la gateway et accès à « Mes prestations »', async () => {
+    search = DRAFT;
+    stubGateway({
+      [SERVICES_ROUTE]: { status: 200, body: SERVICES },
+      [`POST ${REQUESTS}`]: {
+        status: 422,
+        body: errorBody('CLEANING_TOO_MANY_OPEN_REQUESTS', 'Vous avez déjà 3 demandes en cours.', {
+          maximum: 3,
+        }),
+      },
+    });
+    render(<QuoteRequestPanel zones={ZONES.data} />);
+    await screen.findByText('6 pièces');
+    fill();
+    fireEvent.click(screen.getByRole('button', { name: 'Envoyer ma demande' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Vous avez déjà 3 demandes en cours.');
+    expect(within(alert).getByRole('link', { name: 'Mes prestations de nettoyage' })).toHaveAttribute(
+      'href',
+      '/mon-espace/nettoyage/demandes',
+    );
+  });
+
   it('bloque l’envoi pour une autre commune', async () => {
     search = DRAFT.replace('Abomey-Calavi', 'Parakou');
     stubGateway({ [SERVICES_ROUTE]: { status: 200, body: SERVICES } });
@@ -313,7 +355,7 @@ describe('Mes prestations de nettoyage', () => {
 
     // Sous-total et total d'un passage unique : même montant.
     const amounts = await screen.findAllByText(/^34 000/);
-    expect(amounts.map((amount) => plain(amount.textContent))).toContain('34 000 FCFA');
+    expect(amounts.map((amount) => plain(amount.textContent))).toContain('34 000 F CFA');
     expect(screen.getByText(/Valable jusqu’au 4 novembre 2099 à 09:00/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Accepter le devis' }));
@@ -324,13 +366,37 @@ describe('Mes prestations de nettoyage', () => {
     fireEvent.click(screen.getByLabelText(/^Totalité/));
     fireEvent.click(screen.getByRole('button', { name: 'Confirmer et réserver' }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith(`/mon-espace/nettoyage/missions/${MISSION_ID}`));
+    await waitFor(() =>
+      expect(push).toHaveBeenCalledWith(`/mon-espace/nettoyage/missions/${MISSION_ID}?reservation=confirmee`),
+    );
     const accept = calls.find((call) => call.path.endsWith('/accept'));
     expect(accept?.body).toEqual({
       slotStart: '2099-11-06T12:00:00Z',
       paymentPlan: { option: 'full', timing: 'before', method: 'cash' },
     });
     expect(accept?.headers['Idempotency-Key']).toMatch(/^[A-Za-z0-9_-]{8,100}$/);
+  });
+
+  it('plan de paiement refusé (`details.field` = paymentPlan) : message près du paiement', async () => {
+    stubGateway({
+      [SERVICES_ROUTE]: { status: 200, body: SERVICES },
+      [`GET ${REQUESTS}/${REQUEST_ID}`]: {
+        status: 200,
+        body: quoteRequest({ status: 'quote_sent', quote: QUOTE }),
+      },
+      [`POST ${REQUESTS}/${REQUEST_ID}/accept`]: {
+        status: 400,
+        body: errorBody('CLEANING_VALIDATION_FAILED', 'Choisissez votre façon de payer.', {
+          field: 'paymentPlan',
+        }),
+      },
+    });
+    render(<RequestDetail id={REQUEST_ID} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Accepter le devis' }));
+    fireEvent.click(await screen.findByLabelText('vendredi 6 novembre 2099, de 13:00 à 17:00'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmer et réserver' }));
+    const payment = await screen.findByRole('group', { name: 'Votre paiement' });
+    expect(await within(payment).findByText('Choisissez votre façon de payer.')).toBeInTheDocument();
   });
 
   it('montre la visite planifiée et ce qui se passe ensuite', async () => {
@@ -354,7 +420,9 @@ describe('Mes prestations de nettoyage', () => {
     });
     render(<RequestDetail id={REQUEST_ID} />);
     expect(await screen.findByText('Visite planifiée')).toBeInTheDocument();
-    expect(screen.getByText(/le devis vous sera envoyé ici après la visite/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Un agent KSP visitera les lieux le 3 novembre 2099 à 10:00/),
+    ).toBeInTheDocument();
     expect(screen.getByText('Prévue le 3 novembre 2099 à 10:00')).toBeInTheDocument();
     expect(screen.getByText('3 agents')).toBeInTheDocument();
     expect(screen.getByText('2 agents')).toBeInTheDocument();
@@ -488,7 +556,12 @@ describe('Mes prestations de nettoyage', () => {
         body: mission({
           ...BUSINESS_OWNED,
           status: 'to_schedule',
-          suspension: { cause: 'unpaid_invoices', since: '2026-12-11T09:00:00Z', unpaidCount: 2 },
+          suspension: {
+            cause: 'unpaid_invoices',
+            causes: ['unpaid_invoices'],
+            since: '2026-12-11T09:00:00Z',
+            unpaidCount: 2,
+          },
           interventions: [
             {
               ...mission().interventions[0],
@@ -631,7 +704,7 @@ describe('Mes prestations de nettoyage', () => {
     });
     render(<MissionDetail id={MISSION_ID} />);
     const pay = await screen.findByRole('button', { name: 'Payer l’acompte par Mobile Money' });
-    expect(screen.getByText(/Montant à payer/)).toHaveTextContent(/10\s200\sFCFA/);
+    expect(screen.getByText(/Montant à payer/)).toHaveTextContent(/10\s200\sF\sCFA/);
     fireEvent.click(pay);
     expect(await screen.findByText(/Ce montant est déjà réglé/)).toBeInTheDocument();
     const create = calls.find((call) => call.method === 'POST');
