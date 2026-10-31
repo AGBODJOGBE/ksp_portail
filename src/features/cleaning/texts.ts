@@ -239,7 +239,8 @@ export const cleaningTexts = {
     paid: 'Déjà réglé',
     paymentsTitle: 'Règlements reçus',
     noPayments: 'Aucun règlement enregistré pour le moment.',
-    howToPay: 'Le règlement se fait auprès de l’équipe KSP, qui l’enregistre ici.',
+    howToPay:
+      'Vous pouvez aussi régler auprès de l’équipe KSP (espèces, Mobile Money), qui l’enregistre ici.',
     cancellationReason: 'Motif de l’annulation',
     cancel: 'Annuler la mission',
     cancelTitle: 'Annuler la mission',
@@ -412,7 +413,11 @@ export const paymentTimings: Record<string, string> = {
   before: 'Avant la prestation',
   after: 'Après la prestation',
 };
-/** `mobile_money_online` (encaissé par le service payment) n'est pas encore proposé au client. */
+/**
+ * Moyens d'un règlement reçu. `mobile_money_online` : paiement en ligne confirmé par le prestataire
+ * (service payment, ADR-031), payable depuis la fiche de la mission quel que soit le moyen prévu à
+ * l'acceptation ; il n'est pas proposé comme moyen prévu (`OFFERED_PAYMENT_METHODS`).
+ */
 export const paymentMethods: Record<string, string> = {
   cash: 'Espèces',
   mobile_money_offline: 'Mobile Money (auprès de l’équipe)',

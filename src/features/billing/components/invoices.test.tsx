@@ -1,10 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { InvoiceDetail } from './invoice-detail';
 import { InvoiceList } from './invoice-list';
 
 let search = '';
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(search),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
 const xof = (amount: number) => ({ amount, currency: 'XOF' });
@@ -149,6 +150,37 @@ describe('Mes factures', () => {
       'href',
       '/mon-espace/nettoyage/missions/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1000',
     );
+    // Paiement en ligne (ADR-031) : le montant affiché est le reste dû de la facture.
+    const pay = screen.getByRole('region', { name: 'Payer en ligne' });
+    expect(await within(pay).findByRole('button', { name: 'Payer par Mobile Money' })).toBeInTheDocument();
+    expect(plain(within(pay).getByText(/Montant à payer/).textContent)).toBe(
+      'Montant à payer : 300 000 FCFA',
+    );
+  });
+
+  it('facture payée : règlement en ligne listé, plus de bouton de paiement', async () => {
+    stub({
+      status: 200,
+      body: invoice({
+        status: 'paid',
+        paid: xof(300000),
+        balance: xof(0),
+        paidAt: '2026-12-05T10:00:00Z',
+        payments: [
+          {
+            id: 'p1',
+            amount: xof(300000),
+            method: 'mobile_money_online',
+            reference: 'FDP-104571',
+            recordedBy: 'system',
+            recordedAt: '2026-12-05T10:00:00Z',
+          },
+        ],
+      }),
+    });
+    render(<InvoiceDetail id={INVOICE_ID} />);
+    expect(await screen.findByText(/Mobile Money en ligne/)).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Payer en ligne' })).not.toBeInTheDocument();
   });
 
   it('facture d’un particulier ou émise avant l’en-tête : pas de bloc « Facturé à »', async () => {

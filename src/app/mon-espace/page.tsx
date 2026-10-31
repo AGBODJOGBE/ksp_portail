@@ -2,13 +2,14 @@ import type { Metadata } from 'next';
 import { WeavePattern } from '@/components/ui/brand/weave';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
-import { IconBriefcase, IconClock, IconNettoyage, IconUser } from '@/components/ui/icons';
+import { IconBriefcase, IconCheck, IconClock, IconNettoyage, IconUser } from '@/components/ui/icons';
 import { Container } from '@/components/ui/container';
 import { Eyebrow } from '@/components/ui/eyebrow';
 import { Heading } from '@/components/ui/heading';
 import { navigation } from '@/config/navigation';
 import { billingPaths, billingTexts } from '@/features/billing';
 import { cleaningPaths, cleaningTexts } from '@/features/cleaning';
+import { paymentPaths, paymentTexts } from '@/features/payment';
 import {
   AccountOverview,
   ContextSwitcher,
@@ -61,6 +62,13 @@ export default function AccountPage() {
                     {billingTexts.title}
                   </Link>
                   <p className="text-small text-ink-muted mt-1">{billingTexts.lead}</p>
+                </Card>
+                <Card as="li" interactive>
+                  <IconCheck className="text-accent-ink size-7" />
+                  <Link href={paymentPaths.list} className={CARD_LINK}>
+                    {paymentTexts.title}
+                  </Link>
+                  <p className="text-small text-ink-muted mt-1">{paymentTexts.lead}</p>
                 </Card>
                 <Card as="li" interactive>
                   <IconUser className="text-accent-ink size-7" />

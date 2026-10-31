@@ -9,6 +9,7 @@ import { IconArrowLeft } from '@/components/ui/icons';
 import { ApiError } from '@/lib/api';
 import { formatNumber, formatShortDate, formatXof } from '@/lib/format';
 import { useResource } from '@/lib/use-resource';
+import { PayButton } from '@/features/payment';
 import { getInvoice } from '@/features/billing/api';
 import { billingPaths, billingTexts as t, invoiceMethods, invoiceStatus } from '@/features/billing/texts';
 
@@ -16,6 +17,8 @@ import { billingPaths, billingTexts as t, invoiceMethods, invoiceStatus } from '
 const SOURCE_PATHS: Record<string, (id: string) => string> = {
   cleaning: (id) => `/mon-espace/nettoyage/missions/${encodeURIComponent(id)}`,
 };
+/** Factures payables en ligne (le reste dû est vérifié par payment, ADR-031). */
+const PAYABLE = new Set(['pending_payment', 'overdue']);
 
 /** Message d'une lecture refusée ; une facture introuvable ne se « réessaie » pas. */
 function describe(error: unknown): { message: string; notFound: boolean } {
@@ -41,7 +44,7 @@ function BackLink() {
 
 /** Détail d'une facture : période, lignes, total, échéance, règlements. */
 export function InvoiceDetail({ id }: { id: string }) {
-  const { state, reload } = useResource(useCallback(() => getInvoice(id), [id]));
+  const { state, reload, refresh } = useResource(useCallback(() => getInvoice(id), [id]));
 
   if (state.status === 'loading') {
     return (
@@ -99,6 +102,22 @@ export function InvoiceDetail({ id }: { id: string }) {
         <FormMessage tone="info">{`${t.pendingNotice(formatShortDate(invoice.dueAt))} ${t.howToPay}`}</FormMessage>
       ) : null}
       {invoice.status === 'cancelled' ? <FormMessage tone="info">{t.cancelledNotice}</FormMessage> : null}
+
+      {PAYABLE.has(invoice.status) && invoice.balance.amount > 0 ? (
+        <section
+          aria-labelledby="facture-payer"
+          className="rounded-card border-line bg-surface grid gap-4 border p-5 sm:p-6"
+        >
+          <Heading as="h2" size="h3" id="facture-payer">
+            {t.payTitle}
+          </Heading>
+          <PayButton
+            subject={{ subjectType: 'billing_invoice', subjectId: invoice.id }}
+            amount={invoice.balance}
+            onStale={refresh}
+          />
+        </section>
+      ) : null}
 
       {invoice.organization ? (
         <section
