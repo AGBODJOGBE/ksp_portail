@@ -15,7 +15,7 @@ export const billingTexts = {
   empty: 'Aucune facture pour le moment.',
   emptyFiltered: 'Aucune facture dans cet état.',
   emptyHint:
-    'Les factures concernent les contrats d’entreprise : une facture est émise chaque mois, au début du mois suivant. Les prestations d’un particulier se règlent directement auprès de l’équipe KSP.',
+    'Les factures concernent les contrats d’entreprise : une facture est émise chaque mois, au début du mois suivant. Les prestations d’un particulier se règlent depuis leur fiche, par Mobile Money en ligne ou auprès de l’équipe KSP.',
   loading: 'Chargement…',
   retry: 'Réessayer',
   loadMore: 'Afficher plus',
@@ -52,7 +52,8 @@ export const billingTexts = {
     'Cette facture est impayée : son échéance est passée. Réglez-la au plus vite : au-delà du seuil d’impayés fixé par KSP, le service est suspendu, puis reprend dès le règlement.',
   pendingNotice: (date: string) => `À régler avant le ${date}.`,
   howToPay:
-    'Règlement en espèces, par virement ou Mobile Money auprès de l’équipe KSP, qui l’enregistre ici.',
+    'Réglez-la en ligne par Mobile Money ci-dessous, ou en espèces, par virement ou Mobile Money auprès de l’équipe KSP, qui l’enregistre ici.',
+  payTitle: 'Payer en ligne',
   cancelledNotice: 'Cette facture a été annulée par KSP (correction) : elle n’est plus à régler.',
   seeMission: 'Voir la mission',
 } as const;
@@ -78,6 +79,8 @@ export const invoiceMethods: Record<string, string> = {
   cash: 'Espèces',
   bank_transfer: 'Virement',
   mobile_money_offline: 'Mobile Money',
+  /** Paiement en ligne confirmé par le prestataire (`recordedBy` = `system`, ADR-031). */
+  mobile_money_online: 'Mobile Money en ligne',
 };
 
 export function invoiceStatus(status: string): StatusLabel {
