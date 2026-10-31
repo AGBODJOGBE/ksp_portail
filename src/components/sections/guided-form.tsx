@@ -9,6 +9,7 @@ import {
   IconClock,
   IconWhatsApp,
 } from '@/components/ui/icons';
+import { SignatureArrow } from '@/components/ui/brand/signature';
 import { Button, ButtonArrow, buttonClasses } from '@/components/ui/button';
 import type {
   ChoiceStep,
@@ -39,10 +40,10 @@ import {
 
 const OPTION = cn(
   'relative flex min-h-14 cursor-pointer items-start gap-3 rounded-control border border-line-strong bg-surface p-4',
-  'has-[:checked]:border-accent has-[:checked]:bg-accent-soft',
+  'has-[:checked]:border-action has-[:checked]:bg-action-soft',
   'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus',
 );
-const RADIO = 'accent-accent mt-0.5 size-5 shrink-0 focus-visible:outline-none';
+const RADIO = 'accent-action mt-0.5 size-5 shrink-0 focus-visible:outline-none';
 
 function ChoiceOptions({
   step,
@@ -295,18 +296,27 @@ export function GuidedForm({
       onSubmit={handleSubmit}
       className="rounded-panel border-line bg-surface shadow-card overflow-hidden border lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]"
     >
-      {/* Progression : barre segmentée sur téléphone, liste des étapes sur ordinateur. */}
+      {/* Progression : fil de la signature sur téléphone (franchi en bleu nuit, en cours en vert, flèche
+          or vers la suite), liste des étapes sur ordinateur. */}
       <div className="border-line bg-surface-muted border-b p-5 sm:px-8 lg:border-r lg:border-b-0 lg:p-8">
         <p className="text-small text-ink-muted font-semibold">
           {t.progress(index + 1, total)}
           <span className="text-ink lg:hidden"> · {names[index]}</span>
         </p>
-        <div aria-hidden="true" className="mt-3 flex gap-1.5 lg:hidden">
+        <div aria-hidden="true" className="mt-3 flex items-center gap-1.5 lg:hidden">
           {names.map((name, position) => (
-            <span
-              key={name}
-              className={cn('h-1.5 flex-1 rounded-full', position <= index ? 'bg-accent' : 'bg-line-strong')}
-            />
+            <span key={name} className="flex flex-1 items-center">
+              <span
+                className={cn(
+                  'h-1.5 flex-1',
+                  position === 0 && 'rounded-l-full',
+                  position < index && 'bg-signature-1',
+                  position === index && 'bg-signature-2 progress-grow',
+                  position > index && 'bg-signature-track',
+                )}
+              />
+              {position === index ? <SignatureArrow className="-ml-px h-3.5 w-3" /> : null}
+            </span>
           ))}
         </div>
         <ol aria-label={t.stepsLabel} className="mt-6 hidden space-y-1 lg:block">
@@ -318,8 +328,8 @@ export function GuidedForm({
                 aria-hidden="true"
                 className={cn(
                   'grid size-7 shrink-0 place-items-center rounded-full border text-xs font-semibold tabular-nums',
-                  done && 'border-accent bg-accent text-on-accent',
-                  current && 'border-accent text-accent-ink bg-surface',
+                  done && 'border-brand bg-brand text-on-brand',
+                  current && 'border-action text-action-ink bg-action-soft ring-action-muted ring-4',
                   !done && !current && 'border-line-strong text-ink-subtle',
                 )}
               >
@@ -433,7 +443,7 @@ export function GuidedForm({
                         type="button"
                         onClick={() => goTo(position)}
                         aria-label={t.editStep(item.name)}
-                        className="text-accent-ink inline-flex min-h-11 items-center text-sm font-semibold underline-offset-4 hover:underline"
+                        className="text-action-ink inline-flex min-h-11 items-center text-sm font-semibold underline-offset-4 hover:underline"
                       >
                         {t.edit}
                       </button>
@@ -507,7 +517,7 @@ export function GuidedForm({
               {t.restart}
             </Button>
           ) : (
-            <Button type="submit" variant="primary">
+            <Button type="submit" variant="action">
               {index === steps.length - 1 ? t.toSummary : t.next}
               <ButtonArrow>
                 <IconArrowRight />

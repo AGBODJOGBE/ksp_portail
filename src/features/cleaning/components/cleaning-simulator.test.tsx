@@ -62,7 +62,7 @@ describe('simulateur du Nettoyage branché sur la gateway', { timeout: 15_000 },
     await answer('Nettoyage à domicile');
 
     const estimate = await screen.findByText(/^Entre /, {}, LAZY);
-    expect(plain(estimate.textContent)).toBe('Entre 33 500 FCFA et 43 000 FCFA');
+    expect(plain(estimate.textContent)).toBe('Entre 33 500 F CFA et 43 000 F CFA');
     expect(screen.getByText(/Estimation non contractuelle/)).toBeInTheDocument();
     expect(screen.getByText('Équipe recommandée : 2 agents.')).toBeInTheDocument();
     expect(screen.getByText('Une visite des lieux, obligatoire, précède le devis.')).toBeInTheDocument();

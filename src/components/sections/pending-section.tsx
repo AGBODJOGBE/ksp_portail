@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { WeavePattern } from '@/components/ui/brand/weave';
 import { IconImage } from '@/components/ui/icons';
 import { Placeholder } from '@/components/ui/placeholder';
 import { Section, type SectionTone } from '@/components/ui/section';
@@ -37,7 +36,6 @@ export function PendingGrid({
           media={
             withMedia ? (
               <span className="bg-surface-sunken relative grid aspect-[4/3] place-items-center overflow-hidden">
-                <WeavePattern className="text-ink-subtle absolute inset-0 size-full opacity-10" />
                 <IconImage className="text-ink-subtle relative size-8" />
               </span>
             ) : undefined

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { InvoiceDetail } from './invoice-detail';
 import { InvoiceList } from './invoice-list';
+import { InvoiceTodo } from './invoice-todo';
 
 let search = '';
 vi.mock('next/navigation', () => ({
@@ -124,7 +125,7 @@ describe('Mes factures', () => {
       },
     });
     render(<InvoiceList />);
-    expect(await screen.findByText(/Reste à régler : 200\s000\sFCFA/)).toBeInTheDocument();
+    expect(await screen.findByText(/Reste à régler : 200\s000\sF\sCFA/)).toBeInTheDocument();
     expect(calls[0]?.searchParams.get('status')).toBe('overdue');
     const filters = screen.getByRole('navigation', { name: 'Filtrer par état' });
     expect(screen.getAllByRole('link', { name: 'Impayée' })[0]).toHaveAttribute('aria-current', 'page');
@@ -138,13 +139,13 @@ describe('Mes factures', () => {
       await screen.findByRole('heading', { level: 1, name: 'Facture FAC-2026-000012' }),
     ).toBeInTheDocument();
     expect(screen.getByText(/Cette facture est impayée/)).toBeInTheDocument();
-    expect(screen.getByText('Nettoyage de bureaux — novembre')).toBeInTheDocument();
+    expect(screen.getAllByText('Nettoyage de bureaux — novembre')[0]).toBeInTheDocument();
     const header = screen.getByRole('region', { name: 'Facturé à' });
     expect(header).toHaveTextContent('SARL Bénin Propre');
     expect(header).toHaveTextContent('IFU : 3201912345678 · RCCM : RB/COT/19 B 1234');
     expect(screen.getByText('Mois 1 du contrat')).toBeInTheDocument();
     expect(plain(screen.getByText('Reste à régler').nextElementSibling?.textContent ?? null)).toBe(
-      '300 000 FCFA',
+      '300 000 F CFA',
     );
     expect(screen.getByRole('link', { name: 'Voir la mission' })).toHaveAttribute(
       'href',
@@ -154,7 +155,7 @@ describe('Mes factures', () => {
     const pay = screen.getByRole('region', { name: 'Payer en ligne' });
     expect(await within(pay).findByRole('button', { name: 'Payer par Mobile Money' })).toBeInTheDocument();
     expect(plain(within(pay).getByText(/Montant à payer/).textContent)).toBe(
-      'Montant à payer : 300 000 FCFA',
+      'Montant à payer : 300 000 F CFA',
     );
   });
 
@@ -205,5 +206,34 @@ describe('Mes factures', () => {
     render(<InvoiceDetail id={INVOICE_ID} />);
     expect(await screen.findByText(/Cette facture est introuvable/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Réessayer' })).not.toBeInTheDocument();
+  });
+});
+
+describe('factures dans le tableau de bord de Mon espace', () => {
+  it('liste les factures à régler (impayées puis en attente) avec leur reste à régler', async () => {
+    const calls = stub(
+      {
+        status: 200,
+        body: {
+          data: [invoice({ id: 'a', number: 'FAC-2026-000011', status: 'overdue' })],
+          nextCursor: null,
+        },
+      },
+      { status: 200, body: { data: [invoice()], nextCursor: null } },
+    );
+    render(<InvoiceTodo />);
+    expect(await screen.findByText('Facture FAC-2026-000011')).toBeInTheDocument();
+    expect(screen.getByText('Facture FAC-2026-000012')).toBeInTheDocument();
+    expect(screen.getByText('Impayée')).toBeInTheDocument();
+    expect(plain(screen.getAllByText(/^Reste à régler/)[0]!.textContent)).toBe(
+      'Reste à régler : 300 000 F CFA · échéance le 11 décembre 2026.',
+    );
+    expect(calls.map((url) => url.searchParams.get('status'))).toEqual(['overdue', 'pending_payment']);
+  });
+
+  it('dit quand rien n’est à régler', async () => {
+    stub({ status: 200, body: { data: [], nextCursor: null } });
+    render(<InvoiceTodo />);
+    expect(await screen.findByText('Aucune facture à régler.')).toBeInTheDocument();
   });
 });

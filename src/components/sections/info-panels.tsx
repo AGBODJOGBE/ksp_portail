@@ -1,4 +1,5 @@
-import { WeavePattern } from '@/components/ui/brand/weave';
+import { SignatureBackdrop } from '@/components/ui/brand/signature';
+import { IconCheck } from '@/components/ui/icons';
 import { Eyebrow } from '@/components/ui/eyebrow';
 import { Heading } from '@/components/ui/heading';
 import { Section, type SectionTone } from '@/components/ui/section';
@@ -60,7 +61,7 @@ export function InfoPanels({
               )}
             >
               {panel.tone === 'inverse' ? (
-                <WeavePattern className="text-accent-bright pointer-events-none absolute inset-0 -z-10 size-full [mask-image:linear-gradient(to_left,black,transparent_75%)] opacity-15" />
+                <SignatureBackdrop className="absolute inset-0 -z-10 size-full [mask-image:linear-gradient(to_left,black,transparent_75%)] opacity-15" />
               ) : null}
               <div className="flex flex-1 flex-col">
                 <Eyebrow>{panel.eyebrow}</Eyebrow>
@@ -72,7 +73,7 @@ export function InfoPanels({
                   <ul className="text-ink mt-5 list-none space-y-2">
                     {panel.points.map((point) => (
                       <li key={point} className="flex gap-2.5">
-                        <span aria-hidden="true" className="bg-accent mt-2 size-1.5 shrink-0 rotate-45" />
+                        <IconCheck className="text-action-ink mt-0.5 size-4" />
                         {point}
                       </li>
                     ))}

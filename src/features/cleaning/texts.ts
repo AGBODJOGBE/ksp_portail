@@ -1,6 +1,6 @@
 import type { BadgeTone } from '@/components/ui/badge';
-import type { Suspension } from './schemas';
-import { suspensionCauses } from './suspension';
+import { LOADING, LOADING_SERVICES } from './loading-texts';
+import { type SuspensionCausesInput, suspensionCauses } from './suspension';
 
 /*
  * Textes de l'interface du Nettoyage (simulateur branché, demande de devis, « Mes prestations de
@@ -29,12 +29,59 @@ export const cleaningTexts = {
     cancel: 'Annuler',
     confirm: 'Confirmer',
     reasonLabel: 'Motif (facultatif)',
+    reasonCount: (count: number, max: number) => `${count} / ${max} caractères`,
     sending: 'Envoi…',
     supportReference: (id: string) => `Référence à donner au support : ${id}`,
     organizationSuspendedRequest:
       'Votre compte entreprise est suspendu par KSP : aucune nouvelle demande de devis n’est possible en son nom avant sa réactivation. Contactez KSP, ou revenez à votre compte personnel pour une demande de particulier.',
     organizationSuspendedAccept:
       'Votre compte entreprise est suspendu par KSP : ce devis ne peut pas être accepté avant sa réactivation. Contactez KSP pour en savoir plus.',
+  },
+  dashboard: {
+    title: 'Nettoyage',
+    seeAll: 'Mes prestations',
+    quoteBadge: 'Devis à étudier',
+    quoteText: (date: string) => `Acceptez-le pour réserver, ou refusez-le, avant le ${date}.`,
+    quoteAction: 'Étudier le devis',
+    suspendedText: (date: string) =>
+      `Service suspendu depuis le ${date} : régularisez la situation pour que les passages reprennent.`,
+    suspendedAction: 'Voir la mission',
+    nothing: 'Rien à faire de votre côté pour le moment.',
+    summary: (requests: number, missions: number) =>
+      `En cours chez KSP : ${requests} demande${requests > 1 ? 's' : ''} de devis, ${missions} mission${missions > 1 ? 's' : ''}.`,
+  },
+  hero: {
+    online: 'Service en ligne',
+    journeyEyebrow: 'Votre démarche en ligne',
+    journeyTitle: 'Quatre étapes, suivies depuis votre espace',
+    journeyTexts: [
+      'Quelques questions sur vos locaux : une fourchette de prix, sans compte.',
+      'Depuis votre espace, indiquez l’adresse et vos disponibilités.',
+      'Un agent KSP passe sur place : le devis est établi d’après la visite.',
+      'Acceptez le devis en ligne, choisissez votre créneau, suivez chaque passage.',
+    ],
+  },
+  journey: {
+    nextStep: 'Prochaine étape',
+    requestProgress: 'Avancement de la demande',
+    missionProgress: 'Avancement de la mission',
+    requestFormProgress: 'Étapes de la demande de devis',
+    quoteToAnswer: (date: string) =>
+      `Votre devis est prêt. Étudiez-le, puis acceptez-le pour réserver votre créneau, ou refusez-le, avant le ${date}.`,
+    visitPlanned: (date: string) =>
+      `Un agent KSP visitera les lieux le ${date} pour préparer votre devis. Vous le recevrez ici.`,
+    visitDone: 'La visite des lieux est faite : notre équipe prépare votre devis, que vous recevrez ici.',
+    seeQuote: 'Étudier le devis',
+    followMission: 'Suivre la mission',
+    newRequest: 'Faire une nouvelle demande',
+    declined: 'Votre refus est enregistré. Le devis n’est plus valable.',
+    cancelled: 'Votre demande est annulée.',
+    missionCancelled: 'Votre mission est annulée.',
+    booked: 'Devis accepté : votre mission est réservée. Retrouvez ici ses passages et vos règlements.',
+    nextVisit: (date: string) => `Prochain passage le ${date}.`,
+    suspendedAction: 'Régularisez la situation auprès de l’équipe KSP pour que le service reprenne.',
+    suspendedByKsp:
+      'KSP doit réactiver votre compte entreprise pour que le service reprenne. Contactez KSP pour en savoir plus.',
   },
   context: {
     individual: 'Compte personnel',
@@ -48,7 +95,7 @@ export const cleaningTexts = {
     businessTag: 'Entreprise',
   },
   simulator: {
-    loadingServices: 'Chargement des prestations…',
+    loadingServices: LOADING_SERVICES,
     servicesError: 'Impossible de charger les prestations.',
     zonesError: 'Impossible de charger les communes desservies.',
     noServices: 'Aucune prestation n’est proposée en ligne pour le moment. Contactez-nous pour un devis.',
@@ -68,6 +115,7 @@ export const cleaningTexts = {
     outOfZoneText: (sentence: string | null) =>
       `${zonesLine(sentence)} Contactez-nous : nous vous préviendrons dès que votre commune sera desservie.`,
     requestQuote: 'Demander un devis',
+    nextTitle: 'Étape suivante : votre demande de devis',
     visitNotice: 'Une visite des lieux, obligatoire, précède le devis.',
     errorTitle: 'Estimation indisponible',
     contactUs: 'Nous contacter',
@@ -105,6 +153,22 @@ export const cleaningTexts = {
     address: 'Adresse d’intervention',
     addressHint: 'Quartier, rue, repère : tout ce qui aide notre équipe à vous trouver.',
     addressRequired: 'Indiquez l’adresse d’intervention.',
+    addressTooLong: (max: number) => `L’adresse ne doit pas dépasser ${max} caractères.`,
+    commentTooLong: (max: number) => `Le commentaire ne doit pas dépasser ${max} caractères.`,
+    partWho: 'Pour qui ?',
+    partWhere: 'Où intervenir ?',
+    partDetails: 'Précisions',
+    partDetailsHint: 'Facultatif : tout ce qui aide notre équipe à préparer la visite et le devis.',
+    fromSimulation: 'Repris de la simulation',
+    afterTitle: 'Après l’envoi',
+    afterSteps: [
+      'Votre demande apparaît dans « Mes prestations de nettoyage ».',
+      'Notre équipe vous contacte pour planifier la visite des lieux, obligatoire.',
+      'Vous recevez le devis dans votre espace, et vous l’acceptez ou le refusez en ligne.',
+    ],
+    successReceived: 'Reçue le',
+    successStatus: 'État',
+    successReference: 'Référence',
     slotsTitle: 'Vos disponibilités',
     slotsHint: (minDate: string) => `Jusqu’à trois créneaux, à partir du ${minDate}. Heures du Bénin.`,
     slotDate: (index: number) => `Date du créneau ${index}`,
@@ -132,13 +196,17 @@ export const cleaningTexts = {
     lead: 'Vos demandes de devis et vos missions, de la visite des lieux au dernier passage.',
     requestsTitle: 'Mes demandes de devis',
     missionsTitle: 'Mes missions',
+    requestsLead: 'De la demande au devis : l’étape en cours et qui doit agir.',
+    missionsLead: 'Vos prestations réservées et l’avancement de leurs passages.',
     noRequests: 'Vous n’avez encore demandé aucun devis.',
+    noRequestsHint:
+      'Simulez votre prestation en quelques questions, puis demandez votre devis : il apparaîtra ici.',
     noMissions: 'Aucune mission pour le moment : elle apparaît ici dès qu’un devis est accepté.',
     noRequestsBusiness: 'Aucune demande de devis au nom de cette entreprise.',
     noMissionsBusiness:
       'Aucune mission au nom de cette entreprise : elle apparaît ici dès qu’un devis est accepté.',
     newRequest: 'Simuler et demander un devis',
-    loading: 'Chargement…',
+    loading: LOADING,
     requestedOn: (date: string) => `Demandée le ${date}`,
     firstVisit: (date: string) => `Premier passage le ${date}`,
     homeLink: 'Mes prestations de nettoyage',
@@ -185,11 +253,21 @@ export const cleaningTexts = {
       `${count > 1 ? `${count} agents` : '1 agent'}, environ ${duration} par passage`,
     validUntil: (date: string) => `Valable jusqu’au ${date}`,
     expired: 'Ce devis a expiré. Faites une nouvelle demande si vous êtes toujours intéressé.',
+    expiredBadge: 'Expiré',
+    noSlotYet: 'Créneau à choisir',
+    teamLabel: 'Équipe',
+    declineHint: 'Le devis ne sera plus valable. Votre motif aide notre équipe à mieux vous proposer.',
+    cancelHint: 'La demande est close : pour un autre besoin, faites une nouvelle simulation.',
     proposedSlots: 'Créneaux proposés',
     closingReason: 'Motif',
     seeMission: 'Voir la mission',
     accept: 'Accepter le devis',
     acceptTitle: 'Accepter le devis',
+    acceptLead:
+      'Choisissez votre créneau, puis votre façon de payer. Rien n’est réservé avant votre confirmation.',
+    acceptRecap: 'Vous réservez',
+    firstPayment: (amount: string, timing: string, method: string) =>
+      `À régler : ${amount}, ${timing}, ${method}.`,
     chooseSlot: 'Choisissez votre créneau',
     paymentTitle: 'Votre paiement',
     paymentOption: 'Montant',
@@ -282,23 +360,35 @@ export const simulatorQuestions = {
   },
 } as const;
 
-export type StatusLabel = { label: string; tone: BadgeTone; hint?: string };
+/** Qui doit agir maintenant : le client (« À vous d'agir ») ou l'équipe KSP. */
+export type Actor = 'client' | 'ksp';
+
+export type StatusLabel = { label: string; tone: BadgeTone; hint?: string; actor?: Actor };
+
+/** Libellés de l'acteur attendu, affichés à côté de la prochaine étape. */
+export const actorLabels: Record<Actor, string> = {
+  client: 'À vous d’agir',
+  ksp: 'KSP s’en occupe',
+};
 
 /** États d'une demande de devis (`CleaningQuoteRequest.status`), avec ce qui se passe ensuite. */
 export const requestStatuses: Record<string, StatusLabel> = {
   received: {
     label: 'Demande reçue',
     tone: 'brand',
+    actor: 'ksp',
     hint: 'Notre équipe vous contacte pour planifier la visite des lieux, obligatoire avant le devis.',
   },
   visit_scheduled: {
     label: 'Visite planifiée',
     tone: 'brand',
+    actor: 'ksp',
     hint: 'La visite des lieux est planifiée ; le devis vous sera envoyé ici après la visite.',
   },
   quote_sent: {
     label: 'Devis à étudier',
     tone: 'accent',
+    actor: 'client',
     hint: 'Votre devis est prêt : acceptez-le pour réserver, ou refusez-le, avant sa date de validité.',
   },
   accepted: {
@@ -320,22 +410,60 @@ export const requestStatuses: Record<string, StatusLabel> = {
   cancelled: { label: 'Demande annulée', tone: 'neutral', hint: 'Cette demande a été annulée.' },
 };
 
+/** La démarche en ligne, de la simulation à la réservation (page publique, demande de devis). */
+export const serviceJourney = [
+  { label: 'Simuler mon prix' },
+  { label: 'Demander un devis' },
+  { label: 'Visite des lieux' },
+  { label: 'Accepter et suivre' },
+] as const;
+
+/** Étapes d'une demande, pour le fil de progression (signature). */
+export const requestJourney = [
+  { label: 'Votre demande' },
+  { label: 'Visite des lieux' },
+  { label: 'Devis' },
+  { label: 'Réservation' },
+] as const;
+
+/** États qui arrêtent le parcours d'une demande avant la réservation. */
+const STOPPED_REQUESTS = new Set(['declined', 'rejected', 'expired', 'cancelled']);
+
+/**
+ * Position d'une demande dans son parcours, d'après son état et ce qu'elle contient déjà (visite,
+ * devis). Simple correspondance d'affichage : l'état vient de la gateway.
+ */
+export function requestStage(request: { status: string; visit: { status: string } | null; quote: unknown }): {
+  current: number;
+  stopped: boolean;
+} {
+  if (request.status === 'accepted') return { current: requestJourney.length, stopped: false };
+  const current = request.quote ? 2 : 1;
+  return { current, stopped: STOPPED_REQUESTS.has(request.status) };
+}
+
 /** États d'une mission (`CleaningMission.status`, déduit de ses passages par la gateway). */
 export const missionStatuses: Record<string, StatusLabel> = {
   to_schedule: {
     label: 'À planifier',
     tone: 'brand',
+    actor: 'ksp',
     hint: 'Notre équipe planifie les passages et y affecte les agents.',
   },
-  scheduled: { label: 'Planifiée', tone: 'brand', hint: 'Le prochain passage est planifié.' },
-  in_progress: { label: 'En cours', tone: 'accent', hint: 'Nos agents interviennent.' },
-  on_hold: { label: 'En attente', tone: 'warning', hint: 'Un passage est en attente après un incident.' },
+  scheduled: { label: 'Planifiée', tone: 'brand', actor: 'ksp', hint: 'Le prochain passage est planifié.' },
+  in_progress: { label: 'En cours', tone: 'action', actor: 'ksp', hint: 'Nos agents interviennent.' },
+  on_hold: {
+    label: 'En attente',
+    tone: 'warning',
+    actor: 'ksp',
+    hint: 'Un passage est en attente après un incident.',
+  },
   completed: { label: 'Terminée', tone: 'success', hint: 'Tous les passages prévus sont effectués.' },
   cancelled: { label: 'Annulée', tone: 'neutral', hint: 'Cette mission a été annulée.' },
 };
 
 /** Suspension (`CleaningMission.suspension`) : prime sur l'état déduit des passages. */
-export function suspendedStatus(suspension: Pick<Suspension, 'cause' | 'causes'>): StatusLabel {
+export function suspendedStatus(suspension: SuspensionCausesInput): StatusLabel {
   const causes = suspensionCauses(suspension);
   const organization = causes.includes('organization_suspended');
   const unpaid = causes.some((cause) => cause === 'unpaid_invoices' || cause === 'unpaid_interventions');
@@ -347,7 +475,8 @@ export function suspendedStatus(suspension: Pick<Suspension, 'cause' | 'causes'>
         : unpaid
           ? 'Suspendue (impayés)'
           : 'Suspendue';
-  return { label, tone: 'danger' };
+  // Impayés : au client de régler ; seul le compte entreprise suspendu : à KSP de le réactiver.
+  return { label, tone: 'danger', actor: unpaid ? 'client' : 'ksp' };
 }
 
 const plural = (count: number, word: string) => `${count} ${word}${count > 1 ? 's' : ''}`;
@@ -365,7 +494,7 @@ function unpaidPhrase(cause: string, count: number): string {
  * entreprise, passages d'un particulier), compte entreprise suspendu par KSP, ou les deux.
  */
 export function suspensionText(
-  suspension: Pick<Suspension, 'cause' | 'causes' | 'unpaidCount'>,
+  suspension: SuspensionCausesInput & { unpaidCount: number },
   since: string,
 ): string {
   const causes = suspensionCauses(suspension);
@@ -390,7 +519,7 @@ export function suspensionText(
 
 export const interventionStatuses: Record<string, StatusLabel> = {
   planned: { label: 'Prévu', tone: 'brand' },
-  in_progress: { label: 'En cours', tone: 'accent' },
+  in_progress: { label: 'En cours', tone: 'action' },
   on_hold: { label: 'En attente (incident)', tone: 'warning' },
   completed: { label: 'Effectué', tone: 'success' },
   cancelled: { label: 'Annulé', tone: 'neutral' },

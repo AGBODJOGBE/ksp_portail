@@ -7,6 +7,7 @@ import { FormMessage } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
 import { IconArrowLeft } from '@/components/ui/icons';
 import { ApiError } from '@/lib/api';
+import { cn } from '@/lib/cn';
 import { formatNumber, formatShortDate, formatXof } from '@/lib/format';
 import { useResource } from '@/lib/use-resource';
 import { PayButton } from '@/features/payment';
@@ -48,9 +49,16 @@ export function InvoiceDetail({ id }: { id: string }) {
 
   if (state.status === 'loading') {
     return (
-      <p role="status" className="text-ink-muted">
-        {t.loading}
-      </p>
+      <div role="status" className="grid gap-6">
+        <span className="sr-only">{t.loading}</span>
+        {['h-11 w-48', 'h-9 w-2/3 max-w-md', 'h-28', 'h-56'].map((size) => (
+          <span
+            key={size}
+            aria-hidden="true"
+            className={`bg-surface-sunken rounded-card block animate-pulse motion-reduce:animate-none ${size}`}
+          />
+        ))}
+      </div>
     );
   }
   if (state.status === 'error') {
@@ -75,10 +83,6 @@ export function InvoiceDetail({ id }: { id: string }) {
     ['Origine', t.source[invoice.source] ?? invoice.source],
     ['Mois facturé', t.month(invoice.periodIndex)],
     ['Émission', formatShortDate(invoice.issuedAt)],
-    ['Échéance', formatShortDate(invoice.dueAt)],
-    [t.total, formatXof(invoice.total)],
-    [t.paid, formatXof(invoice.paid)],
-    [t.balance, formatXof(invoice.balance)],
     ['Règlement', invoice.paidAt ? t.paidOn(formatShortDate(invoice.paidAt)) : null],
   ];
 
@@ -86,16 +90,42 @@ export function InvoiceDetail({ id }: { id: string }) {
     <div className="grid gap-8">
       <div className="grid gap-3">
         <BackLink />
-        <div className="flex flex-wrap items-center gap-3">
-          <Heading as="h1" size="h2">
-            {t.invoice(invoice.number)}
-          </Heading>
-          <Badge tone={status.tone}>{status.label}</Badge>
+        <div>
+          <Badge tone={status.tone} dot>
+            {status.label}
+          </Badge>
         </div>
+        <Heading as="h1" size="h2">
+          {t.invoice(invoice.number)}
+        </Heading>
         <p className="text-ink-muted">
           {t.period(formatShortDate(invoice.periodStart), formatShortDate(invoice.periodEnd))}
         </p>
       </div>
+
+      {/* Montants de la gateway : total, déjà réglé, reste à régler (`balance`), échéance. */}
+      <dl className="rounded-card border-line bg-surface grid grid-cols-2 gap-4 border p-5 shadow-xs sm:grid-cols-4 sm:p-6">
+        {(
+          [
+            [t.total, formatXof(invoice.total)],
+            [t.paid, formatXof(invoice.paid)],
+            [t.balance, formatXof(invoice.balance)],
+            [t.dueLabel, formatShortDate(invoice.dueAt)],
+          ] as const
+        ).map(([label, value], index) => (
+          <div key={label} className={index === 2 ? 'sm:border-line sm:border-l sm:pl-4' : undefined}>
+            <dt className="text-small text-ink-muted">{label}</dt>
+            <dd
+              className={cn(
+                'font-display text-ink mt-1 text-xl font-semibold tabular-nums',
+                index === 2 && invoice.status === 'overdue' && 'text-danger',
+              )}
+            >
+              {value}
+            </dd>
+          </div>
+        ))}
+      </dl>
 
       {invoice.status === 'overdue' ? <FormMessage>{`${t.overdueNotice} ${t.howToPay}`}</FormMessage> : null}
       {invoice.status === 'pending_payment' ? (
@@ -146,8 +176,25 @@ export function InvoiceDetail({ id }: { id: string }) {
         <Heading as="h2" size="h3" id="facture-detail">
           {t.linesTitle}
         </Heading>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[32rem] text-left">
+        {/* Téléphone : lignes empilées ; à partir de 640 px : tableau. */}
+        <ul className="divide-line border-line grid divide-y border-y sm:hidden">
+          {invoice.lines.map((line) => (
+            <li
+              key={`${line.label}-${line.amount.amount}`}
+              className="flex items-start justify-between gap-4 py-2.5"
+            >
+              <span className="min-w-0">
+                <span className="text-ink block font-medium">{line.label}</span>
+                <span className="text-small text-ink-muted tabular-nums">
+                  {formatNumber(line.quantity)} × {formatXof(line.unitPrice)}
+                </span>
+              </span>
+              <span className="text-ink shrink-0 font-semibold tabular-nums">{formatXof(line.amount)}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden sm:block">
+          <table className="w-full text-left">
             <thead className="text-small text-ink-muted">
               <tr className="border-line border-b">
                 <th scope="col" className="py-2 pr-3 font-semibold">

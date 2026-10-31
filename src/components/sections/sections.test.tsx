@@ -61,8 +61,8 @@ describe('actions des pages métiers', () => {
         ]}
       />,
     );
-    expect(screen.getByRole('link', { name: /Principale/ })).toHaveClass('bg-accent');
-    expect(screen.getByRole('link', { name: /Secondaire/ })).not.toHaveClass('bg-accent');
+    expect(screen.getByRole('link', { name: /Principale/ })).toHaveClass('bg-action');
+    expect(screen.getByRole('link', { name: /Secondaire/ })).not.toHaveClass('bg-action');
   });
 
   it('affiche une action pas encore ouverte comme inactive, avec une note visible qui la décrit', () => {

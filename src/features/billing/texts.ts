@@ -17,6 +17,13 @@ export const billingTexts = {
   emptyHint:
     'Les factures concernent les contrats d’entreprise : une facture est émise chaque mois, au début du mois suivant. Les prestations d’un particulier se règlent depuis leur fiche, par Mobile Money en ligne ou auprès de l’équipe KSP.',
   loading: 'Chargement…',
+  genericError: 'Une erreur est survenue. Réessayez dans quelques instants.',
+  dashboard: {
+    seeAll: 'Toutes mes factures',
+    itemText: (balance: string, due: string) => `Reste à régler : ${balance} · échéance le ${due}.`,
+    action: 'Voir la facture',
+    nothing: 'Aucune facture à régler.',
+  },
   retry: 'Réessayer',
   loadMore: 'Afficher plus',
   loadingMore: 'Chargement…',
@@ -46,6 +53,7 @@ export const billingTexts = {
   total: 'Total',
   paid: 'Déjà réglé',
   balance: 'Reste à régler',
+  dueLabel: 'Échéance',
   paymentsTitle: 'Règlements reçus',
   noPayments: 'Aucun règlement enregistré pour le moment.',
   overdueNotice:

@@ -4,4 +4,7 @@ export const cleaningPaths = {
   space: '/mon-espace/nettoyage/demandes',
   request: (id: string) => `/mon-espace/nettoyage/demandes/${encodeURIComponent(id)}`,
   mission: (id: string) => `/mon-espace/nettoyage/missions/${encodeURIComponent(id)}`,
+  /** Mission tout juste réservée (devis accepté) : l'écran affiche la confirmation. */
+  missionBooked: (id: string) =>
+    `/mon-espace/nettoyage/missions/${encodeURIComponent(id)}?reservation=confirmee`,
 } as const;

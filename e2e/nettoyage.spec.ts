@@ -30,7 +30,7 @@ test('simuler, se connecter, demander un devis, accepter le devis et voir la mis
   await next();
   await simulator.getByLabel('Une seule fois').check();
   await next();
-  await expect(simulator.getByText(/Entre 33\s500\sFCFA et 43\s000\sFCFA/)).toBeVisible();
+  await expect(simulator.getByText(/Entre 33\s500\sF\sCFA et 43\s000\sF\sCFA/)).toBeVisible();
   await expect(simulator.getByText(/Estimation non contractuelle/)).toBeVisible();
 
   // 2. Demande de devis : connexion d'abord, puis retour avec la simulation.
@@ -71,7 +71,8 @@ test('simuler, se connecter, demander un devis, accepter le devis et voir la mis
   await accept.getByRole('button', { name: 'Confirmer et réserver' }).click();
 
   // 5. La mission.
-  await expect(page).toHaveURL(/\/mon-espace\/nettoyage\/missions\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/mon-espace\/nettoyage\/missions\/[0-9a-f-]+\?reservation=confirmee$/);
+  await expect(page.getByText(/Devis accepté : votre mission est réservée/)).toBeVisible();
   await expect(page.getByText('Planifiée')).toBeVisible();
   await expect(page.getByText('À régler')).toBeVisible();
 

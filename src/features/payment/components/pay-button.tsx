@@ -90,7 +90,7 @@ export function PayButton({ subject, label = t.pay, amount, onStale }: PayButton
           <span className="text-small text-ink-muted">{t.amountByKsp}</span>
         )}
       </p>
-      <Button variant="accent" onClick={pay} disabled={busy} aria-busy={busy || undefined}>
+      <Button variant="action" onClick={pay} disabled={busy} aria-busy={busy || undefined}>
         {busy ? t.paying : label}
       </Button>
       <p className="text-small text-ink-muted max-w-reading">{t.payHint}</p>

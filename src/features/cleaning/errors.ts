@@ -18,12 +18,21 @@ export type CleaningErrorKind =
    * ADR-030) : ni nouvelle demande ni acceptation de devis jusqu'à sa réactivation.
    */
   | 'organizationSuspended'
+  /** Trop de demandes en cours (`CLEANING_TOO_MANY_OPEN_REQUESTS`) : renvoi vers « Mes prestations ». */
+  | 'tooManyOpen'
+  /**
+   * Champ refusé par le service (`CLEANING_VALIDATION_FAILED`, `details.field`) : le message va au champ
+   * nommé (`field`, nom du contrat : `address`, `commune`, `recurrence`, `paymentPlan`…).
+   */
+  | 'field'
   | 'notFound'
   | 'other';
 
 export interface CleaningErrorView {
   message: string;
   kind: CleaningErrorKind;
+  /** Champ du contrat en cause (`kind: 'field'`), sans indice de tableau (`preferredSlots[0].start` → `preferredSlots`). */
+  field?: string;
 }
 
 const SLOT_CODES = new Set(['CLEANING_SLOT_INVALID', 'CLEANING_LEAD_TIME_TOO_SHORT']);
@@ -43,6 +52,11 @@ export function describeCleaningError(error: unknown): CleaningErrorView {
   if (SLOT_CODES.has(code)) return { message, kind: 'slots' };
   if (code === 'CLEANING_ZONE_NOT_COVERED') return { message, kind: 'zone' };
   if (code === 'CLEANING_ORGANIZATION_SUSPENDED') return { message, kind: 'organizationSuspended' };
+  if (code === 'CLEANING_TOO_MANY_OPEN_REQUESTS') return { message, kind: 'tooManyOpen' };
+  const field = error.details['field'];
+  if (code === 'CLEANING_VALIDATION_FAILED' && typeof field === 'string') {
+    return { message, kind: 'field', field: field.replace(/[[.].*$/, '') };
+  }
   if (NOT_FOUND.has(code) || (status === 404 && code !== 'CLEANING_SERVICE_NOT_FOUND')) {
     return { message: t.common.notFound, kind: 'notFound' };
   }

@@ -38,7 +38,7 @@ function SoonAction({ label, note, size }: { label: string; note: string; size: 
 }
 
 function Action({ action, primary, size }: { action: PageAction; primary: boolean; size: ButtonSize }) {
-  const variant = primary ? 'accent' : 'secondary';
+  const variant = primary ? 'action' : 'secondary';
   const href = actionHref(action);
 
   if (action.kind === 'soon' || !href) {

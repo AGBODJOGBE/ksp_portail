@@ -60,7 +60,7 @@ export function OfferGrid({
             <ul className="border-line text-small text-ink mt-6 space-y-2.5 border-t pt-5">
               {offer.points.map((point) => (
                 <li key={point} className="flex gap-2.5">
-                  <IconCheck className="text-accent-ink mt-0.5 size-4" />
+                  <IconCheck className="text-action-ink mt-0.5 size-4" />
                   {point}
                 </li>
               ))}

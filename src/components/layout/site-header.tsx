@@ -22,11 +22,11 @@ import { NavPopover } from './nav-popover';
 const METIERS_MENU_ID = 'menu-metiers';
 const MOBILE_MENU_ID = 'menu-mobile';
 
-/** Lien de premier niveau : soulignement ocre qui se déploie au survol et marque la page courante. */
+/** Lien de premier niveau : soulignement vert qui se déploie au survol et marque la page courante. */
 const NAV_ITEM = cn(
   'relative inline-flex min-h-11 items-center gap-1.5 rounded-control px-3.5 text-[0.9375rem] font-medium',
   'text-ink-muted hover:text-ink aria-[current=page]:text-ink',
-  'after:absolute after:inset-x-3.5 after:bottom-1.5 after:h-0.5 after:origin-left after:scale-x-0 after:bg-accent',
+  'after:absolute after:inset-x-3.5 after:bottom-1.5 after:h-0.5 after:origin-left after:scale-x-0 after:rounded-full after:bg-action',
   'after:transition-transform after:duration-(--motion-base) after:ease-soft',
   'hover:after:scale-x-100 aria-[current=page]:after:scale-x-100',
 );
@@ -35,7 +35,7 @@ const otherSites = siteConfig.ecosystem.filter((site) => site.id !== siteConfig.
 
 function MetierTile({ id }: { id: Parameters<typeof MetierIcon>[0]['id'] }) {
   return (
-    <span className="rounded-control bg-accent-soft text-accent-ink grid size-11 shrink-0 place-items-center">
+    <span className="rounded-control bg-accent-soft text-accent-ink ring-accent-muted grid size-11 shrink-0 place-items-center ring-1 ring-inset">
       <MetierIcon id={id} className="size-[1.375rem]" />
     </span>
   );
@@ -180,7 +180,7 @@ export function SiteHeader() {
                 <li key={item.href}>
                   <NavLink
                     href={item.href}
-                    className="text-ink aria-[current=page]:text-accent-ink flex min-h-12 items-center text-lg font-medium"
+                    className="text-ink aria-[current=page]:text-action-ink flex min-h-12 items-center text-lg font-medium aria-[current=page]:font-semibold"
                   >
                     {item.label}
                   </NavLink>

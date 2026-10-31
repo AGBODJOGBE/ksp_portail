@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { WeaveBand, WeaveMark } from '@/components/ui/brand/weave';
+import { LogoMark } from '@/components/ui/brand/logo';
+import { SignatureRule } from '@/components/ui/brand/signature';
 import { IconArrowUpRight, IconUser } from '@/components/ui/icons';
 import { ButtonLink } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
@@ -24,17 +25,17 @@ export function SiteFooter() {
   const otherSites = siteConfig.ecosystem.filter((site) => site.id !== siteConfig.id);
   return (
     <footer data-tone="inverse" className="text-small">
-      <WeaveBand />
-      <Container className="grid grid-cols-2 gap-x-6 gap-y-12 py-16 lg:grid-cols-12 lg:gap-8">
+      {/* Signature du logo en séparateur : barre blanche, barre verte, flèche or. */}
+      <Container className="pt-10">
+        <SignatureRule size="md" />
+      </Container>
+      <Container className="grid grid-cols-2 gap-x-6 gap-y-12 pt-12 pb-16 lg:grid-cols-12 lg:gap-8">
         <div className="col-span-2 lg:col-span-4">
-          <p className="font-display text-ink flex items-center gap-2.5 text-2xl font-bold tracking-tight">
-            <WeaveMark className="size-8" />
-            {siteConfig.name}
-          </p>
+          <LogoMark title={siteConfig.name} className="h-auto w-36" />
           <p className="font-display text-ink mt-5 max-w-xs text-lg leading-snug font-medium">
             {siteConfig.tagline}
           </p>
-          <ButtonLink href={navigation.account.href} variant="primary" className="mt-6">
+          <ButtonLink href={navigation.account.href} variant="inverse" className="mt-6">
             <IconUser />
             {navigation.account.label}
           </ButtonLink>

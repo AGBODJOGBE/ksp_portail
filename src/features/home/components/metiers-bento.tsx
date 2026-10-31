@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { WeavePattern } from '@/components/ui/brand/weave';
+import { SignatureBackdrop } from '@/components/ui/brand/signature';
 import { IconArrowRight } from '@/components/ui/icons';
 import { MetierIcon } from '@/components/sections/metier-icon';
 import { Card, type CardTone } from '@/components/ui/card';
@@ -50,10 +50,10 @@ function MetierCard({ metier }: { metier: Metier }) {
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
         >
-          <WeavePattern
+          <SignatureBackdrop
             className={cn(
               'absolute inset-y-0 right-0 h-full w-2/3 [mask-image:linear-gradient(to_left,black,transparent)]',
-              layout.tone === 'inverse' ? 'text-accent-bright opacity-15' : 'text-accent opacity-20',
+              layout.tone === 'inverse' ? 'opacity-15' : 'opacity-10',
             )}
           />
         </span>

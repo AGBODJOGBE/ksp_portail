@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { WeavePattern } from '@/components/ui/brand/weave';
+import { SignatureBackdrop } from '@/components/ui/brand/signature';
 import { IconArrowRight, IconImage } from '@/components/ui/icons';
 import { Badge } from '@/components/ui/badge';
 import { ButtonArrow, ButtonLink } from '@/components/ui/button';
@@ -101,7 +101,6 @@ export function RealisationsSection({ content }: { content: HomeContent['realisa
                 className={index > 0 ? 'max-sm:hidden' : undefined}
                 media={
                   <span className="bg-surface-sunken relative grid aspect-[4/3] place-items-center overflow-hidden">
-                    <WeavePattern className="text-ink-subtle absolute inset-0 size-full opacity-10" />
                     <IconImage className="text-ink-subtle relative size-8" />
                   </span>
                 }
@@ -118,7 +117,7 @@ export function RealisationsSection({ content }: { content: HomeContent['realisa
 export function TestimonialsSection({ content }: { content: HomeContent['testimonials'] }) {
   return (
     <Section id="temoignages" labelledBy="temoignages-titre" tone="inverse" className="overflow-hidden">
-      <WeavePattern className="text-accent-bright pointer-events-none absolute inset-0 size-full [mask-image:linear-gradient(to_bottom,transparent,black)] opacity-10" />
+      <SignatureBackdrop className="absolute inset-0 size-full [mask-image:linear-gradient(to_bottom,transparent,black)] opacity-10" />
       <div className="relative">
         <SectionHeader
           id="temoignages-titre"
