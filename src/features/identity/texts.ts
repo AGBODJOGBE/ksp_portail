@@ -26,6 +26,14 @@ export const accountTexts = {
     organizationsLink: 'Mon entreprise',
     organizationsLinkText: 'Compte entreprise, validation par KSP et e-mail de facturation.',
   },
+  todo: {
+    title: 'Mon compte',
+    emailMissing: 'Ajoutez votre e-mail',
+    emailMissingText: 'Pour recevoir vos devis, factures et reçus, et retrouver votre compte facilement.',
+    emailUnverified: 'Vérifiez votre e-mail',
+    emailUnverifiedText: (email: string) => `Confirmez ${email} avec le code que nous vous envoyons.`,
+    action: 'Compléter',
+  },
   profile: {
     title: 'Mon profil',
     lead: 'Les informations de votre compte KSP, communes à tous les sites du groupe.',

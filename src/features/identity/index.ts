@@ -10,5 +10,6 @@ export {
   OrganizationDetail,
   OrganizationSpace,
   ProfileSpace,
+  ProfileTodo,
 } from './components/lazy';
 export { accountTexts, identityPaths } from './texts';

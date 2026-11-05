@@ -23,8 +23,8 @@ export const fr = {
   },
   account: {
     servicesTitle: 'Vos services',
-    todoTitle: 'Ce qui vous attend',
-    todoLead: 'Les actions à faire de votre côté d’abord, puis ce que KSP a en cours pour vous.',
+    todoTitle: 'À faire',
+    todoLead: 'Ce qui attend une action de votre part, le plus urgent d’abord.',
     soonTitle: 'D’autres services arrivent bientôt',
     soonText:
       'Un seul compte pour suivre vos dossiers, commandes, factures et paiements, sur tous les sites du groupe.',
