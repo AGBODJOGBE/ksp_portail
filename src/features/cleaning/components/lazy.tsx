@@ -17,25 +17,23 @@ function Loading() {
   );
 }
 
-export const CleaningSimulator = dynamic(
-  () => import('./cleaning-simulator').then((module_) => module_.CleaningSimulator),
-  {
-    loading: () => (
-      <p role="status" className="rounded-panel border-line bg-surface text-ink-muted border p-8">
-        {LOADING_SERVICES}
-      </p>
-    ),
-  },
-);
+/**
+ * Demande de devis par lieu (assistant) : l'écran du lieu d'abord, les autres étapes à la demande.
+ * Rendu dans le navigateur seulement : il reprend le brouillon de l'onglet (`sessionStorage`), que le
+ * serveur ne connaît pas.
+ */
+export const CleaningJourney = dynamic(() => import('./journey').then((module_) => module_.CleaningJourney), {
+  ssr: false,
+  loading: () => (
+    <p role="status" className="rounded-card border-line bg-surface text-ink-muted border p-6 sm:p-8">
+      {LOADING_SERVICES}
+    </p>
+  ),
+});
 
 export const CleaningTodo = dynamic(() => import('./cleaning-todo').then((module_) => module_.CleaningTodo), {
   loading: Loading,
 });
-
-export const QuoteRequestPanel = dynamic(
-  () => import('./quote-request-form').then((module_) => module_.QuoteRequestPanel),
-  { loading: Loading },
-);
 
 export const CleaningSpace = dynamic(
   () => import('./cleaning-space').then((module_) => module_.CleaningSpace),
@@ -56,4 +54,9 @@ export const MissionDetail = dynamic(
   {
     loading: Loading,
   },
+);
+
+export const RequestGroupDetail = dynamic(
+  () => import('./request-group').then((module_) => module_.RequestGroupDetail),
+  { loading: Loading },
 );

@@ -159,7 +159,7 @@ function CleaningLists({ organizationId }: { organizationId: string | null }) {
             </Heading>
             <p className="text-small text-ink-muted mt-1">{t.requestsLead}</p>
           </div>
-          <ButtonLink href={cleaningPaths.simulator} variant="action">
+          <ButtonLink href={cleaningPaths.journey} variant="action">
             {t.newRequest}
           </ButtonLink>
         </div>

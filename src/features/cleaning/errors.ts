@@ -21,6 +21,16 @@ export type CleaningErrorKind =
   /** Trop de demandes en cours (`CLEANING_TOO_MANY_OPEN_REQUESTS`) : renvoi vers « Mes prestations ». */
   | 'tooManyOpen'
   /**
+   * Position non rattachée à une commune et aucune commune envoyée (`CLEANING_LOCATION_UNRESOLVED`) :
+   * le client choisit sa commune dans la liste des zones.
+   */
+  | 'location'
+  /**
+   * Catalogue changé pendant la saisie (`CLEANING_SERVICE_NOT_OFFERED`, `CLEANING_PLACE_TYPE_NOT_FOUND`) :
+   * le client revoit le lieu ou les prestations.
+   */
+  | 'catalog'
+  /**
    * Champ refusé par le service (`CLEANING_VALIDATION_FAILED`, `details.field`) : le message va au champ
    * nommé (`field`, nom du contrat : `address`, `commune`, `recurrence`, `paymentPlan`…).
    */
@@ -33,10 +43,17 @@ export interface CleaningErrorView {
   kind: CleaningErrorKind;
   /** Champ du contrat en cause (`kind: 'field'`), sans indice de tableau (`preferredSlots[0].start` → `preferredSlots`). */
   field?: string;
+  /** Champ du contrat tel que renvoyé (`items[1].answers.surface`), pour situer l'erreur dans le parcours. */
+  path?: string;
 }
 
 const SLOT_CODES = new Set(['CLEANING_SLOT_INVALID', 'CLEANING_LEAD_TIME_TOO_SHORT']);
-const NOT_FOUND = new Set(['CLEANING_REQUEST_NOT_FOUND', 'CLEANING_MISSION_NOT_FOUND']);
+const NOT_FOUND = new Set([
+  'CLEANING_REQUEST_NOT_FOUND',
+  'CLEANING_MISSION_NOT_FOUND',
+  'CLEANING_REQUEST_GROUP_NOT_FOUND',
+]);
+const CATALOG_CODES = new Set(['CLEANING_SERVICE_NOT_OFFERED', 'CLEANING_PLACE_TYPE_NOT_FOUND']);
 
 /**
  * Traduit une erreur de la gateway pour les écrans du Nettoyage. Le message vient de la réponse
@@ -53,9 +70,11 @@ export function describeCleaningError(error: unknown): CleaningErrorView {
   if (code === 'CLEANING_ZONE_NOT_COVERED') return { message, kind: 'zone' };
   if (code === 'CLEANING_ORGANIZATION_SUSPENDED') return { message, kind: 'organizationSuspended' };
   if (code === 'CLEANING_TOO_MANY_OPEN_REQUESTS') return { message, kind: 'tooManyOpen' };
+  if (code === 'CLEANING_LOCATION_UNRESOLVED') return { message, kind: 'location' };
+  if (CATALOG_CODES.has(code)) return { message, kind: 'catalog' };
   const field = error.details['field'];
   if (code === 'CLEANING_VALIDATION_FAILED' && typeof field === 'string') {
-    return { message, kind: 'field', field: field.replace(/[[.].*$/, '') };
+    return { message, kind: 'field', field: field.replace(/[[.].*$/, ''), path: field };
   }
   if (NOT_FOUND.has(code) || (status === 404 && code !== 'CLEANING_SERVICE_NOT_FOUND')) {
     return { message: t.common.notFound, kind: 'notFound' };

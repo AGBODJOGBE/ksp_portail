@@ -181,3 +181,82 @@ export function IconWhatsApp({ title, className, ...props }: IconProps) {
     </svg>
   );
 }
+
+/* Types de lieu du Nettoyage (nom d'icône libre envoyé par la gateway, interprété par le front). */
+
+export function IconHouse(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m3 11.5 9-7.5 9 7.5" />
+      <path d="M5.5 9.5V20h13V9.5" />
+      <path d="M10 20v-5h4v5" />
+    </Icon>
+  );
+}
+
+export function IconVilla(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m2 12 7-6 7 6" />
+      <path d="M4 10.5V20h10v-9.5M14 20h7v-7l-3.5-3L15 12" />
+      <path d="M7.5 20v-4h3v4" />
+    </Icon>
+  );
+}
+
+export function IconApartment(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M5 21V4h10v17M15 9h4v12M3 21h18" />
+      <path d="M8 8h1M11 8h1M8 12h1M11 12h1M8 16h1M11 16h1" />
+    </Icon>
+  );
+}
+
+export function IconOffice(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18M11 13v2h2v-2" />
+    </Icon>
+  );
+}
+
+export function IconConstruction(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 17a8 8 0 0 1 16 0" />
+      <path d="M10 9.3V6h4v3.3M2.5 17h19v3h-19z" />
+    </Icon>
+  );
+}
+
+/** Localisation (« Me localiser »). */
+export function IconLocate(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="6.5" />
+      <circle cx="12" cy="12" r="2" />
+      <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3" />
+    </Icon>
+  );
+}
+
+/** Repère sur une carte (adresse). */
+export function IconPin(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" />
+      <circle cx="12" cy="10" r="2.25" />
+    </Icon>
+  );
+}
+
+export function IconCalendar(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
+      <path d="M3.5 10h17M8 3v4M16 3v4" />
+    </Icon>
+  );
+}

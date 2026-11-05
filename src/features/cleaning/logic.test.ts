@@ -1,49 +1,16 @@
 import { ApiError } from '@/lib/api';
-import { draftFromParams, requestHref } from './draft';
 import { describeCleaningError } from './errors';
-import { SERVICES, ZONES } from './fake-gateway.test-utils';
+import { ZONES } from './fake-gateway.test-utils';
 import { idempotentSubmission } from './idempotency';
-import { buildQuoteRequest, firstAllowedDate, type RequestFormValues } from './request-form';
-import { missionSchema, type ServiceOffer, suspensionCauses } from './schemas';
+import { missionSchema, suspensionCauses } from './schemas';
 import { mission } from './fake-gateway.test-utils';
 import { suspendedStatus, suspensionText } from './texts';
-import { draftFromAnswers, simulatorSteps } from './simulator-steps';
-import { OTHER_COMMUNE, zoneFor, zonesSentence } from './zones';
+import { zoneFor, zonesSentence } from './zones';
 
-const services = SERVICES.data as ServiceOffer[];
 const zones = ZONES.data;
-const draft = {
-  serviceCode: 'home_cleaning',
-  premisesType: 'house',
-  quantity: 6,
-  options: ['windows'],
-  commune: 'Abomey-Calavi',
-  frequency: 'once' as const,
-};
-const NOW = new Date('2026-10-23T10:00:00Z');
 
-describe('simulation reprise dans l’adresse de la demande', () => {
-  it('fait l’aller-retour sans perte', () => {
-    const href = requestHref(draft);
-    expect(href).toBe(
-      '/nettoyage/devis?prestation=home_cleaning&locaux=house&quantite=6&options=windows&commune=Abomey-Calavi&frequence=once',
-    );
-    expect(draftFromParams(new URL(href, 'http://x').searchParams)).toEqual(draft);
-  });
-
-  it('refuse une adresse altérée ou incomplète', () => {
-    const read = (query: string) => draftFromParams(new URLSearchParams(query));
-    expect(read('')).toBeNull();
-    expect(read('prestation=home_cleaning&locaux=chateau&quantite=6&commune=Cotonou')).toBeNull();
-    expect(read('prestation=home_cleaning&locaux=house&quantite=-1&commune=Cotonou')).toBeNull();
-    expect(read('prestation=Home!&locaux=house&quantite=6&commune=Cotonou')).toBeNull();
-  });
-
-  it('garde la commune telle quelle : elle est comparée aux zones de la gateway', () => {
-    const other = draftFromParams(
-      new URLSearchParams('prestation=home_cleaning&locaux=house&quantite=6&commune=Parakou'),
-    );
-    expect(other?.commune).toBe('Parakou');
+describe('zones desservies', () => {
+  it('retrouve une zone par son nom ou sa clé', () => {
     expect(zoneFor(zones, 'Porto-Novo')?.code).toBe('porto-novo');
     expect(zoneFor(zones, 'porto-novo')?.commune).toBe('Porto-Novo');
     expect(zoneFor(zones, 'Parakou')).toBeNull();
@@ -52,141 +19,6 @@ describe('simulation reprise dans l’adresse de la demande', () => {
   it('met les zones en phrase, dans l’ordre de la gateway', () => {
     expect(zonesSentence(zones)).toBe('Abomey-Calavi, Cotonou et Porto-Novo');
     expect(zonesSentence([])).toBeNull();
-  });
-});
-
-describe('questions du simulateur', () => {
-  it('reprend les prestations du catalogue et l’unité de la prestation choisie', () => {
-    const steps = simulatorSteps(services, zones, {
-      prestation: { kind: 'choice', value: 'home_cleaning' },
-    });
-    expect(steps.map((step) => step.id)).toEqual([
-      'prestation',
-      'locaux',
-      'taille',
-      'options',
-      'commune',
-      'frequence',
-    ]);
-    const [service, , size] = steps;
-    expect(service?.kind === 'choice' && service.options.map((option) => option.label)).toEqual([
-      'Nettoyage à domicile',
-      'Désinsectisation',
-    ]);
-    expect(size?.kind === 'quantity' && size.modes[0]?.unit).toBe('pièces');
-    const commune = steps.find((step) => step.id === 'commune');
-    expect(commune?.kind === 'choice' && commune.options.map((option) => option.value)).toEqual([
-      'Abomey-Calavi',
-      'Cotonou',
-      'Porto-Novo',
-      OTHER_COMMUNE,
-    ]);
-  });
-
-  it('saute l’étape des options quand la prestation n’en a pas', () => {
-    const steps = simulatorSteps(services, zones, { prestation: { kind: 'choice', value: 'pest_control' } });
-    expect(steps.map((step) => step.id)).not.toContain('options');
-    const size = steps[2];
-    expect(size?.kind === 'quantity' && size.modes[0]?.unit).toBe('m²');
-  });
-
-  it('traduit les réponses en demande de simulation', () => {
-    expect(
-      draftFromAnswers(services, {
-        prestation: { kind: 'choice', value: 'home_cleaning' },
-        locaux: { kind: 'choice', value: 'house' },
-        taille: { kind: 'quantity', mode: '', amount: '6' },
-        options: { kind: 'multi', values: ['windows', 'inconnue'] },
-        commune: { kind: 'choice', value: 'Abomey-Calavi' },
-        frequence: { kind: 'choice', value: 'once' },
-      }),
-    ).toEqual(draft);
-    expect(draftFromAnswers(services, { prestation: { kind: 'choice', value: 'home_cleaning' } })).toBeNull();
-  });
-});
-
-describe('saisie de la demande de devis', () => {
-  const values = (patch: Partial<RequestFormValues> = {}): RequestFormValues => ({
-    kind: 'individual',
-    commune: 'Abomey-Calavi',
-    address: ' Lot 12 ',
-    slots: [{ date: '2026-10-26', period: 'morning' }],
-    visits: '',
-    months: '',
-    days: '',
-    team: '',
-    comment: '',
-    ...patch,
-  });
-
-  it('construit le corps du contrat, créneaux en heures du Bénin', () => {
-    const { errors, input } = buildQuoteRequest(draft, values({ comment: ' Portail bleu. ' }), NOW);
-    expect(errors).toEqual({});
-    expect(input).toEqual({
-      serviceCode: 'home_cleaning',
-      premisesType: 'house',
-      quantity: 6,
-      options: ['windows'],
-      commune: 'Abomey-Calavi',
-      address: 'Lot 12',
-      preferredSlots: [{ start: '2026-10-26T07:00:00.000Z', end: '2026-10-26T11:00:00.000Z' }],
-      comment: 'Portail bleu.',
-    });
-  });
-
-  it('propose des dates à partir de J+2 au Bénin et refuse plus tôt', () => {
-    expect(firstAllowedDate(NOW)).toBe('2026-10-25');
-    const { errors, input } = buildQuoteRequest(
-      draft,
-      values({ slots: [{ date: '2026-10-24', period: 'morning' }] }),
-      NOW,
-    );
-    expect(input).toBeNull();
-    expect(errors.slots).toMatch(/à partir du 25 octobre 2026/);
-  });
-
-  it('exige l’adresse et au moins un créneau', () => {
-    const { errors } = buildQuoteRequest(
-      draft,
-      values({ address: ' ', slots: [{ date: '', period: 'morning' }] }),
-      NOW,
-    );
-    expect(Object.keys(errors).sort()).toEqual(['address', 'slots']);
-  });
-
-  it('refuse une commune hors zone', () => {
-    const { errors, input } = buildQuoteRequest(
-      draft,
-      values({ commune: 'other' }),
-      NOW,
-      zonesSentence(zones),
-    );
-    expect(input).toBeNull();
-    expect(errors.commune).toMatch(/intervient aujourd’hui à Abomey-Calavi, Cotonou et Porto-Novo/);
-  });
-
-  it('envoie le nombre d’agents souhaité (1 à 50), facultatif', () => {
-    expect(buildQuoteRequest(draft, values({ team: '3' }), NOW).input?.requestedTeamSize).toBe(3);
-    expect(buildQuoteRequest(draft, values({ team: '51' }), NOW).errors.team).toBeDefined();
-    expect(buildQuoteRequest(draft, values(), NOW).input).not.toHaveProperty('requestedTeamSize');
-  });
-
-  it('envoie les jours d’intervention d’une entreprise (1 à 7)', () => {
-    expect(buildQuoteRequest(draft, values({ kind: 'business', days: '5' }), NOW).input?.daysPerWeek).toBe(5);
-    expect(buildQuoteRequest(draft, values({ kind: 'business', days: '9' }), NOW).errors.days).toBeDefined();
-    expect(buildQuoteRequest(draft, values({ kind: 'business' }), NOW).input).not.toHaveProperty(
-      'daysPerWeek',
-    );
-  });
-
-  it('envoie la régularité d’un particulier en prestation hebdomadaire', () => {
-    const weekly = { ...draft, frequency: 'weekly' as const };
-    expect(buildQuoteRequest(weekly, values({ visits: '2', months: '6' }), NOW).input?.recurrence).toEqual({
-      period: 'week',
-      visitsPerPeriod: 2,
-      durationMonths: 6,
-    });
-    expect(buildQuoteRequest(weekly, values({ visits: '2' }), NOW).errors.recurrence).toBeDefined();
   });
 });
 
@@ -232,6 +64,7 @@ describe('erreurs de la gateway pour les écrans du Nettoyage', () => {
       message: 'Date attendue.',
       kind: 'field',
       field: 'preferredSlots',
+      path: 'preferredSlots[0].start',
     });
   });
 

@@ -1,9 +1,11 @@
 import type { ExtraRequest } from './gateway';
 
 /**
- * Service Nettoyage simulé (routes `/api/v1/cleaning/*` du contrat `ksp-api.v1.yaml`) : catalogue,
- * zones desservies, simulation, demandes de devis, acceptation et missions. `sendQuote()` joue le superviseur qui envoie
- * le devis après la visite des lieux.
+ * Service Nettoyage simulé (routes `/api/v1/cleaning/*` du contrat `ksp-api.v1.yaml`) : catalogue par
+ * lieu, zones desservies, estimation, position, demandes groupées, demandes de devis, acceptation et
+ * missions. `seedRequest()` crée une demande reçue, `sendQuote()` joue le superviseur qui envoie le devis
+ * après la visite des lieux. Le catalogue reprend les codes et libellés des données de départ (ADR-034) :
+ * la page peut aussi l'avoir lu au build auprès de la gateway locale.
  */
 
 const xof = (amount: number) => ({ amount, currency: 'XOF' });
@@ -14,20 +16,6 @@ const error = (code: string, message: string) => ({
 const REQUEST_ID = '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1001';
 const MISSION_ID = '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1000';
 
-const SERVICES = {
-  data: [
-    {
-      code: 'home_cleaning',
-      name: 'Nettoyage à domicile',
-      description: 'Maison ou appartement.',
-      unit: 'room',
-      options: [{ code: 'windows', label: 'Vitres', price: xof(4000) }],
-      priced: true,
-      minimumPrice: xof(15000),
-    },
-  ],
-};
-
 const ZONES = {
   data: [
     { code: 'abomey-calavi', commune: 'Abomey-Calavi' },
@@ -36,8 +24,86 @@ const ZONES = {
   ],
 };
 
+const windowForm = {
+  fields: [
+    {
+      code: 'window_count',
+      label: 'Nombre de fenêtres',
+      type: 'number',
+      required: true,
+      helpText: null,
+      unitLabel: 'fenêtres',
+      min: 1,
+      max: 1000,
+      choices: [],
+    },
+    {
+      code: 'access',
+      label: 'Accès aux fenêtres',
+      type: 'choice',
+      required: true,
+      helpText: null,
+      unitLabel: null,
+      min: null,
+      max: null,
+      choices: [
+        { code: 'ground_floor', label: 'Plain-pied' },
+        { code: 'at_height', label: 'En hauteur' },
+      ],
+    },
+  ],
+  options: [],
+  frequencies: [
+    { code: 'once', label: 'Une fois' },
+    { code: 'weekly', label: 'Chaque semaine' },
+    { code: 'monthly', label: 'Chaque mois' },
+  ],
+};
+
+const CATALOG = {
+  placeTypes: [
+    {
+      code: 'house',
+      label: 'Maison',
+      description: 'Maison individuelle, avec ou sans cour.',
+      icon: 'house',
+      displayOrder: 10,
+      serviceCodes: ['window_cleaning'],
+    },
+  ],
+  services: [
+    {
+      code: 'window_cleaning',
+      name: 'Nettoyage de vitres',
+      description: 'Fenêtres et baies vitrées, intérieur et extérieur.',
+      unit: 'square_meter',
+      options: [],
+      priced: true,
+      minimumPrice: null,
+      form: windowForm,
+    },
+  ],
+};
+
+const SERVICES = {
+  data: [
+    {
+      code: 'window_cleaning',
+      name: 'Nettoyage de vitres',
+      description: 'Fenêtres et baies vitrées, intérieur et extérieur.',
+      unit: 'square_meter',
+      options: [],
+      priced: true,
+      minimumPrice: null,
+      form: windowForm,
+    },
+  ],
+};
+
+const GROUP_ID = '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d6001';
+
 const SIMULATION = {
-  serviceCode: 'home_cleaning',
+  serviceCode: 'window_cleaning',
   priced: true,
   estimate: { low: xof(33500), high: xof(43000) },
   computedPrice: xof(37400),
@@ -62,6 +128,8 @@ export interface FakeCleaning {
   routes: (request: ExtraRequest) => { status: number; body: unknown } | undefined;
   /** Le superviseur envoie le devis (après la visite). */
   sendQuote: () => void;
+  /** Une demande reçue existe déjà (parcours d'acceptation). */
+  seedRequest: () => void;
   idempotencyKeys: string[];
 }
 
@@ -87,39 +155,108 @@ export function fakeCleaning(): FakeCleaning {
     sentAt: new Date().toISOString(),
   });
 
+  function newRequest(overrides: Record<string, unknown>) {
+    return {
+      id: REQUEST_ID,
+      status: 'received',
+      customerId: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d9e11',
+      customerKind: 'individual',
+      organizationId: null,
+      serviceCode: 'window_cleaning',
+      premisesType: 'house',
+      quantity: 6,
+      options: [],
+      commune: 'Abomey-Calavi',
+      address: 'Lot 12, quartier Zogbadjè',
+      preferredSlots: [slotIn(4)],
+      comment: null,
+      recurrence: null,
+      requestedTeamSize: null,
+      daysPerWeek: null,
+      recommendedTeamSize: 2,
+      estimate: SIMULATION.estimate,
+      visit: null,
+      quote: null,
+      missionId: null,
+      closingReason: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ...overrides,
+    };
+  }
+
+  const group = () => ({
+    groupId: GROUP_ID,
+    placeType: 'house',
+    commune: 'Cotonou',
+    zoneCode: 'cotonou',
+    createdAt: new Date().toISOString(),
+    items: request ? [request] : [],
+    quotesTotal: null,
+    remainingDue: null,
+  });
+
   function routes({ method, path, body, headers, authorized }: ExtraRequest) {
     if (!path.startsWith('/api/v1/cleaning/')) return undefined;
     const key = `${method} ${path}`;
     if (key === 'GET /api/v1/cleaning/services') return { status: 200, body: SERVICES };
     if (key === 'GET /api/v1/cleaning/zones') return { status: 200, body: ZONES };
-    if (key === 'POST /api/v1/cleaning/simulations') return { status: 200, body: SIMULATION };
+    if (key === 'GET /api/v1/cleaning/catalog') return { status: 200, body: CATALOG };
+    if (key === 'POST /api/v1/cleaning/estimates') {
+      const commune = typeof body?.commune === 'string' ? body.commune : null;
+      return {
+        status: 200,
+        body: {
+          placeType: 'house',
+          commune,
+          communeApplied: !!commune,
+          covered: !!commune,
+          status: 'priced',
+          total: 37400,
+          currency: 'XOF',
+          notice: 'Estimation non contractuelle : le prix définitif figure dans le devis établi par KSP.',
+          items: [
+            {
+              serviceCode: 'window_cleaning',
+              serviceName: 'Nettoyage de vitres',
+              priced: true,
+              reason: null,
+              notice: 'Estimation non contractuelle.',
+              estimate: SIMULATION.estimate,
+              computedPrice: xof(37400),
+              recommendedTeamSize: 1,
+              missingPrices: [],
+              calculation: {},
+            },
+          ],
+        },
+      };
+    }
     if (!authorized) return unauthorized;
 
     switch (key) {
-      case 'POST /api/v1/cleaning/quote-requests':
-        idempotencyKeys.push(headers['idempotency-key'] ?? '');
-        request ??= {
-          id: REQUEST_ID,
-          status: 'received',
-          customerId: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d9e11',
-          customerKind: 'individual',
-          organizationId: null,
-          ...body,
-          options: body?.options ?? [],
-          comment: body?.comment ?? null,
-          recurrence: null,
-          requestedTeamSize: null,
-          daysPerWeek: null,
-          recommendedTeamSize: 2,
-          estimate: SIMULATION.estimate,
-          visit: null,
-          quote: null,
-          missionId: null,
-          closingReason: null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+      case 'POST /api/v1/cleaning/locations/resolve':
+        return {
+          status: 200,
+          body: {
+            latitude: body?.latitude,
+            longitude: body?.longitude,
+            commune: 'Cotonou',
+            zoneCode: 'cotonou',
+            served: true,
+            displayAddress: 'Fidjrossè, Cotonou',
+            provider: 'nominatim',
+          },
         };
-        return { status: 200, body: request };
+      case 'POST /api/v1/cleaning/quote-request-groups': {
+        idempotencyKeys.push(headers['idempotency-key'] ?? '');
+        request ??= newRequest({ commune: 'Cotonou', address: String(body?.landmark ?? '') });
+        return { status: 200, body: group() };
+      }
+      case `GET /api/v1/cleaning/quote-request-groups/${GROUP_ID}`:
+        return request
+          ? { status: 200, body: group() }
+          : { status: 404, body: error('CLEANING_REQUEST_GROUP_NOT_FOUND', 'Demande introuvable.') };
       case 'GET /api/v1/cleaning/quote-requests':
         return { status: 200, body: { data: request ? [request] : [], nextCursor: null } };
       case `GET /api/v1/cleaning/quote-requests/${REQUEST_ID}`:
@@ -141,7 +278,7 @@ export function fakeCleaning(): FakeCleaning {
           customerName: null,
           organizationName: null,
           status: 'scheduled',
-          serviceCode: 'home_cleaning',
+          serviceCode: 'window_cleaning',
           commune: request?.commune,
           address: request?.address,
           chosenSlot: chosen,
@@ -181,6 +318,9 @@ export function fakeCleaning(): FakeCleaning {
   return {
     routes,
     idempotencyKeys,
+    seedRequest: () => {
+      request ??= newRequest({});
+    },
     sendQuote: () => {
       if (!request) return;
       // La visite des lieux est obligatoire avant le devis.

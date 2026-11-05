@@ -276,7 +276,7 @@ export function RequestDetail({ id }: { id: string }) {
           </ButtonLink>
         ) : null}
         {closed ? (
-          <ButtonLink href={cleaningPaths.simulator} variant="secondary">
+          <ButtonLink href={cleaningPaths.journey} variant="secondary">
             {j.newRequest}
           </ButtonLink>
         ) : null}

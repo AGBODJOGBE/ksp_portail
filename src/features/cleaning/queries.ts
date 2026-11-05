@@ -1,6 +1,6 @@
 import { parseResponse, serverApi } from '@/lib/api/server';
 import { ZONES_PATH } from './zones';
-import { type ServedZone, servedZoneListSchema } from './schemas';
+import { type PlaceCatalog, placeCatalogSchema, type ServedZone, servedZoneListSchema } from './schemas';
 
 /*
  * Lectures côté serveur du Nettoyage (pages publiques statiques, revalidées). Données publiques
@@ -26,6 +26,24 @@ export async function getServedZones(): Promise<ServedZone[] | null> {
       next: { revalidate: ZONES_REVALIDATE_SECONDS, tags: [ZONES_TAG] },
     });
     return parseResponse(servedZoneListSchema, body).data;
+  } catch {
+    return null;
+  }
+}
+
+export const CATALOG_TAG = 'cleaning:catalog';
+
+/**
+ * Catalogue par lieu (`GET /api/v1/cleaning/catalog`, public, sans prix) lu pendant la construction de
+ * la page, puis revalidé comme les zones. `null` si la gateway ne répond pas : le navigateur le relit.
+ */
+export async function getPlaceCatalogForPage(): Promise<PlaceCatalog | null> {
+  try {
+    const body = await serverApi().get('/api/v1/cleaning/catalog', {
+      auth: false,
+      next: { revalidate: ZONES_REVALIDATE_SECONDS, tags: [CATALOG_TAG] },
+    });
+    return parseResponse(placeCatalogSchema, body);
   } catch {
     return null;
   }

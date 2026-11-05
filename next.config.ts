@@ -42,6 +42,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
+  async redirects() {
+    // Ancienne demande de devis à une seule prestation : remplacée par la demande par lieu (ADR-034).
+    return [{ source: '/nettoyage/devis', destination: '/nettoyage/demande', permanent: true }];
+  },
 };
 
 export default nextConfig;

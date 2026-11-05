@@ -229,3 +229,175 @@ export function stubGateway(routes: Record<string, Handler | Handler[]>) {
   vi.stubGlobal('fetch', fetchMock);
   return { calls, fetchMock };
 }
+
+interface FieldFixture {
+  code: string;
+  label: string;
+  type: string;
+  required: boolean;
+  helpText: string | null;
+  unitLabel: string | null;
+  min: number | null;
+  max: number | null;
+  choices: Array<{ code: string; label: string }>;
+}
+
+const field = (
+  overrides: Pick<FieldFixture, 'code' | 'label' | 'type'> & Partial<FieldFixture>,
+): FieldFixture => ({
+  required: true,
+  helpText: null,
+  unitLabel: null,
+  min: null,
+  max: null,
+  choices: [],
+  ...overrides,
+});
+
+/** `GET /cleaning/catalog` : deux lieux, trois prestations avec leur formulaire (sans prix). */
+export const CATALOG = {
+  placeTypes: [
+    {
+      code: 'apartment',
+      label: 'Appartement',
+      description: 'Appartement en immeuble.',
+      icon: 'apartment',
+      displayOrder: 30,
+      serviceCodes: ['window_cleaning'],
+    },
+    {
+      code: 'house',
+      label: 'Maison',
+      description: 'Maison individuelle, avec ou sans cour.',
+      icon: 'house',
+      displayOrder: 10,
+      serviceCodes: ['house_cleaning', 'window_cleaning', 'unknown_service'],
+    },
+  ],
+  services: [
+    {
+      code: 'house_cleaning',
+      name: 'Nettoyage de maison',
+      description: 'Ménage complet de la maison.',
+      unit: 'room',
+      options: [],
+      priced: true,
+      minimumPrice: null,
+      form: {
+        fields: [
+          field({
+            code: 'surface',
+            label: 'Superficie',
+            type: 'number',
+            unitLabel: 'm²',
+            min: 1,
+            max: 100000,
+          }),
+          field({
+            code: 'condition',
+            label: 'État de la maison',
+            type: 'choice',
+            choices: [
+              { code: 'normal', label: 'Normal' },
+              { code: 'dirty', label: 'Sale' },
+            ],
+          }),
+          field({ code: 'pets', label: 'Présence d’animaux', type: 'boolean', required: false }),
+        ],
+        options: [
+          {
+            code: 'windows',
+            label: 'Vitres',
+            description: null,
+            fields: [
+              field({ code: 'window_count', label: 'Nombre de fenêtres', type: 'number', min: 1, max: 200 }),
+            ],
+          },
+        ],
+        frequencies: [
+          { code: 'once', label: 'Une fois' },
+          { code: 'monthly', label: 'Chaque mois' },
+        ],
+      },
+    },
+    {
+      code: 'window_cleaning',
+      name: 'Nettoyage de vitres',
+      description: 'Fenêtres et baies vitrées.',
+      unit: 'square_meter',
+      options: [],
+      priced: false,
+      minimumPrice: null,
+      form: {
+        fields: [
+          field({ code: 'window_count', label: 'Nombre de fenêtres', type: 'number', min: 1, max: 1000 }),
+        ],
+        options: [],
+        frequencies: [],
+      },
+    },
+  ],
+};
+
+/** `POST /cleaning/estimates` : une prestation chiffrée, une sans prix publié. */
+export function estimateResponse(body: { items: Array<{ serviceCode: string }>; commune?: string }) {
+  const items = body.items.map((item) =>
+    item.serviceCode === 'house_cleaning'
+      ? {
+          serviceCode: 'house_cleaning',
+          serviceName: 'Nettoyage de maison',
+          priced: true,
+          reason: null,
+          notice: 'Estimation non contractuelle.',
+          estimate: { low: xof(45000), high: xof(57500) },
+          computedPrice: xof(50000),
+          recommendedTeamSize: 2,
+          missingPrices: [],
+          calculation: {},
+        }
+      : {
+          serviceCode: item.serviceCode,
+          serviceName: 'Nettoyage de vitres',
+          priced: false,
+          reason: 'price_not_set',
+          notice: 'Prix non publié.',
+          estimate: null,
+          computedPrice: null,
+          recommendedTeamSize: 1,
+          missingPrices: [],
+          calculation: {},
+        },
+  );
+  const priced = items.every((item) => item.priced);
+  return {
+    placeType: 'house',
+    commune: body.commune ?? null,
+    communeApplied: !!body.commune,
+    covered: !!body.commune,
+    status: priced ? 'priced' : items.some((item) => item.priced) ? 'partially_priced' : 'unpriced',
+    total: priced ? 50000 : null,
+    currency: 'XOF',
+    notice: priced
+      ? 'Estimation non contractuelle.'
+      : 'Au moins une prestation n’a pas encore de prix publié.',
+    items,
+  };
+}
+
+export const GROUP_ID = '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d6001';
+
+/** `CleaningQuoteRequestGroup` renvoyé par l'envoi et la lecture d'un groupe. */
+export function requestGroup(serviceCodes: string[] = ['house_cleaning']) {
+  return {
+    groupId: GROUP_ID,
+    placeType: 'house',
+    commune: 'Cotonou',
+    zoneCode: 'cotonou',
+    createdAt: '2026-11-05T09:00:00Z',
+    items: serviceCodes.map((serviceCode, index) =>
+      quoteRequest({ id: `0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d700${index}`, serviceCode, commune: 'Cotonou' }),
+    ),
+    quotesTotal: null,
+    remainingDue: null,
+  };
+}
