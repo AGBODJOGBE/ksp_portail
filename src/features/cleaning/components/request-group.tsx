@@ -1,22 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { FormMessage } from '@/components/ui/field';
-import { Heading } from '@/components/ui/heading';
 import { IconArrowRight } from '@/components/ui/icons';
-import { formatDateTime, formatXof } from '@/lib/format';
-import { useResource } from '@/lib/use-resource';
-import { frenchSpacing } from '@/lib/typography';
-import { getPlaceCatalog, getRequestGroup } from '@/features/cleaning/api';
-import { describeCleaningError } from '@/features/cleaning/errors';
+import { getPlaceCatalog } from '@/features/cleaning/api';
 import { journeyTexts } from '@/features/cleaning/journey-texts';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import type { PlaceCatalog, RequestGroup } from '@/features/cleaning/schemas';
 import { requestStatuses, statusOf } from '@/features/cleaning/texts';
-import { BackLink } from './detail-parts';
 
 const t = journeyTexts.group;
 
@@ -68,70 +60,5 @@ export function GroupRequests({ group, catalog }: { group: RequestGroup; catalog
         );
       })}
     </ul>
-  );
-}
-
-/**
- * Suivi d'une demande groupée (`GET /cleaning/quote-request-groups/{id}`), adresse citée par les
- * messages regroupés (ADR-035). Lecture seule ici : l'acceptation et l'annulation du groupe viendront
- * avec « Mon espace » (lot 2).
- */
-export function RequestGroupDetail({ id }: { id: string }) {
-  const catalog = usePlaceCatalog();
-  const group = useResource(useCallback(() => getRequestGroup(id), [id]));
-
-  if (group.state.status === 'loading') {
-    return (
-      <p role="status" className="text-ink-muted">
-        {journeyTexts.done.loading}
-      </p>
-    );
-  }
-  if (group.state.status === 'error') {
-    return (
-      <div className="grid justify-items-start gap-4">
-        <BackLink />
-        <FormMessage>{describeCleaningError(group.state.error).message}</FormMessage>
-        <Button variant="secondary" onClick={group.reload}>
-          {journeyTexts.retry}
-        </Button>
-      </div>
-    );
-  }
-  const data = group.state.data;
-  return (
-    <div className="grid gap-8">
-      <div className="grid gap-3">
-        <BackLink />
-        <Heading as="h1" size="h1">
-          {t.title}
-        </Heading>
-        <p className="text-lead text-ink-muted">
-          {t.placeAndCommune(placeLabel(catalog, data.placeType), data.commune)} ·{' '}
-          {t.sentOn(formatDateTime(data.createdAt))}
-        </p>
-        <p className="text-small text-ink-muted">{frenchSpacing(t.lead)}</p>
-      </div>
-      <GroupRequests group={data} catalog={catalog} />
-      {data.quotesTotal || data.remainingDue ? (
-        <dl className="rounded-card bg-surface-muted grid gap-3 p-5 sm:grid-cols-2">
-          {data.quotesTotal ? (
-            <div>
-              <dt className="text-small text-ink-muted">{t.quotesTotal}</dt>
-              <dd className="text-ink text-xl font-semibold tabular-nums">{formatXof(data.quotesTotal)}</dd>
-            </div>
-          ) : null}
-          {data.remainingDue ? (
-            <div>
-              <dt className="text-small text-ink-muted">{t.remainingDue}</dt>
-              <dd className="text-ink text-xl font-semibold tabular-nums">{formatXof(data.remainingDue)}</dd>
-            </div>
-          ) : null}
-        </dl>
-      ) : null}
-      <p className="text-small text-ink-muted">
-        {t.reference} : <span className="font-mono break-all">{data.groupId}</span>
-      </p>
-    </div>
   );
 }

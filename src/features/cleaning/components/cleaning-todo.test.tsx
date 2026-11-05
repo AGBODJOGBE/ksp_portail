@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { session } from '@/lib/api';
 import { resetServicesCache } from '@/features/cleaning/api';
 import {
@@ -10,7 +10,7 @@ import {
   quoteRequest,
   stubGateway,
 } from '@/features/cleaning/fake-gateway.test-utils';
-import { CleaningTodo } from './cleaning-todo';
+import { CleaningOngoing, CleaningTodo } from './cleaning-todo';
 
 function signIn() {
   session.set({
@@ -74,15 +74,54 @@ describe('Nettoyage dans le tableau de bord de Mon espace', () => {
         },
       },
     });
-    render(<CleaningTodo />);
-    const quote = await screen.findByRole('link', { name: 'Étudier le devis' });
+    render(
+      <>
+        <CleaningTodo />
+        <CleaningOngoing />
+      </>,
+    );
+    const quote = await screen.findByRole('link', { name: 'Voir et accepter' });
     expect(quote).toHaveAttribute('href', `/mon-espace/nettoyage/demandes/${REQUEST_ID}`);
     const suspended = screen.getByRole('link', { name: 'Voir la mission' });
     expect(suspended).toHaveAttribute('href', `/mon-espace/nettoyage/missions/${MISSION_ID}`);
-    const panel = screen.getByRole('region', { name: 'Nettoyage' });
-    expect(
-      within(panel).getByText(/En cours chez KSP : 1 demande de devis, 0 mission\./),
-    ).toBeInTheDocument();
+    // Une mission suspendue n'est pas annoncée comme paiement à régler : la suspension l'explique.
+    expect(screen.queryByText('Paiement à régler')).not.toBeInTheDocument();
+    // « Prestations en cours » : la demande reçue et la mission, avec leur état.
+    expect(await screen.findAllByText('Demande reçue')).not.toHaveLength(0);
+  });
+
+  it('annonce un paiement attendu avec son montant, et le prochain passage', async () => {
+    stubGateway({
+      'GET /api/v1/cleaning/services': { status: 200, body: SERVICES },
+      'GET /api/v1/cleaning/quote-requests': { status: 200, body: { data: [], nextCursor: null } },
+      'GET /api/v1/cleaning/missions': {
+        status: 200,
+        body: {
+          data: [
+            mission({
+              payment: {
+                plan: { option: 'deposit', timing: 'before', method: 'mobile_money_online' },
+                status: 'due',
+                total: { amount: 34000, currency: 'XOF' },
+                depositPercent: 30,
+                depositAmount: { amount: 10200, currency: 'XOF' },
+                paid: { amount: 0, currency: 'XOF' },
+                payments: [],
+              },
+            }),
+          ],
+          nextCursor: null,
+        },
+      },
+    });
+    render(<CleaningTodo />);
+    expect(await screen.findByText('Paiement à régler')).toBeInTheDocument();
+    expect(screen.getByText(/10\s200\sF\sCFA à régler avant le premier passage\./)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Payer' })).toHaveAttribute(
+      'href',
+      `/mon-espace/nettoyage/missions/${MISSION_ID}#paiement`,
+    );
+    expect(screen.getByText(/Nos agents interviennent le/)).toBeInTheDocument();
   });
 
   it('dit quand rien n’attend le client', async () => {

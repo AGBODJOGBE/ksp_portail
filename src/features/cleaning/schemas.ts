@@ -32,33 +32,6 @@ export const recurrenceSchema = z.object({
   durationMonths: z.int(),
 });
 
-/** `CleaningServiceOffer` : une prestation du catalogue. */
-export const serviceOfferSchema = z.object({
-  code: z.string(),
-  name: z.string(),
-  description: z.string(),
-  unit: z.string(),
-  options: z.array(z.object({ code: z.string(), label: z.string(), price: z.nullable(moneySchema) })),
-  priced: z.boolean(),
-  minimumPrice: z.nullable(moneySchema),
-});
-
-export const serviceListSchema = z.object({ data: z.array(serviceOfferSchema) });
-
-/**
- * `CleaningServedZone` : commune où le Nettoyage est ouvert. `commune` est le nom affiché, renvoyé tel
- * quel dans le champ `commune` d'une simulation ou d'une demande de devis.
- */
-export const servedZoneSchema = z.object({ code: z.string(), commune: z.string() });
-
-export const servedZoneListSchema = z.object({ data: z.array(servedZoneSchema) });
-
-/*
- * Parcours par lieu (ADR-033, ADR-034) : catalogue des types de lieu et formulaires des prestations,
- * estimation de plusieurs prestations, position GPS, demandes groupées. Le formulaire public ne porte
- * aucun prix : seuls l'estimation et le devis donnent des montants.
- */
-
 /** `CleaningFormField` : champ du formulaire d'une prestation (`number`, `choice` ou `boolean`). */
 export const formFieldSchema = z.object({
   code: z.string(),
@@ -85,6 +58,35 @@ export const serviceFormSchema = z.object({
   ),
   frequencies: z.array(z.object({ code: z.string(), label: z.string() })),
 });
+
+/** `CleaningServiceOffer` : une prestation du catalogue. */
+export const serviceOfferSchema = z.object({
+  code: z.string(),
+  name: z.string(),
+  description: z.string(),
+  unit: z.string(),
+  options: z.array(z.object({ code: z.string(), label: z.string(), price: z.nullable(moneySchema) })),
+  priced: z.boolean(),
+  minimumPrice: z.nullable(moneySchema),
+  /** Formulaire public (ADR-033) : sert à nommer les réponses d'une demande. */
+  form: z.optional(serviceFormSchema),
+});
+
+export const serviceListSchema = z.object({ data: z.array(serviceOfferSchema) });
+
+/**
+ * `CleaningServedZone` : commune où le Nettoyage est ouvert. `commune` est le nom affiché, renvoyé tel
+ * quel dans le champ `commune` d'une simulation ou d'une demande de devis.
+ */
+export const servedZoneSchema = z.object({ code: z.string(), commune: z.string() });
+
+export const servedZoneListSchema = z.object({ data: z.array(servedZoneSchema) });
+
+/*
+ * Parcours par lieu (ADR-033, ADR-034) : catalogue des types de lieu et formulaires des prestations,
+ * estimation de plusieurs prestations, position GPS, demandes groupées. Le formulaire public ne porte
+ * aucun prix : seuls l'estimation et le devis donnent des montants.
+ */
 
 /** Prestation du catalogue par lieu (`CleaningServiceOffer` : seuls les champs utiles au parcours). */
 export const placeServiceSchema = z.object({
@@ -214,6 +216,28 @@ export const quoteRequestSchema = z.object({
   /** Back-office (ADR-029), facultatifs ; null dans l'espace client. */
   customerName: z.optional(z.nullable(z.string())),
   organizationName: z.optional(z.nullable(z.string())),
+  /*
+   * Ajouts des ADR-033 et 034 (facultatifs : absents d'une demande antérieure ou d'une ancienne gateway).
+   * Ils remplacent, à l'affichage, les champs dépréciés `premisesType`, `quantity` et `options`.
+   */
+  /** Nom de la prestation, résolu par le service au moment de la réponse. */
+  serviceName: z.optional(z.nullable(z.string())),
+  /** Réponses au formulaire de la prestation (code du champ → nombre, code de valeur ou oui/non). */
+  answers: z.optional(z.nullable(z.record(z.string(), z.union([z.number(), z.string(), z.boolean()])))),
+  selectedOptions: z.optional(
+    z.array(
+      z.object({
+        code: z.string(),
+        answers: z.optional(z.record(z.string(), z.union([z.number(), z.string(), z.boolean()]))),
+      }),
+    ),
+  ),
+  frequency: z.optional(z.nullable(z.string())),
+  groupId: z.optional(z.nullable(z.string())),
+  groupSize: z.optional(z.int()),
+  placeType: z.optional(z.nullable(z.string())),
+  placeTypeLabel: z.optional(z.nullable(z.string())),
+  landmark: z.optional(z.nullable(z.string())),
 });
 
 export const quoteRequestListSchema = z.object({
@@ -234,6 +258,25 @@ export const requestGroupSchema = z.object({
   items: z.array(quoteRequestSchema),
   quotesTotal: z.optional(z.nullable(moneySchema)),
   remainingDue: z.optional(z.nullable(moneySchema)),
+});
+
+/** `CleaningSkippedRequest` : demande laissée de côté par une opération de groupe, avec sa raison. */
+export const skippedRequestSchema = z.object({
+  requestId: z.string(),
+  status: z.string(),
+  reason: z.string(),
+});
+
+/**
+ * `CleaningClientGroupOutcome` (ADR-035) : acceptation ou annulation d'un groupe, demandes modifiées,
+ * demandes laissées de côté (`skipped`), missions créées et groupe à jour.
+ */
+export const groupOutcomeSchema = z.object({
+  groupId: z.string(),
+  affectedRequestIds: z.array(z.string()),
+  skipped: z.array(skippedRequestSchema),
+  missionIds: z.array(z.string()),
+  group: requestGroupSchema,
 });
 
 export const checklistItemSchema = z.object({ code: z.string(), label: z.string(), done: z.boolean() });
@@ -361,3 +404,5 @@ export type Estimate = z.infer<typeof estimateSchema>;
 export type EstimateItem = z.infer<typeof estimateItemSchema>;
 export type LocationResolution = z.infer<typeof locationResolutionSchema>;
 export type RequestGroup = z.infer<typeof requestGroupSchema>;
+export type GroupOutcome = z.infer<typeof groupOutcomeSchema>;
+export type SkippedRequest = z.infer<typeof skippedRequestSchema>;

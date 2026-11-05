@@ -118,9 +118,12 @@ export const cleaningTexts = {
   requestDetail: {
     title: 'Demande de devis',
     need: 'Votre besoin',
-    premises: 'Locaux',
-    quantity: 'Taille',
-    options: 'Options',
+    place: 'Lieu',
+    answers: 'Description',
+    options: 'Prestations complémentaires',
+    frequency: 'Fréquence',
+    inGroup: 'Cette prestation fait partie d’une demande groupée.',
+    seeGroup: 'Voir toute la demande',
     commune: 'Commune',
     address: 'Adresse',
     preferredSlots: 'Vos disponibilités',
@@ -414,16 +417,16 @@ export const paymentTimings: Record<string, string> = {
   after: 'Après la prestation',
 };
 /**
- * Moyens d'un règlement reçu. `mobile_money_online` : paiement en ligne confirmé par le prestataire
- * (service payment, ADR-031), payable depuis la fiche de la mission quel que soit le moyen prévu à
- * l'acceptation ; il n'est pas proposé comme moyen prévu (`OFFERED_PAYMENT_METHODS`).
+ * Moyens d'un règlement reçu ou prévu. `mobile_money_online` : paiement en ligne confirmé par le
+ * prestataire (service payment, ADR-031), proposé à l'acceptation d'un devis (le contrat l'accepte) ; le
+ * client peut aussi payer en ligne depuis la fiche de la mission quel que soit le moyen prévu.
  */
 export const paymentMethods: Record<string, string> = {
   cash: 'Espèces',
   mobile_money_offline: 'Mobile Money (auprès de l’équipe)',
   mobile_money_online: 'Mobile Money en ligne',
 };
-export const OFFERED_PAYMENT_METHODS = ['cash', 'mobile_money_offline'] as const;
+export const OFFERED_PAYMENT_METHODS = ['mobile_money_online', 'cash', 'mobile_money_offline'] as const;
 
 export const premisesTypes: Record<string, string> = {
   apartment: 'Appartement',

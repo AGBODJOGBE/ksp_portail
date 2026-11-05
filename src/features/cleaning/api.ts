@@ -9,6 +9,8 @@ import {
   type PaymentPlan,
   type Estimate,
   estimateSchema,
+  type GroupOutcome,
+  groupOutcomeSchema,
   type LocationResolution,
   locationResolutionSchema,
   type PlaceCatalog,
@@ -169,6 +171,36 @@ export async function requestQuoteGroup(
   return parseResponse(requestGroupSchema, await api.post(GROUPS, input, { idempotencyKey }));
 }
 
+/** Motif facultatif : un motif vide n'est pas envoyé. */
+const reasonBody = (reason: string) => (reason.trim() ? { reason: reason.trim() } : {});
+
+/**
+ * Acceptation commune des devis d'un groupe (ADR-035) : même créneau et même plan de paiement pour
+ * chaque devis qui propose ce créneau ; les autres demandes reviennent dans `skipped`.
+ */
+export async function acceptGroupQuotes(
+  id: string,
+  input: AcceptInput,
+  idempotencyKey: string,
+): Promise<GroupOutcome> {
+  return parseResponse(
+    groupOutcomeSchema,
+    await api.post(`${GROUPS}/${encodeURIComponent(id)}/accept`, input, { idempotencyKey }),
+  );
+}
+
+/** Annulation des demandes encore ouvertes d'un groupe ; motif facultatif (non envoyé s'il est vide). */
+export async function cancelRequestGroup(
+  id: string,
+  reason: string,
+  idempotencyKey: string,
+): Promise<GroupOutcome> {
+  return parseResponse(
+    groupOutcomeSchema,
+    await api.post(`${GROUPS}/${encodeURIComponent(id)}/cancel`, reasonBody(reason), { idempotencyKey }),
+  );
+}
+
 export async function getRequestGroup(id: string): Promise<RequestGroup> {
   return parseResponse(requestGroupSchema, await api.get(`${GROUPS}/${encodeURIComponent(id)}`));
 }
@@ -193,9 +225,6 @@ export async function acceptQuote(
     await api.post(`${REQUESTS}/${encodeURIComponent(id)}/accept`, input, { idempotencyKey }),
   );
 }
-
-/** Motif facultatif : un motif vide n'est pas envoyé. */
-const reasonBody = (reason: string) => (reason.trim() ? { reason: reason.trim() } : {});
 
 export async function declineQuote(id: string, reason: string): Promise<QuoteRequest> {
   return parseResponse(
