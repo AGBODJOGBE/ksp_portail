@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { FieldError, TextField, fieldIds, inputClasses } from '@/components/ui/field';
@@ -33,6 +33,24 @@ type LocateState =
 
 const GEO_ERRORS: Record<number, string> = { 1: t.denied, 2: t.unavailable, 3: t.timeout };
 
+/** Pause avant de retrouver la commune d'une position (limite de la gateway : 10 par minute). */
+export const RESOLVE_DELAY_MS = 600;
+
+// La carte (Leaflet et ses tuiles) n'est téléchargée que si le client l'ouvre.
+const PlaceMap = lazy(() => import('./journey-map').then((m) => ({ default: m.PlaceMap })));
+
+/** Coordonnées saisies à la main (« 6.3654 », « 2,4183 ») ; `null` si elles sont invalides. */
+export function parseCoordinates(latitude: string, longitude: string) {
+  const read = (value: string) => {
+    const text = value.trim().replace(',', '.').replace('\u2212', '-');
+    return /^-?\d{1,3}(\.\d{1,8})?$/.test(text) ? Number(text) : NaN;
+  };
+  const lat = read(latitude);
+  const lng = read(longitude);
+  if (!(lat >= -90 && lat <= 90) || !(lng >= -180 && lng <= 180)) return null;
+  return { latitude: lat, longitude: lng };
+}
+
 /** Coordonnées arrondies au millionième de degré (une dizaine de centimètres) : assez pour un GPS. */
 const round = (value: number) => Math.round(value * 1e6) / 1e6;
 
@@ -55,21 +73,25 @@ export function useResolveLocation(
     if (!key || latitude === undefined || longitude === undefined) return;
     let active = true;
     const finish = (state: LocateState) => active && setOutcome({ key, state });
-    session
-      .restore()
-      .then(async (result) => {
-        if (result.status !== 'authenticated') return finish({ status: 'later' });
-        const found = await resolveLocation({ latitude, longitude });
-        if (!active) return;
-        setResolved({ commune: found.commune, served: found.served, displayAddress: found.displayAddress });
-        finish({ status: 'idle' });
-      })
-      .catch((error: unknown) => {
-        const later = error instanceof ApiError && error.status === 401;
-        finish(later ? { status: 'later' } : { status: 'error', message: t.resolveError });
-      });
+    // Un repère déplacé au clavier ou à la souris : une seule recherche, après une courte pause.
+    const timer = window.setTimeout(() => {
+      session
+        .restore()
+        .then(async (result) => {
+          if (result.status !== 'authenticated') return finish({ status: 'later' });
+          const found = await resolveLocation({ latitude, longitude });
+          if (!active) return;
+          setResolved({ commune: found.commune, served: found.served, displayAddress: found.displayAddress });
+          finish({ status: 'idle' });
+        })
+        .catch((error: unknown) => {
+          const later = error instanceof ApiError && error.status === 401;
+          finish(later ? { status: 'later' } : { status: 'error', message: t.resolveError });
+        });
+    }, RESOLVE_DELAY_MS);
     return () => {
       active = false;
+      window.clearTimeout(timer);
     };
   }, [key, latitude, longitude, setResolved]);
 
@@ -115,6 +137,9 @@ export function OutOfZoneNotice({
 export function AddressStep({ draft, zones, errors, update, clearError }: StepProps) {
   const address = draft.address;
   const [locating, setLocating] = useState<LocateState>({ status: 'idle' });
+  const [mapOpen, setMapOpen] = useState(false);
+  const [coords, setCoords] = useState({ latitude: '', longitude: '' });
+  const [coordsError, setCoordsError] = useState<string | null>(null);
   const watching = useRef(true);
   const setAddress = useCallback(
     (patch: Partial<AddressDraft>) =>
@@ -164,6 +189,27 @@ export function AddressStep({ draft, zones, errors, update, clearError }: StepPr
     );
   }
 
+  /** Lieu placé sur la carte ou saisi : pas de précision annoncée, la commune est retrouvée ensuite. */
+  const place = useCallback(
+    (point: { latitude: number; longitude: number }) => {
+      setAddress({
+        location: { latitude: round(point.latitude), longitude: round(point.longitude) },
+        resolved: null,
+      });
+      clearError('address.location');
+      clearError('address.commune');
+      setLocating({ status: 'idle' });
+    },
+    [setAddress, clearError],
+  );
+
+  function applyCoordinates() {
+    const point = parseCoordinates(coords.latitude, coords.longitude);
+    if (!point) return setCoordsError(t.coordsInvalid);
+    setCoordsError(null);
+    place(point);
+  }
+
   const located = address.location;
   const resolved = address.resolved;
   const away = outOfZone(address);
@@ -198,23 +244,94 @@ export function AddressStep({ draft, zones, errors, update, clearError }: StepPr
           </div>
         </div>
 
-        <Button
-          id={fieldId('address.location')}
-          variant={located ? 'secondary' : 'action'}
-          size="lg"
-          onClick={locate}
-          disabled={locating.status === 'locating'}
-          aria-busy={locating.status === 'locating' || undefined}
-          aria-describedby={positionError ? `${fieldId('address.location')}-erreur` : undefined}
-          className="w-full sm:w-auto sm:justify-self-start"
-        >
-          <IconLocate />
-          {locating.status === 'locating' ? t.locating : located ? t.relocate : t.locate}
-        </Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <Button
+            id={fieldId('address.location')}
+            variant={located ? 'secondary' : 'action'}
+            size="lg"
+            onClick={locate}
+            disabled={locating.status === 'locating'}
+            aria-busy={locating.status === 'locating' || undefined}
+            aria-describedby={positionError ? `${fieldId('address.location')}-erreur` : undefined}
+            className="w-full sm:w-auto"
+          >
+            <IconLocate />
+            {locating.status === 'locating'
+              ? t.locating
+              : located?.accuracyMeters !== undefined
+                ? t.relocate
+                : t.locate}
+          </Button>
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={() => setMapOpen((open) => !open)}
+            aria-expanded={mapOpen}
+            aria-controls="demande-carte"
+            className="w-full sm:w-auto"
+          >
+            <IconPin />
+            {mapOpen ? t.hideMap : t.showMap}
+          </Button>
+        </div>
+
+        {mapOpen ? (
+          <div id="demande-carte" className="swap-in grid gap-4">
+            <div className="grid gap-1">
+              <h4 className="text-ink font-semibold">{t.mapTitle}</h4>
+              <p className="text-small text-ink-muted">{frenchSpacing(t.mapHint)}</p>
+            </div>
+            <Suspense
+              fallback={
+                <p role="status" className="text-small text-ink-muted">
+                  {t.mapLoading}
+                </p>
+              }
+            >
+              <PlaceMap location={located} onPlace={place} />
+            </Suspense>
+            <fieldset
+              aria-describedby={cn(
+                'demande-coordonnees-aide',
+                coordsError ? 'demande-coordonnees-erreur' : null,
+              )}
+              className="grid gap-3"
+            >
+              <legend className="text-ink font-semibold">{t.coordsTitle}</legend>
+              <p id="demande-coordonnees-aide" className="text-small text-ink-muted -mt-1">
+                {t.coordsHint}
+              </p>
+              <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                <TextField
+                  id="demande-latitude"
+                  label={t.latitude}
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={coords.latitude}
+                  onChange={(event) => setCoords((value) => ({ ...value, latitude: event.target.value }))}
+                />
+                <TextField
+                  id="demande-longitude"
+                  label={t.longitude}
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={coords.longitude}
+                  onChange={(event) => setCoords((value) => ({ ...value, longitude: event.target.value }))}
+                />
+                <Button variant="secondary" onClick={applyCoordinates}>
+                  {t.coordsApply}
+                </Button>
+              </div>
+              {coordsError ? <FieldError id="demande-coordonnees-erreur">{coordsError}</FieldError> : null}
+            </fieldset>
+          </div>
+        ) : null}
 
         <div role="status" className="grid gap-2 empty:hidden">
           {located && locating.status !== 'locating' ? (
-            <p className="text-small text-ink font-medium">{t.located(located.accuracyMeters ?? null)}</p>
+            <p className="text-small text-ink font-medium">
+              {located.accuracyMeters === undefined ? t.placed : t.located(located.accuracyMeters)}
+            </p>
           ) : null}
           {status.status === 'locating' ? null : status.status === 'resolving' ? (
             <p className="text-small text-ink-muted">{t.resolving}</p>

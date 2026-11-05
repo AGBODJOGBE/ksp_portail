@@ -13,6 +13,12 @@ import {
 import { DRAFT_KEY } from '@/features/cleaning/journey';
 import type { PlaceCatalog } from '@/features/cleaning/schemas';
 import { CleaningJourney } from './journey';
+import { parseCoordinates } from './journey-address';
+
+// La carte (Leaflet) ne se charge pas dans jsdom : l'écran doit le dire et garder la saisie des coordonnées.
+vi.mock('leaflet', () => {
+  throw new Error('Leaflet indisponible dans les tests');
+});
 
 const replace = vi.fn();
 let search = '';
@@ -263,5 +269,48 @@ describe('demande de devis par lieu', () => {
     expect(
       screen.getAllByText(/Visite des lieux|Devis|Acceptation|Planification/).length,
     ).toBeGreaterThanOrEqual(4);
+  });
+
+  it('place le lieu par ses coordonnées quand la carte ne se charge pas', async () => {
+    stubGateway({
+      'POST /api/v1/identity/token/refresh': {
+        status: 401,
+        body: errorBody('IDENTITY_REFRESH_TOKEN_INVALID', 'Session expirée.'),
+      },
+    });
+    window.sessionStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        version: 1,
+        step: 2,
+        placeType: 'house',
+        services: ['window_cleaning'],
+        answers: { window_cleaning: { fields: { window_count: '4' }, options: {}, frequency: '' } },
+        address: { location: null, resolved: null, commune: '', district: '', landmark: '' },
+        slots: [{ date: '', period: 'morning' }],
+        comment: '',
+      }),
+    );
+    renderJourney();
+    fireEvent.click(await screen.findByRole('button', { name: 'Placer sur la carte' }, LAZY));
+    expect(await screen.findByText(/La carte n’a pas pu être chargée/, {}, LAZY)).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Latitude' }), { target: { value: '200' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Longitude' }), { target: { value: '2.4183' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Placer le repère' }));
+    expect(screen.getByText(/Coordonnées invalides/)).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Latitude' }), { target: { value: '6,3654' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Placer le repère' }));
+    expect(screen.getByText('Repère placé sur la carte.')).toBeInTheDocument();
+    expect(JSON.parse(window.sessionStorage.getItem(DRAFT_KEY) ?? '{}').address.location).toEqual({
+      latitude: 6.3654,
+      longitude: 2.4183,
+    });
+  });
+
+  it('lit des coordonnées en degrés décimaux, virgule ou point', () => {
+    expect(parseCoordinates(' 6.3654 ', '2,4183')).toEqual({ latitude: 6.3654, longitude: 2.4183 });
+    expect(parseCoordinates('\u22126.5', '-181')).toBeNull();
+    expect(parseCoordinates('abc', '2')).toBeNull();
+    expect(parseCoordinates('', '')).toBeNull();
   });
 });
