@@ -21,7 +21,10 @@ export function ProfileForm({
   onCancel,
   autoFocus = false,
   mode = 'complete',
+  headingLevel,
 }: {
+  /** Niveau du titre ; par défaut `h1` (« Compléter mon profil ») ou `h3` (modification). */
+  headingLevel?: 'h1' | 'h2' | 'h3';
   onDone?: () => void;
   onCancel?: () => void;
   autoFocus?: boolean;
@@ -74,7 +77,7 @@ export function ProfileForm({
 
   return (
     <section aria-labelledby="profil-titre">
-      <Heading as={editing ? 'h3' : 'h1'} size={editing ? 'h3' : 'h2'} id="profil-titre">
+      <Heading as={headingLevel ?? (editing ? 'h3' : 'h1')} size={editing ? 'h3' : 'h2'} id="profil-titre">
         {editing ? t.profile.editTitle : t.profile.title}
       </Heading>
       <p className="text-ink-muted mt-3">{t.profile.intro}</p>

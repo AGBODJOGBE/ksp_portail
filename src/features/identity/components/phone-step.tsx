@@ -19,7 +19,10 @@ export function PhoneStep({
   initialPhone,
   numberRef,
   onSent,
+  headingLevel = 'h1',
 }: {
+  /** `h2` quand l'étape est intégrée à une autre page (demande de devis du Nettoyage). */
+  headingLevel?: 'h1' | 'h2' | 'h3';
   /** Numéro déjà saisi (retour depuis l'écran du code) : on repart de l'indicatif par défaut. */
   initialPhone?: string;
   numberRef: RefObject<HTMLInputElement | null>;
@@ -67,7 +70,7 @@ export function PhoneStep({
 
   return (
     <section aria-labelledby="connexion-titre">
-      <Heading as="h1" size="h2" id="connexion-titre">
+      <Heading as={headingLevel} size="h2" id="connexion-titre">
         {t.login.title}
       </Heading>
       <p className="text-ink-muted mt-3">{t.login.intro}</p>
