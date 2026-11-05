@@ -53,22 +53,103 @@ export const servedZoneSchema = z.object({ code: z.string(), commune: z.string()
 
 export const servedZoneListSchema = z.object({ data: z.array(servedZoneSchema) });
 
-/**
- * `CleaningSimulation`. `covered` : commune desservie ou non (l'estimation est donnée dans tous les cas,
- * mais une demande de devis hors zone est refusée, `CLEANING_ZONE_NOT_COVERED`).
+/*
+ * Parcours par lieu (ADR-033, ADR-034) : catalogue des types de lieu et formulaires des prestations,
+ * estimation de plusieurs prestations, position GPS, demandes groupées. Le formulaire public ne porte
+ * aucun prix : seuls l'estimation et le devis donnent des montants.
  */
-export const simulationSchema = z.object({
-  serviceCode: z.string(),
+
+/** `CleaningFormField` : champ du formulaire d'une prestation (`number`, `choice` ou `boolean`). */
+export const formFieldSchema = z.object({
+  code: z.string(),
+  label: z.string(),
+  type: z.string(),
+  required: z.boolean(),
+  helpText: z.nullable(z.string()),
+  unitLabel: z.nullable(z.string()),
+  min: z.nullable(z.int()),
+  max: z.nullable(z.int()),
+  choices: z.array(z.object({ code: z.string(), label: z.string() })),
+});
+
+/** `CleaningServiceForm` : champs, options (avec leurs propres champs) et fréquences actives. */
+export const serviceFormSchema = z.object({
+  fields: z.array(formFieldSchema),
+  options: z.array(
+    z.object({
+      code: z.string(),
+      label: z.string(),
+      description: z.nullable(z.string()),
+      fields: z.array(formFieldSchema),
+    }),
+  ),
+  frequencies: z.array(z.object({ code: z.string(), label: z.string() })),
+});
+
+/** Prestation du catalogue par lieu (`CleaningServiceOffer` : seuls les champs utiles au parcours). */
+export const placeServiceSchema = z.object({
+  code: z.string(),
+  name: z.string(),
+  description: z.string(),
   priced: z.boolean(),
+  form: serviceFormSchema,
+});
+
+/** `CleaningPublicPlaceType` : type de lieu et codes de ses prestations, dans l'ordre d'affichage. */
+export const placeTypeSchema = z.object({
+  code: z.string(),
+  label: z.string(),
+  description: z.nullable(z.string()),
+  icon: z.string(),
+  displayOrder: z.int(),
+  serviceCodes: z.array(z.string()),
+});
+
+/** `CleaningPlaceCatalog` (`GET /cleaning/catalog`). */
+export const placeCatalogSchema = z.object({
+  placeTypes: z.array(placeTypeSchema),
+  services: z.array(placeServiceSchema),
+});
+
+/** `CleaningEstimateItem` : estimation d'une prestation (le détail du calcul n'est pas affiché). */
+export const estimateItemSchema = z.object({
+  serviceCode: z.string(),
+  serviceName: z.string(),
+  priced: z.boolean(),
+  /** `price_not_set`, `option_price_not_set`, `answers_incomplete`, null si chiffrée. */
+  reason: z.nullable(z.string()),
+  notice: z.string(),
   estimate: z.nullable(priceRangeSchema),
   computedPrice: z.nullable(moneySchema),
-  breakdown: z.array(priceLineSchema),
-  minimumApplied: z.boolean(),
-  /** Coefficient de la commune en points de base (10000 = 1), 0 sans prix. Non affiché. */
-  communeCoefficientBp: z.int(),
   recommendedTeamSize: z.int(),
-  notice: z.string(),
+});
+
+/**
+ * `CleaningEstimate` (`POST /cleaning/estimates`). `total` : somme des prix si toutes les prestations
+ * en ont un (entier XOF), sinon null avec `status` = `partially_priced` ou `unpriced`. Sans commune,
+ * `communeApplied` est faux : l'estimation est indicative.
+ */
+export const estimateSchema = z.object({
+  placeType: z.string(),
+  commune: z.nullable(z.string()),
+  communeApplied: z.boolean(),
   covered: z.boolean(),
+  status: z.string(),
+  total: z.nullable(z.int()),
+  currency: z.literal('XOF'),
+  notice: z.string(),
+  items: z.array(estimateItemSchema),
+});
+
+/** `CleaningLocationResolution` (`POST /cleaning/locations/resolve`, client connecté). */
+export const locationResolutionSchema = z.object({
+  latitude: z.number(),
+  longitude: z.number(),
+  commune: z.nullable(z.string()),
+  zoneCode: z.nullable(z.string()),
+  served: z.boolean(),
+  displayAddress: z.nullable(z.string()),
+  provider: z.nullable(z.string()),
 });
 
 /** `CleaningSiteVisit` : visite des lieux, obligatoire avant tout devis. */
@@ -138,6 +219,21 @@ export const quoteRequestSchema = z.object({
 export const quoteRequestListSchema = z.object({
   data: z.array(quoteRequestSchema),
   nextCursor: z.nullable(z.string()),
+});
+
+/**
+ * `CleaningQuoteRequestGroup` : une demande par prestation, liées par un groupe (ADR-034), dans l'ordre
+ * envoyé. `quotesTotal` et `remainingDue` (ADR-035) sont facultatifs ici : ils servent au suivi.
+ */
+export const requestGroupSchema = z.object({
+  groupId: z.string(),
+  placeType: z.string(),
+  commune: z.string(),
+  zoneCode: z.string(),
+  createdAt: z.string(),
+  items: z.array(quoteRequestSchema),
+  quotesTotal: z.optional(z.nullable(moneySchema)),
+  remainingDue: z.optional(z.nullable(moneySchema)),
 });
 
 export const checklistItemSchema = z.object({ code: z.string(), label: z.string(), done: z.boolean() });
@@ -247,7 +343,6 @@ export type PriceLine = z.infer<typeof priceLineSchema>;
 export type Recurrence = z.infer<typeof recurrenceSchema>;
 export type ServiceOffer = z.infer<typeof serviceOfferSchema>;
 export type ServedZone = z.infer<typeof servedZoneSchema>;
-export type Simulation = z.infer<typeof simulationSchema>;
 export type Quote = z.infer<typeof quoteSchema>;
 export type QuoteRequest = z.infer<typeof quoteRequestSchema>;
 export type QuoteRequestList = z.infer<typeof quoteRequestListSchema>;
@@ -257,3 +352,12 @@ export type Suspension = z.infer<typeof suspensionSchema>;
 export type Mission = z.infer<typeof missionSchema>;
 export type MissionList = z.infer<typeof missionListSchema>;
 export type AcceptResponse = z.infer<typeof acceptResponseSchema>;
+export type FormField = z.infer<typeof formFieldSchema>;
+export type ServiceForm = z.infer<typeof serviceFormSchema>;
+export type PlaceService = z.infer<typeof placeServiceSchema>;
+export type PlaceType = z.infer<typeof placeTypeSchema>;
+export type PlaceCatalog = z.infer<typeof placeCatalogSchema>;
+export type Estimate = z.infer<typeof estimateSchema>;
+export type EstimateItem = z.infer<typeof estimateItemSchema>;
+export type LocationResolution = z.infer<typeof locationResolutionSchema>;
+export type RequestGroup = z.infer<typeof requestGroupSchema>;

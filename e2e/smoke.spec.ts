@@ -74,7 +74,7 @@ const METIER_PAGES = [
   {
     path: '/nettoyage',
     links: {
-      'Simuler ma prestation': '#simulateur',
+      'Demander un devis': '/nettoyage/demande',
       'Mes prestations de nettoyage': '/mon-espace/nettoyage/demandes',
     },
   },
@@ -139,4 +139,4 @@ test('les liens vers KSP Print et KSP Shop pointent vers les sites de l’écosy
   ).toHaveAttribute('href', /^https?:\/\//);
 });
 
-// Le simulateur de nettoyage, branché sur la gateway, est parcouru dans nettoyage.spec.ts (gateway simulée).
+// La demande de devis du Nettoyage, branchée sur la gateway, est parcourue dans nettoyage.spec.ts (gateway simulée).

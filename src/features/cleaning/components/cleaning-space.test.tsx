@@ -6,7 +6,6 @@ import {
   QUOTE,
   REQUEST_ID,
   SERVICES,
-  ZONES,
   errorBody,
   mission,
   quoteRequest,
@@ -14,22 +13,19 @@ import {
 } from '@/features/cleaning/fake-gateway.test-utils';
 import { CleaningSpace } from './cleaning-space';
 import { MissionDetail } from './mission-detail';
-import { QuoteRequestPanel } from './quote-request-form';
 import { RequestDetail } from './request-detail';
 
 const push = vi.fn();
-let search = '';
+const search = '';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push, replace: vi.fn() }),
-  usePathname: () => '/nettoyage/devis',
+  usePathname: () => '/mon-espace/nettoyage/demandes',
   useSearchParams: () => new URLSearchParams(search),
 }));
 
 const SERVICES_ROUTE = 'GET /api/v1/cleaning/services';
 const REQUESTS = '/api/v1/cleaning/quote-requests';
-const DRAFT =
-  'prestation=home_cleaning&locaux=house&quantite=6&options=windows&commune=Abomey-Calavi&frequence=once';
 
 const PERSONAL = { type: 'individual', organizationId: null, organizationName: null };
 const BUSINESS = {
@@ -71,185 +67,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   session.clear();
-});
-
-describe('demande de devis', () => {
-  function fill() {
-    fireEvent.change(screen.getByLabelText(/Adresse d’intervention/), {
-      target: { value: 'Lot 12, Zogbadjè' },
-    });
-    fireEvent.change(screen.getByLabelText('Date du créneau 1'), { target: { value: '2099-11-05' } });
-  }
-
-  it('reprend la simulation, annonce la visite et envoie une clé d’idempotence réutilisée au renvoi', async () => {
-    search = DRAFT;
-    const { calls } = stubGateway({
-      [SERVICES_ROUTE]: { status: 200, body: SERVICES },
-      [`POST ${REQUESTS}`]: [
-        { status: 503, body: errorBody('GATEWAY_UNAVAILABLE', 'Service momentanément indisponible.') },
-        { status: 200, body: quoteRequest() },
-      ],
-    });
-    render(<QuoteRequestPanel zones={ZONES.data} />);
-
-    expect(await screen.findByText('Nettoyage à domicile')).toBeInTheDocument();
-    expect(screen.getByText('6 pièces')).toBeInTheDocument();
-    expect(screen.getByText(/Une visite des lieux est obligatoire avant tout devis/)).toBeInTheDocument();
-    // Le type de client vient du contexte de la session, que le sélecteur de contexte peut changer.
-    expect(await screen.findByText('Compte personnel (particulier)')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Changer de compte' })).toBeInTheDocument();
-    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Jours d’intervention/)).not.toBeInTheDocument();
-
-    fill();
-    fireEvent.click(screen.getByRole('button', { name: 'Envoyer ma demande' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Service momentanément indisponible.');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Envoyer ma demande' }));
-    expect(await screen.findByText('Demande envoyée')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Voir ma demande' })).toHaveAttribute(
-      'href',
-      `/mon-espace/nettoyage/demandes/${REQUEST_ID}`,
-    );
-
-    const sent = calls.filter((call) => call.method === 'POST' && call.path === REQUESTS);
-    expect(sent).toHaveLength(2);
-    const key = sent[0]?.headers['Idempotency-Key'];
-    expect(key).toMatch(/^[A-Za-z0-9_-]{8,100}$/);
-    expect(sent[1]?.headers['Idempotency-Key']).toBe(key);
-    expect(sent[0]?.headers.Authorization).toBe('Bearer jeton-acces');
-    expect(sent[0]?.body).toEqual({
-      serviceCode: 'home_cleaning',
-      premisesType: 'house',
-      quantity: 6,
-      options: ['windows'],
-      commune: 'Abomey-Calavi',
-      address: 'Lot 12, Zogbadjè',
-      preferredSlots: [{ start: '2099-11-05T07:00:00.000Z', end: '2099-11-05T11:00:00.000Z' }],
-    });
-  });
-
-  it('entreprise active : jours d’intervention, agents souhaités, refus hors zone de la gateway', async () => {
-    search = DRAFT;
-    signIn(BUSINESS);
-    const { calls } = stubGateway({
-      [SERVICES_ROUTE]: { status: 200, body: SERVICES },
-      [`POST ${REQUESTS}`]: {
-        status: 422,
-        body: errorBody('CLEANING_ZONE_NOT_COVERED', 'Nous n’intervenons pas encore à Abomey-Calavi.', {
-          commune: 'Abomey-Calavi',
-        }),
-      },
-    });
-    render(<QuoteRequestPanel zones={ZONES.data} />);
-    expect(await screen.findByText('Entreprise SARL Bénin Propre')).toBeInTheDocument();
-    expect(
-      screen.getByText(/pour SARL Bénin Propre : la prestation sera réglée par une facture mensuelle/),
-    ).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText(/Jours d’intervention par semaine/), { target: { value: '5' } });
-    fireEvent.change(screen.getByLabelText(/Nombre d’agents souhaité/), { target: { value: '3' } });
-    fill();
-    fireEvent.click(screen.getByRole('button', { name: 'Envoyer ma demande' }));
-
-    expect(await screen.findByText('Nous n’intervenons pas encore à Abomey-Calavi.')).toBeInTheDocument();
-    expect(screen.getByLabelText('Commune')).toHaveFocus();
-    const sent = calls.find((call) => call.method === 'POST');
-    expect(sent?.body).toMatchObject({ daysPerWeek: 5, requestedTeamSize: 3 });
-    expect(sent?.body).not.toHaveProperty('customerKind');
-  });
-
-  it('compte entreprise suspendu par KSP : la demande est refusée avec un message clair', async () => {
-    search = DRAFT;
-    signIn(BUSINESS);
-    stubGateway({
-      [SERVICES_ROUTE]: { status: 200, body: SERVICES },
-      [`POST ${REQUESTS}`]: {
-        status: 422,
-        body: errorBody('CLEANING_ORGANIZATION_SUSPENDED', 'Organisation suspendue.'),
-      },
-    });
-    render(<QuoteRequestPanel zones={ZONES.data} />);
-    await screen.findByText('Entreprise SARL Bénin Propre');
-    fill();
-    fireEvent.click(screen.getByRole('button', { name: 'Envoyer ma demande' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Votre compte entreprise est suspendu par KSP : aucune nouvelle demande de devis n’est possible en son nom avant sa réactivation.',
-    );
-  });
-
-  it('affiche un champ refusé par le service près du champ (`details.field`, contrat)', async () => {
-    search = DRAFT;
-    stubGateway({
-      [SERVICES_ROUTE]: { status: 200, body: SERVICES },
-      [`POST ${REQUESTS}`]: {
-        status: 400,
-        body: errorBody('CLEANING_VALIDATION_FAILED', 'Ce champ est obligatoire.', { field: 'address' }),
-      },
-    });
-    render(<QuoteRequestPanel zones={ZONES.data} />);
-    await screen.findByText('6 pièces');
-    fill();
-    fireEvent.click(screen.getByRole('button', { name: 'Envoyer ma demande' }));
-    const address = screen.getByLabelText(/Adresse d’intervention/);
-    await waitFor(() => expect(address).toHaveFocus());
-    expect(address).toHaveAttribute('aria-invalid', 'true');
-    expect(address).toHaveAccessibleDescription(/Ce champ est obligatoire\./);
-  });
-
-  it('trop de demandes en cours : message de la gateway et accès à « Mes prestations »', async () => {
-    search = DRAFT;
-    stubGateway({
-      [SERVICES_ROUTE]: { status: 200, body: SERVICES },
-      [`POST ${REQUESTS}`]: {
-        status: 422,
-        body: errorBody('CLEANING_TOO_MANY_OPEN_REQUESTS', 'Vous avez déjà 3 demandes en cours.', {
-          maximum: 3,
-        }),
-      },
-    });
-    render(<QuoteRequestPanel zones={ZONES.data} />);
-    await screen.findByText('6 pièces');
-    fill();
-    fireEvent.click(screen.getByRole('button', { name: 'Envoyer ma demande' }));
-    const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('Vous avez déjà 3 demandes en cours.');
-    expect(within(alert).getByRole('link', { name: 'Mes prestations de nettoyage' })).toHaveAttribute(
-      'href',
-      '/mon-espace/nettoyage/demandes',
-    );
-  });
-
-  it('bloque l’envoi pour une autre commune', async () => {
-    search = DRAFT.replace('Abomey-Calavi', 'Parakou');
-    stubGateway({ [SERVICES_ROUTE]: { status: 200, body: SERVICES } });
-    render(<QuoteRequestPanel zones={ZONES.data} />);
-    expect(await screen.findByText(/Nous n’intervenons pas encore dans votre commune/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/intervient aujourd’hui à Abomey-Calavi, Cotonou et Porto-Novo/),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText('Commune')).toHaveValue('other');
-    expect(screen.getByRole('button', { name: 'Envoyer ma demande' })).toBeDisabled();
-  });
-
-  it('lit les zones dans le navigateur quand la page ne les a pas', async () => {
-    search = DRAFT;
-    stubGateway({
-      [SERVICES_ROUTE]: { status: 200, body: SERVICES },
-      'GET /api/v1/cleaning/zones': { status: 200, body: ZONES },
-    });
-    render(<QuoteRequestPanel zones={null} />);
-    expect(await screen.findByLabelText('Commune')).toHaveValue('Abomey-Calavi');
-  });
-
-  it('renvoie au simulateur sans simulation dans l’adresse', () => {
-    search = '';
-    stubGateway({ [SERVICES_ROUTE]: { status: 200, body: SERVICES } });
-    render(<QuoteRequestPanel zones={ZONES.data} />);
-    expect(screen.getByRole('link', { name: 'Aller au simulateur' })).toHaveAttribute(
-      'href',
-      '/nettoyage#simulateur',
-    );
-  });
 });
 
 describe('Mes prestations de nettoyage', () => {

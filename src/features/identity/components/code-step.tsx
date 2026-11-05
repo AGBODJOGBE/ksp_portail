@@ -24,7 +24,9 @@ export function CodeStep({
   challenge: initialChallenge,
   onVerified,
   onChangeNumber,
+  headingLevel = 'h1',
 }: {
+  headingLevel?: 'h1' | 'h2' | 'h3';
   phone: string;
   challenge: OtpChallenge;
   /** Code accepté : session ouverte (le cookie de renouvellement est posé par la gateway). */
@@ -117,7 +119,7 @@ export function CodeStep({
 
   return (
     <section aria-labelledby="code-titre">
-      <Heading as="h1" size="h2" id="code-titre">
+      <Heading as={headingLevel} size="h2" id="code-titre">
         {t.login.codeTitle}
       </Heading>
       <p id={sentId} className="text-ink-muted mt-3">

@@ -1,4 +1,3 @@
-import type { GuidedFormContent } from '@/components/sections/guided-form-types';
 import type {
   CtaContent,
   FaqItem,
@@ -8,29 +7,30 @@ import type {
   SectionIntro,
   Step,
 } from '@/components/sections/types';
+import { cleaningPaths } from './paths';
 
 /*
  * Page Nettoyage et assainissement (phase 1). Textes provisoires (à valider), prêts pour Payload CMS.
  * Parcours P2 de la spécification des fronts.
  *
- * Simulateur branché sur la gateway : les prestations, options et prix viennent du service cleaning
- * (questions dans `texts.ts`, construites par `simulator-steps.ts`), les communes desservies de
- * `GET /cleaning/zones` (lues par le serveur, `getServedZones`). Aucun prix, aucune commune ni aucune
- * règle de calcul ici.
+ * Demande de devis par lieu (ADR-034) : les types de lieu, prestations et formulaires viennent du
+ * service cleaning (`GET /cleaning/catalog`), les communes desservies de `GET /cleaning/zones` (lus par
+ * le serveur). Aucun prix, aucune commune ni aucune règle de calcul ici.
  */
 
-export const SIMULATOR_ID = 'simulateur';
+/** Ancre de la section « Commencer ma demande » de la page Nettoyage. */
+export const JOURNEY_SECTION_ID = 'demande';
 
 /**
  * Questions fréquentes. La réponse sur les communes cite les zones desservies de la gateway
- * (`zonesSentence`), ou renvoie au simulateur si la page n'a pas pu les lire.
+ * (`zonesSentence`), ou renvoie à la demande en ligne si la page n'a pas pu les lire.
  */
 export function nettoyageFaq(zones: string | null): FaqItem[] {
   return [
     {
       question: 'Comment connaître le prix de ma prestation ?',
       answer:
-        'Le simulateur vous donne une fourchette indicative à partir de la description de vos locaux. Le prix définitif figure dans le devis établi par KSP, après la visite des lieux.',
+        'Pendant votre demande en ligne, une estimation se met à jour à mesure que vous décrivez le lieu et vos prestations. Le prix définitif figure dans le devis établi par KSP, après la visite des lieux.',
     },
     {
       question: 'Pourquoi une visite des lieux avant le devis ?',
@@ -41,7 +41,7 @@ export function nettoyageFaq(zones: string | null): FaqItem[] {
       question: 'Intervenez-vous chez moi ?',
       answer: zones
         ? `KSP Nettoyage intervient aujourd’hui à ${zones}. Pour une autre commune, contactez-nous : nous vous préviendrons dès qu’elle sera desservie.`
-        : 'Le simulateur indique les communes où KSP Nettoyage intervient aujourd’hui. Pour une autre commune, contactez-nous : nous vous préviendrons dès qu’elle sera desservie.',
+        : 'La demande en ligne indique les communes où KSP Nettoyage intervient aujourd’hui. Pour une autre commune, contactez-nous : nous vous préviendrons dès qu’elle sera desservie.',
     },
     {
       question: 'Comment réserver et payer ?',
@@ -61,8 +61,8 @@ export function nettoyageFaq(zones: string | null): FaqItem[] {
   ];
 }
 
-/** La demande de devis reprend la simulation : elle commence au simulateur. */
-const quoteAction: PageAction = { kind: 'link', label: 'Demander un devis', href: `#${SIMULATOR_ID}` };
+/** La demande de devis en ligne, assistant en étapes. */
+const quoteAction: PageAction = { kind: 'link', label: 'Demander un devis', href: cleaningPaths.journey };
 const bookAction: PageAction = {
   kind: 'link',
   label: 'Mes prestations de nettoyage',
@@ -79,10 +79,10 @@ export const nettoyageContent = {
     metierId: 'nettoyage',
     title: 'Des locaux propres et sains, sans y passer vos journées',
     lead: 'Bureaux, domicile, fin de chantier, vidange ou désinsectisation : décrivez vos locaux, recevez un devis, puis réservez et suivez la prestation depuis votre espace.',
-    actions: [{ kind: 'link', label: 'Simuler ma prestation', href: `#${SIMULATOR_ID}` }, bookAction],
+    actions: [quoteAction, bookAction],
     highlightsTitle: 'Avec KSP Nettoyage',
     highlights: [
-      'Simulation en décrivant vos locaux',
+      'Estimation immédiate en décrivant votre lieu',
       'Devis envoyé par notre équipe',
       'Visite des lieux avant chaque devis',
       'Réservation et suivi des passages depuis votre espace',
@@ -117,36 +117,27 @@ export const nettoyageContent = {
       },
     ] satisfies ReadonlyArray<Offer>,
   },
-  simulator: {
+  entry: {
     intro: {
-      eyebrow: 'Simulateur',
-      title: 'Décrivez votre besoin en quelques questions',
-      lead: 'Quelques questions sur vos locaux et la prestation souhaitée, et vous obtenez une fourchette de prix indicative. Sans compte ni donnée personnelle.',
+      eyebrow: 'Demande en ligne',
+      title: 'Quel lieu faut-il nettoyer ?',
+      lead: 'Choisissez le type de lieu, cochez vos prestations : une estimation s’affiche aussitôt, sans compte. Le compte n’est demandé qu’au moment d’envoyer.',
     } satisfies SectionIntro,
-    form: {
-      id: 'nettoyage',
-      label: 'Simulateur de prestation de nettoyage',
-      // Étapes construites à partir du catalogue de la gateway (simulator-steps.ts).
-      steps: [],
-      summaryName: 'Récapitulatif',
-      summaryTitle: 'Votre demande',
-      summaryHint: 'Vérifiez vos réponses : vous pouvez encore les modifier.',
-      result: {
-        whatsappIntro: 'Bonjour KSP, je souhaite un devis de nettoyage :',
-      },
-    } satisfies GuidedFormContent,
+    start: 'Commencer ma demande',
+    fallback:
+      'Décrivez votre lieu et vos besoins en quelques questions : une estimation s’affiche aussitôt, puis vous envoyez votre demande de devis.',
   },
   steps: {
     intro: {
       eyebrow: 'Comment ça marche',
-      title: 'De la simulation au compte rendu',
+      title: 'De la demande au compte rendu',
       lead: 'Chaque étape se suit depuis Mon espace KSP, dans « Mes prestations de nettoyage ».',
     } satisfies SectionIntro,
     items: [
       {
         actor: 'client',
-        title: 'Vous simulez votre prestation',
-        text: 'Vous décrivez vos locaux et la prestation souhaitée.',
+        title: 'Vous décrivez votre besoin',
+        text: 'Vous choisissez le lieu et vos prestations : une estimation s’affiche aussitôt.',
       },
       {
         actor: 'client',

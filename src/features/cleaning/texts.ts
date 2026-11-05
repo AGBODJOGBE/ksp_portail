@@ -1,9 +1,9 @@
 import type { BadgeTone } from '@/components/ui/badge';
-import { LOADING, LOADING_SERVICES } from './loading-texts';
+import { LOADING } from './loading-texts';
 import { type SuspensionCausesInput, suspensionCauses } from './suspension';
 
 /*
- * Textes de l'interface du Nettoyage (simulateur branché, demande de devis, « Mes prestations de
+ * Textes de l'interface du Nettoyage (page publique, demande de devis, « Mes prestations de
  * nettoyage »). Ils restent dans la fonctionnalité plutôt que dans `src/i18n/fr.ts`, chargé par toutes
  * les pages : seules les pages du Nettoyage les téléchargent.
  *
@@ -55,8 +55,8 @@ export const cleaningTexts = {
     journeyEyebrow: 'Votre démarche en ligne',
     journeyTitle: 'Quatre étapes, suivies depuis votre espace',
     journeyTexts: [
-      'Quelques questions sur vos locaux : une fourchette de prix, sans compte.',
-      'Depuis votre espace, indiquez l’adresse et vos disponibilités.',
+      'Choisissez le lieu et vos prestations : une estimation immédiate, sans compte.',
+      'Indiquez la position du lieu et vos disponibilités, puis envoyez votre demande.',
       'Un agent KSP passe sur place : le devis est établi d’après la visite.',
       'Acceptez le devis en ligne, choisissez votre créneau, suivez chaque passage.',
     ],
@@ -65,7 +65,6 @@ export const cleaningTexts = {
     nextStep: 'Prochaine étape',
     requestProgress: 'Avancement de la demande',
     missionProgress: 'Avancement de la mission',
-    requestFormProgress: 'Étapes de la demande de devis',
     quoteToAnswer: (date: string) =>
       `Votre devis est prêt. Étudiez-le, puis acceptez-le pour réserver votre créneau, ou refusez-le, avant le ${date}.`,
     visitPlanned: (date: string) =>
@@ -94,102 +93,6 @@ export const cleaningTexts = {
       'Pour une demande au nom de votre entreprise, choisissez son compte avec « Changer de compte ».',
     businessTag: 'Entreprise',
   },
-  simulator: {
-    loadingServices: LOADING_SERVICES,
-    servicesError: 'Impossible de charger les prestations.',
-    zonesError: 'Impossible de charger les communes desservies.',
-    noServices: 'Aucune prestation n’est proposée en ligne pour le moment. Contactez-nous pour un devis.',
-    computing: 'Calcul de votre estimation…',
-    estimateTitle: 'Votre estimation',
-    estimateRange: (low: string, high: string) => `Entre ${low} et ${high}`,
-    perVisit: 'Prix d’un passage.',
-    breakdownTitle: 'Détail du calcul',
-    minimumApplied: 'Le minimum de commande de cette prestation s’applique.',
-    teamSize: (count: number) =>
-      count > 1 ? `Équipe recommandée : ${count} agents.` : 'Équipe recommandée : 1 agent.',
-    notContractual: 'Estimation non contractuelle : le prix définitif figure dans le devis établi par KSP.',
-    unpricedTitle: 'Prix bientôt disponible',
-    unpricedText:
-      'Le prix de cette prestation n’est pas encore publié : demandez un devis, KSP vous répondra.',
-    outOfZoneTitle: 'Nous n’intervenons pas encore dans votre commune',
-    outOfZoneText: (sentence: string | null) =>
-      `${zonesLine(sentence)} Contactez-nous : nous vous préviendrons dès que votre commune sera desservie.`,
-    requestQuote: 'Demander un devis',
-    nextTitle: 'Étape suivante : votre demande de devis',
-    visitNotice: 'Une visite des lieux, obligatoire, précède le devis.',
-    errorTitle: 'Estimation indisponible',
-    contactUs: 'Nous contacter',
-  },
-  request: {
-    title: 'Demander un devis de nettoyage',
-    lead: 'Vérifiez votre besoin, indiquez l’adresse et vos disponibilités : notre équipe vous répond dans votre espace.',
-    visitNotice:
-      'Une visite des lieux est obligatoire avant tout devis : notre équipe vous contacte pour convenir d’un rendez-vous, puis vous envoie le devis dans votre espace.',
-    missingTitle: 'Commencez par décrire votre besoin',
-    missingText:
-      'La demande de devis reprend votre simulation : décrivez d’abord vos locaux dans le simulateur.',
-    toSimulator: 'Aller au simulateur',
-    summaryTitle: 'Votre besoin',
-    editSimulation: 'Modifier ma simulation',
-    customerKind: 'Vous faites cette demande',
-    recurrenceTitle: 'Régularité',
-    recurrenceHint: 'Facultatif : laissez vide si vous ne savez pas encore.',
-    visitsPerWeek: 'Passages par semaine',
-    daysPerWeek: 'Jours d’intervention par semaine (facultatif)',
-    daysHint: 'De 1 à 7, si vous le savez déjà.',
-    daysInvalid: 'Indiquez un nombre de jours entre 1 et 7, ou laissez vide.',
-    teamSize: 'Nombre d’agents souhaité (facultatif)',
-    teamSizeHint: 'De 1 à 50. Laissez vide : notre équipe adapte le nombre d’agents à vos locaux.',
-    teamSizeInvalid: 'Indiquez un nombre d’agents entre 1 et 50, ou laissez vide.',
-    outOfZone: (sentence: string | null) =>
-      `Nous n’intervenons pas encore dans cette commune. ${zonesLine(sentence)}`,
-    visitsPerMonth: 'Passages par mois',
-    durationMonths: 'Durée souhaitée (en mois)',
-    recurrenceInvalid:
-      'Indiquez le nombre de passages (7 au plus par semaine, 31 par mois) et la durée (1 à 36 mois), ou laissez les deux vides.',
-    commune: 'Commune',
-    otherCommune: 'Autre commune',
-    loadingZones: 'Chargement des communes desservies…',
-    address: 'Adresse d’intervention',
-    addressHint: 'Quartier, rue, repère : tout ce qui aide notre équipe à vous trouver.',
-    addressRequired: 'Indiquez l’adresse d’intervention.',
-    addressTooLong: (max: number) => `L’adresse ne doit pas dépasser ${max} caractères.`,
-    commentTooLong: (max: number) => `Le commentaire ne doit pas dépasser ${max} caractères.`,
-    partWho: 'Pour qui ?',
-    partWhere: 'Où intervenir ?',
-    partDetails: 'Précisions',
-    partDetailsHint: 'Facultatif : tout ce qui aide notre équipe à préparer la visite et le devis.',
-    fromSimulation: 'Repris de la simulation',
-    afterTitle: 'Après l’envoi',
-    afterSteps: [
-      'Votre demande apparaît dans « Mes prestations de nettoyage ».',
-      'Notre équipe vous contacte pour planifier la visite des lieux, obligatoire.',
-      'Vous recevez le devis dans votre espace, et vous l’acceptez ou le refusez en ligne.',
-    ],
-    successReceived: 'Reçue le',
-    successStatus: 'État',
-    successReference: 'Référence',
-    slotsTitle: 'Vos disponibilités',
-    slotsHint: (minDate: string) => `Jusqu’à trois créneaux, à partir du ${minDate}. Heures du Bénin.`,
-    slotDate: (index: number) => `Date du créneau ${index}`,
-    slotPeriod: (index: number) => `Moment du créneau ${index}`,
-    addSlot: 'Ajouter un créneau',
-    removeSlot: (index: number) => `Retirer le créneau ${index}`,
-    slotRequired: 'Choisissez au moins une date.',
-    slotTooEarly: (minDate: string) => `Choisissez une date à partir du ${minDate}.`,
-    comment: 'Commentaire (facultatif)',
-    commentHint: 'Accès, animaux, contraintes particulières…',
-    submit: 'Envoyer ma demande',
-    successTitle: 'Demande envoyée',
-    successText:
-      'Votre demande est bien reçue. Vous serez prévenu à chaque étape : visite des lieux, devis, puis réservation.',
-    seeRequest: 'Voir ma demande',
-    profileNeeded: 'Complétez votre profil pour envoyer votre demande.',
-  },
-  periods: [
-    { value: 'morning', label: 'Matin (8 h – 12 h)', from: '08:00', to: '12:00' },
-    { value: 'afternoon', label: 'Après-midi (13 h – 17 h)', from: '13:00', to: '17:00' },
-  ],
   space: {
     eyebrow: 'Mon espace KSP',
     title: 'Mes prestations de nettoyage',
@@ -200,12 +103,12 @@ export const cleaningTexts = {
     missionsLead: 'Vos prestations réservées et l’avancement de leurs passages.',
     noRequests: 'Vous n’avez encore demandé aucun devis.',
     noRequestsHint:
-      'Simulez votre prestation en quelques questions, puis demandez votre devis : il apparaîtra ici.',
+      'Décrivez votre lieu et vos besoins en quelques questions, puis envoyez votre demande : elle apparaîtra ici.',
     noMissions: 'Aucune mission pour le moment : elle apparaît ici dès qu’un devis est accepté.',
     noRequestsBusiness: 'Aucune demande de devis au nom de cette entreprise.',
     noMissionsBusiness:
       'Aucune mission au nom de cette entreprise : elle apparaît ici dès qu’un devis est accepté.',
-    newRequest: 'Simuler et demander un devis',
+    newRequest: 'Demander un devis',
     loading: LOADING,
     requestedOn: (date: string) => `Demandée le ${date}`,
     firstVisit: (date: string) => `Premier passage le ${date}`,
@@ -257,7 +160,7 @@ export const cleaningTexts = {
     noSlotYet: 'Créneau à choisir',
     teamLabel: 'Équipe',
     declineHint: 'Le devis ne sera plus valable. Votre motif aide notre équipe à mieux vous proposer.',
-    cancelHint: 'La demande est close : pour un autre besoin, faites une nouvelle simulation.',
+    cancelHint: 'La demande est close : pour un autre besoin, faites une nouvelle demande.',
     proposedSlots: 'Créneaux proposés',
     closingReason: 'Motif',
     seeMission: 'Voir la mission',
@@ -328,38 +231,6 @@ export const cleaningTexts = {
   },
 } as const;
 
-/** Questions du simulateur : les choix viennent du catalogue et des zones de la gateway. */
-export const simulatorQuestions = {
-  service: { name: 'Prestation', title: 'Quelle prestation vous intéresse ?' },
-  premises: {
-    name: 'Locaux',
-    title: 'Quel type de locaux ?',
-    hint: 'Pour les entreprises comme pour les particuliers, une visite des lieux est obligatoire avant le devis.',
-  },
-  size: {
-    name: 'Taille',
-    title: 'Quelle est la taille des locaux ?',
-    hint: 'Une valeur approximative suffit. Vous pourrez la préciser avec notre équipe lors de la visite.',
-  },
-  options: {
-    name: 'Options',
-    title: 'Des options à ajouter ?',
-    hint: 'Facultatif : cochez ce qui vous intéresse.',
-    none: 'Aucune option',
-  },
-  commune: {
-    name: 'Commune',
-    title: 'Dans quelle commune ?',
-    hint: (sentence: string | null) => zonesLine(sentence),
-    other: 'Autre commune',
-  },
-  frequency: {
-    name: 'Fréquence',
-    title: 'À quelle fréquence ?',
-    hint: 'L’estimation porte sur un passage.',
-  },
-} as const;
-
 /** Qui doit agir maintenant : le client (« À vous d'agir ») ou l'équipe KSP. */
 export type Actor = 'client' | 'ksp';
 
@@ -410,9 +281,9 @@ export const requestStatuses: Record<string, StatusLabel> = {
   cancelled: { label: 'Demande annulée', tone: 'neutral', hint: 'Cette demande a été annulée.' },
 };
 
-/** La démarche en ligne, de la simulation à la réservation (page publique, demande de devis). */
+/** La démarche en ligne, de la description du besoin à la réservation (page publique). */
 export const serviceJourney = [
-  { label: 'Simuler mon prix' },
+  { label: 'Décrire mon besoin' },
   { label: 'Demander un devis' },
   { label: 'Visite des lieux' },
   { label: 'Accepter et suivre' },
@@ -569,12 +440,6 @@ export const units: Record<string, { label: string; inputLabel: string; unit: st
   room: { label: 'Nombre de pièces', inputLabel: 'Nombre de pièces', unit: 'pièces' },
   septic_tank: { label: 'Nombre de fosses', inputLabel: 'Nombre de fosses', unit: 'fosses' },
   cubic_meter: { label: 'Volume', inputLabel: 'Volume approximatif', unit: 'm³' },
-};
-
-export const frequencies: Record<string, string> = {
-  once: 'Une seule fois',
-  weekly: 'Chaque semaine',
-  monthly: 'Chaque mois',
 };
 
 /** Libellé d'un état, neutre pour un état inconnu (ajouté par la gateway après ce front). */

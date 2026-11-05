@@ -38,3 +38,11 @@ export const OrganizationDetail = dynamic(
 export const ContextSwitcher = dynamic(() =>
   import('./context-switcher').then((module_) => module_.ContextSwitcher),
 );
+
+/**
+ * Connexion intégrée à une page (demande de devis du Nettoyage) : téléchargée seulement quand la page
+ * demande la connexion.
+ */
+export const InlineLogin = dynamic(() => import('./inline-login').then((module_) => module_.InlineLogin), {
+  loading: Loading,
+});
