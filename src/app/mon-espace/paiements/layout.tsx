@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** « Mes paiements » : coque statique et garde de session (liste, retour du prestataire, simulation ; F-005). */
+/** « Factures et paiements » : coque statique et garde de session (liste, retour du prestataire, simulation ; F-005). */
 export default function PaymentsLayout({ children }: { children: ReactNode }) {
   return (
     <Container className="py-10 sm:py-16">

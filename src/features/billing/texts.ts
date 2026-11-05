@@ -94,3 +94,26 @@ export const invoiceMethods: Record<string, string> = {
 export function invoiceStatus(status: string): StatusLabel {
   return invoiceStatuses[status] ?? { label: status, tone: 'neutral' };
 }
+
+/** « Factures et paiements » : historique unifié (lot 2 de Mon espace). Textes provisoires. */
+export const historyTexts = {
+  pageTitle: 'Factures et paiements',
+  pageLead:
+    'Vos factures et vos paiements en ligne au même endroit : ce qui reste à régler, son échéance, et le reçu de chaque paiement.',
+  title: 'Historique',
+  dueTitle: 'Reste à régler',
+  dueCount: (count: number) =>
+    count > 1
+      ? `${count} factures attendent votre règlement : leur montant et leur échéance sont indiqués ci-dessous.`
+      : 'Une facture attend votre règlement : son montant et son échéance sont indiqués ci-dessous.',
+  nothingDue: 'Rien à régler pour le moment.',
+  invoiceKind: 'Facture',
+  paymentKind: 'Paiement en ligne',
+  balance: 'Reste dû',
+  dueAt: (date: string) => `Échéance : ${date}`,
+  pay: 'Payer cette facture',
+  receipt: 'Voir le reçu',
+  details: 'Voir le paiement',
+  empty: 'Aucune facture ni aucun paiement pour le moment.',
+  more: 'Afficher plus',
+} as const;

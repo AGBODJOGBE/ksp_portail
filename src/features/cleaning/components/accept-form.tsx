@@ -19,15 +19,15 @@ import {
 
 const t = cleaningTexts.requestDetail;
 
-const OPTION = cn(
+export const OPTION = cn(
   'rounded-control border-line-strong bg-surface flex min-h-12 cursor-pointer items-start gap-3 border p-3.5',
   'has-[:checked]:border-action has-[:checked]:bg-action-soft has-[:checked]:ring-action has-[:checked]:ring-1',
   'has-[:focus-visible]:outline-focus has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2',
 );
-const RADIO = 'accent-action mt-0.5 size-5 shrink-0';
+export const RADIO = 'accent-action mt-0.5 size-5 shrink-0';
 
 /** Titre numéroté d'une partie du formulaire (1. Créneau, 2. Paiement). */
-function StepLegend({ index, children }: { index: number; children: ReactNode }) {
+export function StepLegend({ index, children }: { index: number; children: ReactNode }) {
   return (
     <legend className="text-ink mb-3 flex items-center gap-3 font-semibold">
       <span
@@ -41,7 +41,7 @@ function StepLegend({ index, children }: { index: number; children: ReactNode })
   );
 }
 
-function Choices({
+export function Choices({
   legend,
   name,
   value,

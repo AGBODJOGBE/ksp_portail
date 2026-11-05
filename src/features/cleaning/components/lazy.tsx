@@ -35,6 +35,11 @@ export const CleaningTodo = dynamic(() => import('./cleaning-todo').then((module
   loading: Loading,
 });
 
+export const CleaningOngoing = dynamic(
+  () => import('./cleaning-todo').then((module_) => module_.CleaningOngoing),
+  { loading: Loading },
+);
+
 export const CleaningSpace = dynamic(
   () => import('./cleaning-space').then((module_) => module_.CleaningSpace),
   {
@@ -57,6 +62,6 @@ export const MissionDetail = dynamic(
 );
 
 export const RequestGroupDetail = dynamic(
-  () => import('./request-group').then((module_) => module_.RequestGroupDetail),
+  () => import('./group-detail').then((module_) => module_.RequestGroupDetail),
   { loading: Loading },
 );

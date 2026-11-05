@@ -15,11 +15,12 @@ import { Eyebrow } from '@/components/ui/eyebrow';
 import { Heading } from '@/components/ui/heading';
 import { navigation } from '@/config/navigation';
 import { InvoiceTodo, billingPaths, billingTexts } from '@/features/billing';
-import { CleaningTodo, cleaningPaths, cleaningTexts } from '@/features/cleaning';
+import { CleaningOngoing, CleaningTodo, cleaningPaths, cleaningTexts, spaceTexts } from '@/features/cleaning';
 import { paymentPaths, paymentTexts } from '@/features/payment';
 import {
   AccountOverview,
   ContextSwitcher,
+  ProfileTodo,
   RequireSession,
   accountTexts,
   identityPaths,
@@ -78,22 +79,34 @@ export default function AccountPage() {
         <div className="mt-5">
           <RequireSession>
             <AccountOverview />
-            <ContextSwitcher hint className="mt-8" />
+            <ContextSwitcher hint className="mt-6" />
 
-            <section aria-labelledby="a-faire-titre" className="mt-12">
+            <section aria-labelledby="a-faire-titre" className="mt-10">
               <Heading as="h2" size="h2" id="a-faire-titre">
                 {t.account.todoTitle}
               </Heading>
               <p className="text-ink-muted mt-2">{t.account.todoLead}</p>
               <div className="mt-6 grid gap-5 lg:grid-cols-2 lg:items-start">
                 <CleaningTodo />
-                <InvoiceTodo />
+                <div className="grid gap-5">
+                  <InvoiceTodo />
+                  <ProfileTodo />
+                </div>
+              </div>
+            </section>
+
+            <section aria-labelledby="en-cours-titre" className="mt-14">
+              <Heading as="h2" size="h3" id="en-cours-titre">
+                {spaceTexts.todo.ongoingTitle}
+              </Heading>
+              <div className="rounded-card border-line bg-surface mt-5 border px-5 py-2 shadow-xs sm:px-6">
+                <CleaningOngoing />
               </div>
             </section>
 
             <section aria-labelledby="prestations-titre" className="mt-14">
               <Heading as="h2" size="h3" id="prestations-titre">
-                {t.account.servicesTitle}
+                {spaceTexts.todo.shortcutsTitle}
               </Heading>
               <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <ServiceCard

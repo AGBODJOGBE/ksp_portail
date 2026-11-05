@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { lazy, Suspense, useCallback, useState } from 'react';
-import { SignatureProgress } from '@/components/ui/brand/signature';
+import { StepTimeline } from '@/components/ui/step-timeline';
 import { Badge } from '@/components/ui/badge';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
@@ -22,15 +22,15 @@ import { cleaningPaths } from '@/features/cleaning/paths';
 import type { Quote, QuoteRequest } from '@/features/cleaning/schemas';
 import {
   cleaningTexts,
-  premisesTypes,
   recurrenceLabel,
-  requestJourney,
-  requestStage,
   requestStatuses,
   statusOf,
   visitStatuses,
 } from '@/features/cleaning/texts';
-import { optionLabels, quantityLabel, serviceName, useServices } from '@/features/cleaning/use-services';
+import { serviceName, useServices } from '@/features/cleaning/use-services';
+import { describeAnswers } from '@/features/cleaning/answers-text';
+import { LIFECYCLE, requestStage } from '@/features/cleaning/lifecycle';
+import { spaceTexts } from '@/features/cleaning/space-texts';
 import { DetailHeader, Facts, LoadError, Loading, NextStep, Panel } from './detail-parts';
 import { ReasonAction } from './reason-action';
 
@@ -240,7 +240,8 @@ export function RequestDetail({ id }: { id: string }) {
   const expired =
     request.status === 'expired' || (!!quote && request.status === 'quote_sent' && isPast(quote.validUntil));
   const canAnswer = request.status === 'quote_sent' && !!quote && !expired;
-  const options = optionLabels(services, request.serviceCode, request.options);
+  const form = services.find((service) => service.code === request.serviceCode)?.form;
+  const need = describeAnswers(form, request);
   const status = statusOf(requestStatuses, request.status);
   const stage = requestStage(request);
   const closed = !OPEN.has(request.status) && request.status !== 'accepted';
@@ -248,22 +249,36 @@ export function RequestDetail({ id }: { id: string }) {
   return (
     <div className="grid gap-8">
       <DetailHeader
-        title={serviceName(services, request.serviceCode)}
+        title={request.serviceName ?? serviceName(services, request.serviceCode)}
         subtitle={`${t.title} · ${cleaningTexts.space.requestedOn(formatShortDate(request.createdAt))} · ${request.commune}`}
         status={status}
         tag={business ? cleaningTexts.context.businessTag : undefined}
         progress={
-          <SignatureProgress
-            steps={requestJourney}
+          <StepTimeline
+            className="border-0 p-0 shadow-none sm:p-0"
+            steps={LIFECYCLE}
             current={stage.current}
             stopped={stage.stopped}
-            label={j.requestProgress}
+            label={spaceTexts.lifecycle.label}
+            currentLabel={spaceTexts.lifecycle.current}
+            stoppedLabel={spaceTexts.lifecycle.stopped}
           />
         }
       />
       <FormMessage tone="info">{notice}</FormMessage>
       <FormMessage tone="success">{done}</FormMessage>
 
+      {request.groupId && (request.groupSize ?? 1) > 1 ? (
+        <FormMessage tone="info">
+          {t.inGroup}{' '}
+          <a
+            href={cleaningPaths.group(request.groupId)}
+            className="font-semibold underline underline-offset-4"
+          >
+            {t.seeGroup}
+          </a>
+        </FormMessage>
+      ) : null}
       <NextStep actor={expired ? undefined : status.actor} text={nextStepText(request, expired)}>
         {canAnswer && !accepting ? (
           <ButtonLink href={`#${QUOTE_ID}`} variant="action">
@@ -349,9 +364,19 @@ export function RequestDetail({ id }: { id: string }) {
                   t.customer,
                   business ? cleaningTexts.context.business(null) : cleaningTexts.context.individual,
                 ],
-                [t.premises, premisesTypes[request.premisesType] ?? request.premisesType],
-                [t.quantity, quantityLabel(services, request.serviceCode, request.quantity)],
-                [t.options, options.join(', ')],
+                [t.place, request.placeTypeLabel ?? null],
+                [
+                  t.answers,
+                  need.answers.length ? (
+                    <ul key="answers" className="grid gap-1">
+                      {need.answers.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  ) : null,
+                ],
+                [t.options, need.options.join(', ')],
+                [t.frequency, need.frequency],
                 [t.address, `${request.address}, ${request.commune}`],
                 [t.recurrence, recurrenceLabel(request.recurrence)],
                 [

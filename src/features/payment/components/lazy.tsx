@@ -25,7 +25,3 @@ export const PaymentSimulation = dynamic(
   () => import('./payment-simulation').then((module_) => module_.PaymentSimulation),
   { loading: Loading },
 );
-
-export const PaymentList = dynamic(() => import('./payment-list').then((module_) => module_.PaymentList), {
-  loading: Loading,
-});

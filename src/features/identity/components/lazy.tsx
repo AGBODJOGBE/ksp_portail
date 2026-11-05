@@ -46,3 +46,6 @@ export const ContextSwitcher = dynamic(() =>
 export const InlineLogin = dynamic(() => import('./inline-login').then((module_) => module_.InlineLogin), {
   loading: Loading,
 });
+
+/** E-mail à ajouter ou à vérifier, dans la rubrique « À faire » de l'accueil de l'espace. */
+export const ProfileTodo = dynamic(() => import('./profile-todo').then((module_) => module_.ProfileTodo));

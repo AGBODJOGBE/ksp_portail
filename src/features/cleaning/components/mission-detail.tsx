@@ -37,6 +37,10 @@ import {
   suspendedStatus,
 } from '@/features/cleaning/texts';
 import { serviceName, useServices } from '@/features/cleaning/use-services';
+import { LIFECYCLE, missionStage } from '@/features/cleaning/lifecycle';
+import { paymentDue, paymentExpected } from '@/features/cleaning/payment-due';
+import { spaceTexts } from '@/features/cleaning/space-texts';
+import { StepTimeline } from '@/components/ui/step-timeline';
 import { DetailHeader, Facts, LoadError, Loading, NextStep, Panel } from './detail-parts';
 import { ReasonAction } from './reason-action';
 
@@ -81,27 +85,19 @@ function PassagesProgress({ done, planned, label }: { done: number; planned: num
   );
 }
 
-/**
- * Paiement en ligne proposé au particulier (ADR-031) : l'acompte tant qu'il est attendu, sinon le reste
- * dû. Le montant affiché est lu tel quel sur la mission (acompte, ou total quand rien n'est encore réglé) ;
- * après un règlement partiel, la page du prestataire affiche le montant calculé par KSP.
- */
+/** Paiement en ligne proposé au particulier (ADR-031), avec le libellé de son bouton. */
+const PAYMENT_ID = 'paiement';
+
 function onlinePayment(mission: Mission) {
-  const payment = mission.payment;
-  if (mission.status === 'cancelled' || payment.status === 'paid') return null;
-  const nothingPaid = payment.paid.amount === 0;
-  if (payment.status === 'due' && payment.plan.option === 'deposit' && payment.depositPercent > 0) {
-    return {
-      part: 'deposit' as const,
-      label: paymentTexts.payDeposit,
-      amount: nothingPaid ? payment.depositAmount : null,
-    };
-  }
-  return {
-    part: 'balance' as const,
-    label: nothingPaid ? paymentTexts.pay : paymentTexts.payBalance,
-    amount: nothingPaid ? payment.total : null,
-  };
+  const due = paymentDue(mission);
+  if (!due) return null;
+  const label =
+    due.part === 'deposit'
+      ? paymentTexts.payDeposit
+      : due.nothingPaid
+        ? paymentTexts.pay
+        : paymentTexts.payBalance;
+  return { part: due.part, label, amount: due.amount };
 }
 
 function PaymentView({ mission, kind, onStale }: { mission: Mission; kind: Kind; onStale: () => void }) {
@@ -329,6 +325,8 @@ export function MissionDetail({ id }: { id: string }) {
     ? suspendedStatus(mission.suspension)
     : statusOf(missionStatuses, mission.status);
   const next = nextPlanned(mission);
+  const stage = missionStage(mission);
+  const payNow = paymentExpected(mission) ? onlinePayment(mission) : null;
   const nextText = mission.suspension
     ? t.suspended(mission.suspension, formatShortDate(mission.suspension.since))
     : mission.status === 'on_hold'
@@ -352,6 +350,14 @@ export function MissionDetail({ id }: { id: string }) {
           />
         }
       />
+      <StepTimeline
+        steps={LIFECYCLE}
+        current={stage.current}
+        stopped={stage.stopped}
+        label={spaceTexts.lifecycle.label}
+        currentLabel={spaceTexts.lifecycle.current}
+        stoppedLabel={spaceTexts.lifecycle.stopped}
+      />
       <FormMessage tone="success">{done ?? (booked ? j.booked : null)}</FormMessage>
       <FormMessage tone="info">{notice}</FormMessage>
       {resumed ? <FormMessage tone="info">{t.resumed}</FormMessage> : null}
@@ -367,6 +373,10 @@ export function MissionDetail({ id }: { id: string }) {
         {causes.includes('unpaid_invoices') ? (
           <ButtonLink href={INVOICES_PATH} variant="action">
             {t.seeInvoices}
+          </ButtonLink>
+        ) : payNow ? (
+          <ButtonLink href={`#${PAYMENT_ID}`} variant="action">
+            {payNow.label}
           </ButtonLink>
         ) : null}
       </NextStep>
@@ -408,9 +418,11 @@ export function MissionDetail({ id }: { id: string }) {
             </ButtonLink>
           </Panel>
 
-          <Panel id="paiement-titre" title={t.paymentTitle}>
-            <PaymentView mission={mission} kind={kind} onStale={refresh} />
-          </Panel>
+          <div id={PAYMENT_ID} className="scroll-mt-[calc(var(--header-h)+1rem)]">
+            <Panel id="paiement-titre" title={t.paymentTitle}>
+              <PaymentView mission={mission} kind={kind} onStale={refresh} />
+            </Panel>
+          </div>
 
           {CANCELLABLE.has(mission.status) ? (
             <div className="grid justify-items-start">

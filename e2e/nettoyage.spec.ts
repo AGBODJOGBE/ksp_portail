@@ -114,7 +114,7 @@ test('accepter le devis d’une demande et voir la mission', async ({ page }) =>
 
   await expect(page).toHaveURL(/\/mon-espace\/nettoyage\/missions\/[0-9a-f-]+\?reservation=confirmee$/);
   await expect(page.getByText(/Devis accepté : votre mission est réservée/)).toBeVisible();
-  await expect(page.getByText('Planifiée')).toBeVisible();
+  await expect(page.getByText('Planifiée', { exact: true })).toBeVisible();
   await expect(page.getByText('À régler')).toBeVisible();
   expect(cleaning.idempotencyKeys).toHaveLength(1);
   expect(gateway.forbiddenHeaders).toEqual([]);
