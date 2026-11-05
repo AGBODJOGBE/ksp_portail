@@ -6,6 +6,7 @@ import { Button, ButtonLink, buttonClasses } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
 import { IconArrowLeft } from '@/components/ui/icons';
+import { useSession } from '@/lib/api';
 import { formatDateTime, formatXof } from '@/lib/format';
 import { getPayment } from '@/features/payment/api';
 import { describePaymentReadError } from '@/features/payment/errors';
@@ -25,6 +26,55 @@ type View =
   | { status: 'loading' }
   | { status: 'error'; message: string; notFound: boolean }
   | { status: 'ready'; payment: Payment; polling: boolean };
+
+/**
+ * Reçu d'un paiement réussi, tel que confirmé par le prestataire : montant, objet, date, référence et
+ * payeur (session). Rien n'est calculé ; « Imprimer » ouvre l'impression du navigateur (ou l'export PDF).
+ */
+function Receipt({ payment }: { payment: Payment }) {
+  const user = useSession()?.user;
+  const payer = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
+  const rows: ReadonlyArray<readonly [string, string | null]> = [
+    [t.receiptObject, subjectLabel(payment.subject)],
+    [t.amount, formatXof(payment.amount)],
+    [t.receiptMethod, t.receiptMobileMoney],
+    [t.completedAt, payment.completedAt ? formatDateTime(payment.completedAt) : null],
+    [t.reference, payment.providerReference],
+    [t.receiptPayer, payer || null],
+    [t.receiptNumber, payment.id],
+  ];
+  return (
+    <section
+      id="recu"
+      aria-labelledby="recu-titre"
+      className="rounded-card border-line bg-surface grid scroll-mt-[calc(var(--header-h)+1rem)] gap-5 border p-5 shadow-xs sm:p-8"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-small text-ink-muted font-semibold">{t.receiptIssuer}</p>
+          <Heading as="h2" size="h3" id="recu-titre">
+            {t.receiptTitle}
+          </Heading>
+        </div>
+        <Button variant="secondary" onClick={() => window.print()} className="print:hidden">
+          {t.receiptPrint}
+        </Button>
+      </div>
+      <p className="font-display text-ink text-3xl font-semibold tabular-nums">{formatXof(payment.amount)}</p>
+      <dl className="divide-line grid divide-y">
+        {rows
+          .filter(([, value]) => value)
+          .map(([label, value]) => (
+            <div key={label} className="grid gap-1 py-2 sm:grid-cols-[11rem_1fr] sm:gap-6">
+              <dt className="text-small text-ink-muted">{label}</dt>
+              <dd className="text-ink font-medium break-all tabular-nums">{value}</dd>
+            </div>
+          ))}
+      </dl>
+      <p className="text-small text-ink-muted">{t.receiptNote}</p>
+    </section>
+  );
+}
 
 function BackLink() {
   return (
@@ -155,19 +205,24 @@ export function PaymentReturn({ id }: { id: string }) {
           {pending && polling ? <p className="text-small text-ink-muted">{t.checking}</p> : null}
           {pending && !polling ? <p className="text-ink-muted">{t.stillPending}</p> : null}
         </div>
-        <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[11rem_1fr]">
-          {facts
-            .filter(([, value]) => value)
-            .map(([label, value]) => (
-              <div key={label} className="contents">
-                <dt className="text-small text-ink-muted">{label}</dt>
-                <dd className="text-ink font-medium tabular-nums">{value}</dd>
-              </div>
-            ))}
-        </dl>
+        {/* Paiement réussi : le détail est dans le reçu, juste en dessous. */}
+        {payment.status === 'succeeded' ? null : (
+          <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[11rem_1fr]">
+            {facts
+              .filter(([, value]) => value)
+              .map(([label, value]) => (
+                <div key={label} className="contents">
+                  <dt className="text-small text-ink-muted">{label}</dt>
+                  <dd className="text-ink font-medium tabular-nums">{value}</dd>
+                </div>
+              ))}
+          </dl>
+        )}
       </section>
 
-      <div className="flex flex-wrap gap-3">
+      {payment.status === 'succeeded' ? <Receipt payment={payment} /> : null}
+
+      <div className="flex flex-wrap gap-3 print:hidden">
         {checkout ? (
           <a href={checkout} className={buttonClasses({ variant: 'action' })}>
             {t.resume}

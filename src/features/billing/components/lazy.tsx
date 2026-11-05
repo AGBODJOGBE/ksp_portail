@@ -30,3 +30,7 @@ export const InvoiceDetail = dynamic(
     loading: Loading,
   },
 );
+
+export const BillingHistory = dynamic(() => import('./history').then((module_) => module_.BillingHistory), {
+  loading: Loading,
+});

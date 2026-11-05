@@ -22,8 +22,18 @@ export function subjectPath(subject: { type: string; id: string }): string | nul
 }
 
 export const paymentTexts = {
-  title: 'Mes paiements',
-  lead: 'Paiements en ligne par Mobile Money : acomptes, soldes de prestation et factures.',
+  title: 'Factures et paiements',
+  receiptTitle: 'Reçu de paiement',
+  receiptIssuer: 'Groupe KSP',
+  receiptObject: 'Objet',
+  receiptMethod: 'Moyen de paiement',
+  receiptMobileMoney: 'Mobile Money en ligne',
+  receiptPayer: 'Payé par',
+  receiptNumber: 'Numéro du paiement',
+  receiptPrint: 'Imprimer le reçu',
+  receiptNote:
+    'Confirmé par le prestataire de paiement et enregistré par KSP. Conservez ce reçu : la référence permet au support de le retrouver.',
+  lead: 'Reste dû, échéances, paiements Mobile Money et reçus, au même endroit.',
   scope:
     'Les paiements affichés sont ceux du compte actif : votre compte personnel, ou l’entreprise que vous représentez.',
   empty: 'Aucun paiement en ligne pour le moment.',

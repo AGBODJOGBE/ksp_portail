@@ -1,6 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { PayButton, redirect } from './pay-button';
-import { PaymentList } from './payment-list';
 import { PaymentReturn } from './payment-return';
 import { PaymentSimulation } from './payment-simulation';
 
@@ -277,40 +276,5 @@ describe('Page de paiement simulée', () => {
     render(<PaymentSimulation id={PAYMENT_ID} />);
     expect(await screen.findByText(/n’est plus en attente/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Simuler un paiement réussi' })).not.toBeInTheDocument();
-  });
-});
-
-describe('Mes paiements', () => {
-  it('liste les paiements du compte actif avec leur statut', async () => {
-    stubGateway({
-      [`GET ${PAYMENTS}`]: {
-        status: 200,
-        body: {
-          data: [
-            payment({ status: 'succeeded' }),
-            payment({
-              id: 'b',
-              status: 'failed',
-              subject: { type: 'billing_invoice', id: INVOICE_ID, part: null, reference: 'FAC-1' },
-            }),
-          ],
-          nextCursor: null,
-        },
-      },
-    });
-    render(<PaymentList />);
-    expect(await screen.findByRole('link', { name: 'Solde de la prestation' })).toHaveAttribute(
-      'href',
-      `/mon-espace/paiements/${PAYMENT_ID}`,
-    );
-    expect(screen.getByRole('link', { name: 'Facture FAC-1' })).toBeInTheDocument();
-    expect(screen.getByText('Réussi')).toBeInTheDocument();
-    expect(screen.getByText('Échoué')).toBeInTheDocument();
-  });
-
-  it('liste vide : où payer', async () => {
-    stubGateway({ [`GET ${PAYMENTS}`]: { status: 200, body: { data: [], nextCursor: null } } });
-    render(<PaymentList />);
-    expect(await screen.findByText('Aucun paiement en ligne pour le moment.')).toBeInTheDocument();
   });
 });

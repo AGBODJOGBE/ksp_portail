@@ -1,3 +1,5 @@
+'use client';
+
 import { api, parseResponse } from '@/lib/api';
 import { type Payment, type PaymentList, paymentListSchema, paymentSchema } from './schemas';
 

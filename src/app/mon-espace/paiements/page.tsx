@@ -1,21 +1,22 @@
 import { Heading } from '@/components/ui/heading';
+import { BillingHistory, historyTexts } from '@/features/billing';
 import { ContextSwitcher } from '@/features/identity';
-import { PaymentList, paymentTexts } from '@/features/payment';
+import { paymentTexts } from '@/features/payment';
 import { frenchSpacing } from '@/lib/typography';
 
-/** Paiements en ligne du compte actif, les plus récents d'abord. */
+/** « Factures et paiements » : historique unifié du compte actif, le plus récent d'abord. */
 export default function PaymentsPage() {
   return (
     <div className="grid gap-10">
       <div>
         <Heading as="h1" size="h1">
-          {paymentTexts.title}
+          {historyTexts.pageTitle}
         </Heading>
-        <p className="text-ink-muted mt-3">{paymentTexts.lead}</p>
+        <p className="text-ink-muted mt-3">{historyTexts.pageLead}</p>
         <p className="text-small text-ink-muted mt-2">{frenchSpacing(paymentTexts.scope)}</p>
         <ContextSwitcher className="mt-5" />
       </div>
-      <PaymentList />
+      <BillingHistory />
     </div>
   );
 }
