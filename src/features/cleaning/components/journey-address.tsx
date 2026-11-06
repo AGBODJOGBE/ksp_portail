@@ -6,7 +6,7 @@ import { Button, ButtonLink } from '@/components/ui/button';
 import { FieldError, TextField, fieldIds, inputClasses } from '@/components/ui/field';
 import { IconAlert, IconLocate, IconPin } from '@/components/ui/icons';
 import { contactHref } from '@/config/navigation';
-import { ApiError, session } from '@/lib/api';
+import { ApiError, isDeletionPending, session } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { frenchSpacing } from '@/lib/typography';
 import { resolveLocation } from '@/features/cleaning/api';
@@ -78,7 +78,10 @@ export function useResolveLocation(
       session
         .restore()
         .then(async (result) => {
-          if (result.status !== 'authenticated') return finish({ status: 'later' });
+          // Compte en cours de suppression : la route lui est fermée ; la commune attendra l'envoi.
+          if (result.status !== 'authenticated' || isDeletionPending(result.session)) {
+            return finish({ status: 'later' });
+          }
           const found = await resolveLocation({ latitude, longitude });
           if (!active) return;
           setResolved({ commune: found.commune, served: found.served, displayAddress: found.displayAddress });

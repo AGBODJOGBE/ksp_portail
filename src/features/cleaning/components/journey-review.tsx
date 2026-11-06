@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
 import { IconClock } from '@/components/ui/icons';
-import { ContextSwitcher, InlineLogin, ProfileForm } from '@/features/identity';
-import { ApiError, session, useSession } from '@/lib/api';
+import { ContextSwitcher, InlineLogin, ProfileForm, identityPaths } from '@/features/identity';
+import { ApiError, isDeletionPending, session, useSession } from '@/lib/api';
 import { formatShortDate } from '@/lib/format';
 import { frenchSpacing } from '@/lib/typography';
 import { requestQuoteGroup } from '@/features/cleaning/api';
@@ -166,6 +166,8 @@ export function ReviewStep({
   const commune = communeOf(draft.address, zones);
   const away = outOfZone(draft.address);
   const steps = journeyTexts.steps;
+  // Session restreinte (compte en cours de suppression, ADR-036) : la gateway refuserait l'envoi.
+  const frozen = isDeletionPending(current);
   const context = current?.activeContext;
   const business = context?.type === 'business';
 
@@ -309,8 +311,18 @@ export function ReviewStep({
               </Button>
             </div>
           ) : null}
-          {phase === 'ready' && current?.profileIncomplete ? <InlineLogin headingLevel="h3" /> : null}
-          {phase === 'ready' && current && !current.profileIncomplete ? (
+          {phase === 'ready' && frozen ? (
+            <FormMessage tone="info">
+              {t.deletionPending}{' '}
+              <Link href={identityPaths.settings} className="font-semibold underline underline-offset-4">
+                {t.deletionLink}
+              </Link>
+            </FormMessage>
+          ) : null}
+          {phase === 'ready' && !frozen && current?.profileIncomplete ? (
+            <InlineLogin headingLevel="h3" />
+          ) : null}
+          {phase === 'ready' && !frozen && current && !current.profileIncomplete ? (
             needsProfile ? (
               <div className="grid gap-4">
                 <FormMessage tone="info">{t.profileNeeded}</FormMessage>
@@ -344,7 +356,13 @@ export function ReviewStep({
             className="w-full sm:w-auto sm:justify-self-start"
             onClick={send}
             disabled={
-              phase !== 'ready' || !current || current.profileIncomplete || needsProfile || !!away || pending
+              phase !== 'ready' ||
+              !current ||
+              frozen ||
+              current.profileIncomplete ||
+              needsProfile ||
+              !!away ||
+              pending
             }
             aria-busy={pending || undefined}
           >

@@ -7,9 +7,11 @@ import { FormMessage } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
 import { navigation } from '@/config/navigation';
 import { getDictionary } from '@/i18n';
-import { session, useSession } from '@/lib/api';
+import { isDeletionPending, session, useSession } from '@/lib/api';
+import { deletionNotice } from '@/features/identity/deletion';
 import { describeError } from '@/features/identity/errors';
 import { loginHref } from '@/features/identity/return-path';
+import { DeletionRequested, PendingDeletion } from './lazy';
 import { ProfileForm } from './profile-form';
 
 type Phase = 'checking' | 'unavailable' | 'ready';
@@ -22,8 +24,10 @@ function currentPath(pathname: string): string {
 /**
  * Garde des pages connectées. Au chargement : session en mémoire, sinon renouvellement silencieux
  * (cookie posé par la gateway). Sans session : direction la connexion, avec retour ici ensuite.
- * Profil incomplet : « Compléter mon profil » avant tout le reste. Le backend reste seul juge des
- * droits : cette garde n'évite que d'afficher un espace vide.
+ * Profil incomplet : « Compléter mon profil » avant tout le reste. Compte en cours de suppression
+ * (session restreinte, ADR-036) : l'écran de la suppression prévue, à la place de toute page (la gateway
+ * refuserait ses appels). Le backend reste seul juge des droits : cette garde n'évite que d'afficher un
+ * espace vide ou en erreur.
  */
 export function RequireSession({ children }: { children: ReactNode }) {
   const t = getDictionary();
@@ -53,6 +57,7 @@ export function RequireSession({ children }: { children: ReactNode }) {
   }, [attempt, pathname, replace]);
 
   if (current) {
+    if (isDeletionPending(current)) return <PendingDeletion />;
     return current.profileIncomplete ? <ProfileForm autoFocus /> : <>{children}</>;
   }
 
@@ -72,8 +77,10 @@ export function RequireSession({ children }: { children: ReactNode }) {
     );
   }
 
-  // Session terminée pendant la visite (déconnexion ailleurs, renouvellement refusé).
+  // Session terminée pendant la visite : suppression du compte demandée ici, ou déconnexion ailleurs.
   if (phase === 'ready') {
+    const scheduledFor = deletionNotice.get();
+    if (scheduledFor) return <DeletionRequested scheduledFor={scheduledFor} />;
     return (
       <div>
         <Heading as="h1" size="h2">

@@ -3,8 +3,9 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { getDictionary } from '@/i18n';
-import { type Session, session } from '@/lib/api';
+import { isDeletionPending, type Session, session } from '@/lib/api';
 import { RETURN_PARAM, safeReturnPath } from '@/features/identity/return-path';
+import { identityPaths } from '@/features/identity/texts';
 import type { OtpChallenge } from '@/features/identity/schemas';
 import { CodeStep } from './code-step';
 import { PhoneStep } from './phone-step';
@@ -21,6 +22,8 @@ type Step =
  * à la page demandée (`?retour=`, chemin interne uniquement).
  *
  * Au chargement, une session encore valide (cookie de renouvellement) est reprise sans rien demander.
+ * Compte en cours de suppression (session restreinte, ADR-036) : « Mon compte », où l'annuler, quel que
+ * soit le retour demandé (la page demandée refuserait la session).
  */
 export function LoginFlow() {
   const t = getDictionary();
@@ -35,6 +38,7 @@ export function LoginFlow() {
     session.restore().then((result) => {
       if (!active) return;
       if (result.status !== 'authenticated') return setStep({ name: 'phone' });
+      if (isDeletionPending(result.session)) return replace(identityPaths.settings);
       if (result.session.profileIncomplete) return setStep({ name: 'profile' });
       replace(returnPath);
     });
@@ -53,7 +57,8 @@ export function LoginFlow() {
 
   function verified(opened: Session) {
     session.set(opened);
-    if (opened.profileIncomplete) setStep({ name: 'profile' });
+    if (isDeletionPending(opened)) replace(identityPaths.settings);
+    else if (opened.profileIncomplete) setStep({ name: 'profile' });
     else replace(returnPath);
   }
 

@@ -182,6 +182,9 @@ export const journeyTexts = {
     businessLater:
       'Pour une demande au nom de votre entreprise, choisissez son compte avec « Changer de compte ».',
     profileNeeded: 'Complétez votre profil pour envoyer votre demande.',
+    deletionPending:
+      'Votre compte est en cours de suppression : annulez la suppression pour envoyer une demande.',
+    deletionLink: 'Gérer la suppression de mon compte',
     visitNotice:
       'Une visite des lieux est obligatoire avant tout devis : notre équipe vous contacte pour convenir d’un rendez-vous.',
     submit: 'Envoyer ma demande',

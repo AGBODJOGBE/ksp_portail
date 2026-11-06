@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { type Session, session, useSession } from '@/lib/api';
+import { isDeletionPending, type Session, session, useSession } from '@/lib/api';
 import type { OtpChallenge } from '@/features/identity/schemas';
 import { CodeStep } from './code-step';
 import { PhoneStep } from './phone-step';
@@ -37,10 +37,11 @@ export function InlineLogin({
 
   function verified(opened: Session) {
     session.set(opened);
-    if (!opened.profileIncomplete) onDone?.();
+    if (!opened.profileIncomplete || isDeletionPending(opened)) onDone?.();
   }
 
-  if (current?.profileIncomplete) {
+  // Compte en cours de suppression : la page qui accueille la connexion le signale (profil non modifiable).
+  if (current?.profileIncomplete && !isDeletionPending(current)) {
     return <ProfileForm autoFocus headingLevel={headingLevel} onDone={onDone} />;
   }
   if (step.name === 'code') {
