@@ -6,6 +6,7 @@ import { Button, ButtonLink, buttonClasses } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
 import { IconArrowLeft } from '@/components/ui/icons';
+import { contactHref } from '@/config/navigation';
 import { useSession } from '@/lib/api';
 import { formatDateTime, formatXof } from '@/lib/format';
 import { getPayment } from '@/features/payment/api';
@@ -16,8 +17,8 @@ import {
   FINAL_STATUSES,
   UNSUCCESSFUL,
   paymentPaths,
-  paymentStatus,
   paymentTexts as t,
+  paymentView,
   subjectLabel,
   subjectPath,
 } from '@/features/payment/texts';
@@ -162,7 +163,7 @@ export function PaymentReturn({ id }: { id: string }) {
   }
 
   const { payment, polling } = view;
-  const status = paymentStatus(payment.status);
+  const status = paymentView(payment);
   const pending = payment.status === 'pending';
   const checkout = pending ? safeCheckoutUrl(payment.checkoutUrl) : null;
   const subject = subjectPath(payment.subject);
@@ -204,6 +205,7 @@ export function PaymentReturn({ id }: { id: string }) {
           ) : null}
           {pending && polling ? <p className="text-small text-ink-muted">{t.checking}</p> : null}
           {pending && !polling ? <p className="text-ink-muted">{t.stillPending}</p> : null}
+          {payment.underReview ? <p className="text-ink-muted">{t.underReviewHint}</p> : null}
         </div>
         {/* Paiement réussi : le détail est dans le reçu, juste en dessous. */}
         {payment.status === 'succeeded' ? null : (
@@ -233,8 +235,13 @@ export function PaymentReturn({ id }: { id: string }) {
             {t.checkAgain}
           </Button>
         ) : null}
+        {payment.underReview ? (
+          <ButtonLink href={contactHref('paiement')} variant="primary">
+            {t.contactSupport}
+          </ButtonLink>
+        ) : null}
         {subject ? (
-          <ButtonLink href={subject} variant={checkout ? 'secondary' : 'primary'}>
+          <ButtonLink href={subject} variant={checkout || payment.underReview ? 'secondary' : 'primary'}>
             {isInvoice ? t.seeInvoice : t.seeMission}
           </ButtonLink>
         ) : null}

@@ -14,6 +14,7 @@ export const contactSubjects = {
   livraison: 'Livraison et courses',
   'impression-devis': 'Impression — devis sur mesure',
   'marketplace-vendeur': 'Marketplace — devenir vendeur',
+  paiement: 'Paiement en ligne — vérification par le support',
 } as const satisfies Record<string, string>;
 
 export type ContactSubject = keyof typeof contactSubjects;

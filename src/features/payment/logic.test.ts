@@ -1,7 +1,7 @@
 import { ApiError } from '@/lib/api';
 import { describePaymentError } from './errors';
 import { POLL_DELAYS_MS, nextPollDelay, safeCheckoutUrl } from './polling';
-import { FINAL_STATUSES, paymentStatus, subjectLabel, subjectPath } from './texts';
+import { FINAL_STATUSES, paymentStatus, paymentView, subjectLabel, subjectPath } from './texts';
 
 describe('paiement : règles d’affichage', () => {
   it('attente bornée : environ trois minutes, puis arrêt', () => {
@@ -42,8 +42,20 @@ describe('paiement : règles d’affichage', () => {
     expect(describePaymentError(error(409, 'PAYMENT_IDEMPOTENCY_KEY_REUSED')).kind).toBe('newKey');
     expect(describePaymentError(error(422, 'PAYMENT_VIA_INVOICE')).message).toMatch(/facture mensuelle/);
     expect(describePaymentError(ApiError.network()).kind).toBe('retry');
+    expect(describePaymentError(error(409, 'PAYMENT_ALREADY_RECEIVED')).kind).toBe('received');
+    expect(describePaymentError(error(409, 'PAYMENT_RECONCILIATION_PENDING')).kind).toBe('support');
+    expect(describePaymentError(error(409, 'PAYMENT_UNDER_REVIEW')).message).toBe(
+      'Un paiement est en cours de vérification ; contactez le support KSP.',
+    );
     expect(describePaymentError(error(400, 'PAYMENT_VALIDATION_FAILED')).message).toBe(
       'message de la gateway',
     );
+  });
+
+  it('`underReview` prime sur le statut ; un écart traité n’est plus « en vérification »', () => {
+    expect(paymentView({ status: 'succeeded', underReview: true }).label).toBe('En vérification');
+    expect(paymentView({ status: 'amount_mismatch', underReview: false }).label).toBe('Vérifié par KSP');
+    expect(paymentView({ status: 'amount_mismatch' }).label).toBe('En vérification');
+    expect(paymentView({ status: 'succeeded', underReview: false }).label).toBe('Réussi');
   });
 });

@@ -35,6 +35,11 @@ export const paymentSchema = z.object({
   updatedAt: z.string(),
   expiresAt: z.string(),
   completedAt: z.nullable(z.string()),
+  /**
+   * Écart de montant pas encore traité par la finance (ADR-032, décision 10) : tout nouveau paiement de
+   * l'objet est refusé. Facultatif : absent d'une gateway antérieure.
+   */
+  underReview: z.optional(z.boolean()),
 });
 
 export const paymentListSchema = z.object({

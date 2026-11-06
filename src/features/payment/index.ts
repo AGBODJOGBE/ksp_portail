@@ -3,4 +3,4 @@
 export { PayButton, PaymentReturn, PaymentSimulation } from './components/lazy';
 export { listPayments, type PaymentSubjectInput } from './api';
 export type { Payment } from './schemas';
-export { paymentPaths, paymentStatus, paymentTexts, subjectLabel } from './texts';
+export { paymentPaths, paymentTexts, paymentView, subjectLabel } from './texts';

@@ -168,6 +168,57 @@ describe('Bouton « Payer par Mobile Money »', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/compte actif/));
   });
 
+  it('paiement déjà reçu, pas encore enregistré : pas de bouton qui boucle, « Actualiser » relit la fiche', async () => {
+    const calls = stubGateway({
+      [`POST ${PAYMENTS}`]: {
+        status: 409,
+        body: errorBody('PAYMENT_ALREADY_RECEIVED', 'Paiement déjà reçu.'),
+      },
+    });
+    const onStale = vi.fn();
+    render(
+      <PayButton
+        subject={{ subjectType: 'cleaning_mission', subjectId: MISSION_ID, part: 'balance' }}
+        amount={xof(5000)}
+        onStale={onStale}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Payer par Mobile Money' }));
+    expect(
+      await screen.findByText(
+        /Paiement déjà reçu, en cours d’enregistrement : réessayez dans quelques instants/,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Payer par Mobile Money' })).toBeNull();
+    expect(onStale).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Actualiser' }));
+    expect(onStale).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Payer par Mobile Money' })).toBeInTheDocument();
+    expect(calls).toHaveLength(1);
+    expect(to).not.toHaveBeenCalled();
+  });
+
+  it.each(['PAYMENT_RECONCILIATION_PENDING', 'PAYMENT_UNDER_REVIEW'])(
+    '%s : vérification par le support, plus aucun bouton de paiement',
+    async (code) => {
+      stubGateway({ [`POST ${PAYMENTS}`]: { status: 409, body: errorBody(code, 'message brut') } });
+      render(
+        <PayButton subject={{ subjectType: 'billing_invoice', subjectId: INVOICE_ID }} amount={xof(1000)} />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Payer par Mobile Money' }));
+      expect(
+        await screen.findByText('Un paiement est en cours de vérification ; contactez le support KSP.'),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent(/contactez le support KSP/);
+      expect(screen.queryByRole('button', { name: /Payer|Actualiser/ })).toBeNull();
+      expect(screen.getByRole('link', { name: 'Contacter le support KSP' })).toHaveAttribute(
+        'href',
+        '/contact?sujet=paiement',
+      );
+    },
+  );
+
   it('paiement déjà terminé avec cette clé : page de retour', async () => {
     stubGateway({
       [`POST ${PAYMENTS}`]: { status: 200, body: payment({ status: 'succeeded', checkoutUrl: null }) },
@@ -231,6 +282,35 @@ describe('Page de retour', () => {
       'href',
       `/mon-espace/factures/${INVOICE_ID}`,
     );
+  });
+
+  it('paiement en vérification (`underReview`) : contact du support mis en avant', async () => {
+    stubGateway({
+      [`GET ${PAYMENTS}/${PAYMENT_ID}`]: {
+        status: 200,
+        body: payment({ status: 'amount_mismatch', underReview: true }),
+      },
+    });
+    render(<PaymentReturn id={PAYMENT_ID} />);
+    expect(await screen.findByText(/vous ne payez jamais deux fois/)).toBeInTheDocument();
+    expect(screen.getAllByText('En vérification').length).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: 'Contacter le support KSP' })).toHaveAttribute(
+      'href',
+      '/contact?sujet=paiement',
+    );
+  });
+
+  it('écart déjà traité par KSP : n’est plus présenté « en vérification »', async () => {
+    stubGateway({
+      [`GET ${PAYMENTS}/${PAYMENT_ID}`]: {
+        status: 200,
+        body: payment({ status: 'amount_mismatch', underReview: false }),
+      },
+    });
+    render(<PaymentReturn id={PAYMENT_ID} />);
+    expect((await screen.findAllByText('Vérifié par KSP')).length).toBeGreaterThan(0);
+    expect(screen.queryByText('En vérification')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Contacter le support KSP' })).toBeNull();
   });
 
   it('échec, expiration : message clair et réussite tardive possible', async () => {

@@ -10,8 +10,8 @@ import {
   PayButton,
   listPayments,
   paymentPaths,
-  paymentStatus,
   paymentTexts,
+  paymentView,
   subjectLabel,
   type Payment,
 } from '@/features/payment';
@@ -119,7 +119,7 @@ function InvoiceRow({ invoice, onStale }: { invoice: Invoice; onStale: () => voi
 }
 
 function PaymentRow({ payment }: { payment: Payment }) {
-  const status = paymentStatus(payment.status);
+  const status = paymentView(payment);
   const succeeded = payment.status === 'succeeded';
   return (
     <li className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 py-4">
@@ -129,6 +129,7 @@ function PaymentRow({ payment }: { payment: Payment }) {
           {payment.providerReference ? ` · ${payment.providerReference}` : ''}
         </p>
         <p className="text-ink font-semibold">{subjectLabel(payment.subject)}</p>
+        {payment.underReview ? <p className="text-small text-ink">{paymentTexts.underReview}</p> : null}
         <Link
           href={`${paymentPaths.payment(payment.id)}${succeeded ? '#recu' : ''}`}
           className="text-action-ink inline-flex min-h-11 items-center gap-1 text-sm font-semibold underline-offset-4 hover:underline"

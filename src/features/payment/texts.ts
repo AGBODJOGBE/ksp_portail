@@ -58,6 +58,15 @@ export const paymentTexts = {
     'MTN ou Moov : vous saisissez votre numéro sur la page sécurisée du prestataire, puis validez sur votre téléphone.',
   noCheckout: 'La page de paiement n’est pas encore prête. Réessayez dans quelques instants.',
   resume: 'Reprendre le paiement',
+  // Refus d'un nouveau paiement tant que le précédent n'est pas enregistré ou vérifié (ADR-032).
+  alreadyReceived:
+    'Paiement déjà reçu, en cours d’enregistrement : réessayez dans quelques instants. Inutile de payer à nouveau.',
+  refresh: 'Actualiser',
+  refreshing: 'Actualisation…',
+  underReview: 'Un paiement est en cours de vérification ; contactez le support KSP.',
+  underReviewHint:
+    'Aucun nouveau paiement n’est possible tant que l’équipe KSP ne l’a pas vérifié : vous ne payez jamais deux fois.',
+  contactSupport: 'Contacter le support KSP',
 
   // Page de retour.
   paymentOf: {
@@ -130,6 +139,32 @@ export const paymentStatuses: Record<string, StatusView> = {
     message: 'Paiement reçu, en cours de vérification par l’équipe KSP.',
   },
 };
+
+/** Écart de montant traité par la finance : le statut reste `amount_mismatch` (historique, ADR-032). */
+const mismatchResolved: StatusView = {
+  label: 'Vérifié par KSP',
+  tone: 'neutral',
+  message:
+    'Le montant reçu ne correspondait pas au montant attendu : l’équipe KSP a traité ce paiement. Contactez le support pour toute question.',
+};
+
+/** Paiement en vérification (`underReview`) : quel que soit son statut, le client contacte le support. */
+const underReviewStatus: StatusView = {
+  label: 'En vérification',
+  tone: 'warning',
+  message: 'Paiement reçu, en cours de vérification par l’équipe KSP.',
+};
+
+/**
+ * Statut affiché d'un paiement : `underReview` (écart non traité, ADR-032) prime ; un écart déjà traité
+ * (`underReview` à false) n'est plus présenté comme « en vérification ». Sans le champ (gateway
+ * antérieure), le statut seul décide.
+ */
+export function paymentView(payment: { status: string; underReview?: boolean }): StatusView {
+  if (payment.underReview) return underReviewStatus;
+  if (payment.status === 'amount_mismatch' && payment.underReview === false) return mismatchResolved;
+  return paymentStatus(payment.status);
+}
 
 export function paymentStatus(status: string): StatusView {
   return (

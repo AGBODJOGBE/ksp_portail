@@ -2,11 +2,12 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button, ButtonLink } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
+import { contactHref } from '@/config/navigation';
 import { formatXof } from '@/lib/format';
 import { createPayment, type PaymentSubjectInput } from '@/features/payment/api';
-import { describePaymentError } from '@/features/payment/errors';
+import { describePaymentError, type PaymentErrorView } from '@/features/payment/errors';
 import { safeCheckoutUrl } from '@/features/payment/polling';
 import { paymentPaths, paymentTexts as t } from '@/features/payment/texts';
 
@@ -27,8 +28,44 @@ export interface PayButtonProps {
    * le donne pas directement : la page du prestataire l'affiche.
    */
   amount: { amount: number; currency: 'XOF' } | null;
-  /** Rien à payer ou objet annulé : la fiche se relit pour montrer son état réel. */
+  /**
+   * Rien à payer, objet annulé, ou paiement reçu en cours d'enregistrement : la fiche se relit pour
+   * montrer son état réel.
+   */
   onStale?: () => void;
+}
+
+/** Refus qui retire le bouton : paiement reçu non encore enregistré, ou à vérifier par le support. */
+type Blocked = PaymentErrorView & { kind: 'received' | 'support' };
+
+const isBlocking = (view: PaymentErrorView): view is Blocked =>
+  view.kind === 'received' || view.kind === 'support';
+
+/**
+ * Paiement déjà reçu, ou en vérification (409 de `POST /payment/payments`, ADR-032) : pas de bouton
+ * « Payer » qui renverrait le même refus. Reçu : « Actualiser » relit la fiche (le reste dû disparaît une
+ * fois le paiement enregistré) puis rend le bouton ; vérification : contact du support seulement.
+ */
+function BlockedNotice({ blocked, onRefresh }: { blocked: Blocked; onRefresh: () => void }) {
+  if (blocked.kind === 'received') {
+    return (
+      <div className="grid justify-items-start gap-3">
+        <FormMessage tone="info">{blocked.message}</FormMessage>
+        <Button variant="secondary" onClick={onRefresh}>
+          {t.refresh}
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div className="grid justify-items-start gap-3">
+      <FormMessage>{blocked.message}</FormMessage>
+      <p className="text-small text-ink-muted max-w-reading">{t.underReviewHint}</p>
+      <ButtonLink href={contactHref('paiement')} variant="secondary">
+        {t.contactSupport}
+      </ButtonLink>
+    </div>
+  );
 }
 
 /**
@@ -42,6 +79,7 @@ export function PayButton({ subject, label = t.pay, amount, onStale }: PayButton
   const key = useRef<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState<Blocked | null>(null);
 
   // Clé tirée à l'ouverture de la fiche, avant tout envoi.
   useEffect(() => {
@@ -73,10 +111,26 @@ export function PayButton({ subject, label = t.pay, amount, onStale }: PayButton
     } catch (caught) {
       const view = describePaymentError(caught);
       if (view.kind === 'newKey' || view.kind === 'stale') key.current = null;
-      setError(view.message);
       setBusy(false);
+      if (isBlocking(view)) {
+        setBlocked(view);
+        return;
+      }
+      setError(view.message);
       if (view.kind === 'stale') onStale?.();
     }
+  }
+
+  if (blocked) {
+    return (
+      <BlockedNotice
+        blocked={blocked}
+        onRefresh={() => {
+          setBlocked(null);
+          onStale?.();
+        }}
+      />
+    );
   }
 
   return (
