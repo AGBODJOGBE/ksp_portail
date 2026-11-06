@@ -182,6 +182,27 @@ export const quoteSchema = z.object({
   sentAt: z.string(),
 });
 
+/** `CleaningAnswerSummaryField` : une réponse lisible (« Superficie » : « 120 m² »), sans prix. */
+const answerSummaryFieldSchema = z.object({
+  code: z.string(),
+  label: z.string(),
+  /** Valeur affichable, déjà mise en forme par le service (unité, libellé du choix, « Oui »). */
+  display: z.string(),
+});
+
+/**
+ * `CleaningAnswerSummary` (ADR-037) : réponses du client résolues avec la version de grille de la
+ * demande — champs dans l'ordre du formulaire, options choisies, fréquence. Une demande à l'ancien
+ * format y donne « Type de locaux » et « Quantité ».
+ */
+export const answerSummarySchema = z.object({
+  fields: z.array(answerSummaryFieldSchema),
+  options: z.array(
+    z.object({ optionCode: z.string(), label: z.string(), fields: z.array(answerSummaryFieldSchema) }),
+  ),
+  frequency: z.nullable(z.object({ code: z.string(), label: z.string() })),
+});
+
 /**
  * `CleaningQuoteRequest` : une demande de devis du client. `customerKind` et `organizationId` viennent
  * du contexte actif au moment de la demande (particulier, ou entreprise et son organisation).
@@ -238,6 +259,11 @@ export const quoteRequestSchema = z.object({
   placeType: z.optional(z.nullable(z.string())),
   placeTypeLabel: z.optional(z.nullable(z.string())),
   landmark: z.optional(z.nullable(z.string())),
+  /**
+   * Réponses lisibles (ADR-037) ; null si la demande n'a pas pu être décrite, absent d'une gateway
+   * antérieure : l'affichage retombe alors sur les libellés du formulaire publié.
+   */
+  answerSummary: z.optional(z.nullable(answerSummarySchema)),
 });
 
 export const quoteRequestListSchema = z.object({
@@ -387,6 +413,7 @@ export type Recurrence = z.infer<typeof recurrenceSchema>;
 export type ServiceOffer = z.infer<typeof serviceOfferSchema>;
 export type ServedZone = z.infer<typeof servedZoneSchema>;
 export type Quote = z.infer<typeof quoteSchema>;
+export type AnswerSummary = z.infer<typeof answerSummarySchema>;
 export type QuoteRequest = z.infer<typeof quoteRequestSchema>;
 export type QuoteRequestList = z.infer<typeof quoteRequestListSchema>;
 export type Intervention = z.infer<typeof interventionSchema>;

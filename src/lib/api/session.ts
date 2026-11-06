@@ -124,6 +124,15 @@ export const session: SessionStore = createSessionStore({
   refresh: async () => (await import('./refresh')).refreshSession(),
 });
 
+/**
+ * Session restreinte d'un compte en cours de suppression (ADR-036, `user.status` = `deletion_pending`) :
+ * la gateway n'y accepte que la lecture du profil, l'annulation de la suppression et la déconnexion
+ * (`GATEWAY_ACCOUNT_DELETION_PENDING`, 403, partout ailleurs). Les écrans n'appellent donc rien d'autre.
+ */
+export function isDeletionPending(current: Pick<Session, 'user'> | null): boolean {
+  return current?.user.status === 'deletion_pending';
+}
+
 const noSession = () => null;
 
 /**

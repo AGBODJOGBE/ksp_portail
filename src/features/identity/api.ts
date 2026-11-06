@@ -1,5 +1,8 @@
 import { api, parseResponse, type Session } from '@/lib/api';
 import {
+  type AccountDeletion,
+  type CancelDeletionResponse,
+  cancelDeletionResponseSchema,
   type EmailChallenge,
   emailChallengeSchema,
   type Membership,
@@ -9,6 +12,7 @@ import {
   otpChallengeSchema,
   type Profile,
   profileSchema,
+  requestDeletionResponseSchema,
   type SwitchContextResponse,
   switchContextResponseSchema,
   verifyOtpResponseSchema,
@@ -26,6 +30,7 @@ const PATHS = {
   me: '/api/v1/identity/me',
   email: '/api/v1/identity/me/email',
   emailVerify: '/api/v1/identity/me/email/verify',
+  deletion: '/api/v1/identity/me/deletion',
   context: '/api/v1/identity/context',
   organizations: '/api/v1/identity/organizations',
 } as const;
@@ -118,4 +123,17 @@ export async function confirmBillingEmail(id: string, code: string): Promise<Mem
 /** Ferme la session de cet appareil ; la gateway efface le cookie de renouvellement. */
 export async function logout(): Promise<void> {
   await api.post(PATHS.logout);
+}
+
+/**
+ * Demande la suppression du compte (ADR-036) : compte gelé jusqu'à `scheduledFor`, toutes les sessions
+ * fermées (celle-ci comprise, cookie de renouvellement effacé). Refus 422 avec les obligations en cours.
+ */
+export async function requestAccountDeletion(): Promise<AccountDeletion> {
+  return parseResponse(requestDeletionResponseSchema, await api.post(PATHS.deletion)).deletion;
+}
+
+/** Annule la suppression depuis la session restreinte : la réponse porte un jeton d'accès complet. */
+export async function cancelAccountDeletion(): Promise<CancelDeletionResponse> {
+  return parseResponse(cancelDeletionResponseSchema, await api.delete(PATHS.deletion));
 }

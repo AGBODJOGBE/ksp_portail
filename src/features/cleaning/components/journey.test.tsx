@@ -10,10 +10,11 @@ import {
   requestGroup,
   stubGateway,
 } from '@/features/cleaning/fake-gateway.test-utils';
-import { DRAFT_KEY } from '@/features/cleaning/journey';
+import { DRAFT_KEY, emptyDraft } from '@/features/cleaning/journey';
 import type { PlaceCatalog } from '@/features/cleaning/schemas';
 import { CleaningJourney } from './journey';
 import { parseCoordinates } from './journey-address';
+import { ReviewStep } from './journey-review';
 
 // La carte (Leaflet) ne se charge pas dans jsdom : l'écran doit le dire et garder la saisie des coordonnées.
 vi.mock('leaflet', () => {
@@ -312,5 +313,33 @@ describe('demande de devis par lieu', () => {
     expect(parseCoordinates('\u22126.5', '-181')).toBeNull();
     expect(parseCoordinates('abc', '2')).toBeNull();
     expect(parseCoordinates('', '')).toBeNull();
+  });
+});
+
+describe('récapitulatif avec un compte en cours de suppression (ADR-036)', () => {
+  it('ne propose pas l’envoi : la suppression est à annuler d’abord', async () => {
+    const { calls } = stubGateway({});
+    signIn();
+    const current = session.get()!;
+    session.set({ ...current, user: { ...current.user, status: 'deletion_pending' } });
+    render(
+      <ReviewStep
+        draft={emptyDraft('house')}
+        catalog={CATALOG as PlaceCatalog}
+        zones={ZONES.data}
+        update={vi.fn()}
+        errors={{}}
+        clearError={vi.fn()}
+        goTo={vi.fn()}
+        onSent={vi.fn()}
+      />,
+    );
+    expect(await screen.findByText(/Votre compte est en cours de suppression/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Gérer la suppression de mon compte' })).toHaveAttribute(
+      'href',
+      '/mon-espace/compte',
+    );
+    expect(screen.getByRole('button', { name: 'Envoyer ma demande' })).toBeDisabled();
+    expect(calls.filter((call) => call.method !== 'POST' || !call.path.endsWith('/estimates'))).toEqual([]);
   });
 });

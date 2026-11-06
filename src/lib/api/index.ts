@@ -6,6 +6,7 @@ export { ApiError } from './errors';
 export type { ApiClient, RequestOptions } from './client';
 export {
   contextKey,
+  isDeletionPending,
   session,
   useSession,
   type ActiveContext,

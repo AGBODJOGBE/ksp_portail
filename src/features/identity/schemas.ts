@@ -24,6 +24,23 @@ export const verifyOtpResponseSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('mfa_required') }),
 ]);
 
+/** `DeletionObstacle` : raison lisible qui empêche (ou reporte) la suppression du compte (ADR-036). */
+export const deletionObstacleSchema = z.object({
+  /** Service qui l'a signalée (`cleaning`, `billing`, `payment`…) ou `identity` (compte entreprise). */
+  service: z.string(),
+  /** Nature : `open_cleaning_mission`, `unpaid_invoice`, `pending_payment`… (chaîne : liste ouverte). */
+  kind: z.string(),
+  reference: z.string(),
+  description: z.string(),
+});
+
+/** `AccountDeletion` : suppression demandée, date prévue fixée à la demande, raisons d'un report. */
+export const accountDeletionSchema = z.object({
+  requestedAt: z.string(),
+  scheduledFor: z.string(),
+  postponedBy: z.array(deletionObstacleSchema),
+});
+
 /**
  * `MeResponse` : profil (`GET`/`PATCH /me`, confirmation de l'e-mail). `user.email` est l'adresse
  * vérifiée ; `pendingEmail`, celle qui attend son code (ADR-026).
@@ -33,6 +50,23 @@ export const profileSchema = z.object({
   profileIncomplete: z.boolean(),
   activeContext: activeContextSchema,
   pendingEmail: z.nullable(z.string()),
+  /** Suppression demandée (ADR-036) ; null sinon. Facultatif : absent d'une gateway antérieure. */
+  deletion: z.optional(z.nullable(accountDeletionSchema)),
+});
+
+/** `RequestAccountDeletionResponse`. */
+export const requestDeletionResponseSchema = z.object({ deletion: accountDeletionSchema });
+
+/**
+ * `CancelAccountDeletionResponse` : compte de nouveau actif, nouveau jeton d'accès complet à mettre à la
+ * place du jeton restreint (le jeton de renouvellement ne change pas).
+ */
+export const cancelDeletionResponseSchema = z.object({
+  user: sessionUserSchema,
+  profileIncomplete: z.boolean(),
+  activeContext: activeContextSchema,
+  accessToken: z.string().check(z.minLength(1)),
+  accessTokenExpiresAt: z.string(),
 });
 
 /** `ChangeEmailResponse` : code envoyé par e-mail à l'adresse à confirmer (profil ou facturation). */
@@ -80,6 +114,9 @@ export const membershipListSchema = z.object({ data: z.array(membershipSchema) }
 export type OtpChallenge = z.infer<typeof otpChallengeSchema>;
 export type VerifyOtpResponse = z.infer<typeof verifyOtpResponseSchema>;
 export type Profile = z.infer<typeof profileSchema>;
+export type DeletionObstacle = z.infer<typeof deletionObstacleSchema>;
+export type AccountDeletion = z.infer<typeof accountDeletionSchema>;
+export type CancelDeletionResponse = z.infer<typeof cancelDeletionResponseSchema>;
 export type EmailChallenge = z.infer<typeof emailChallengeSchema>;
 export type SwitchContextResponse = z.infer<typeof switchContextResponseSchema>;
 export type Organization = z.infer<typeof organizationSchema>;

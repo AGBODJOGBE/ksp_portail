@@ -6,12 +6,7 @@ import type { BadgeTone } from '@/components/ui/badge';
  * pages de l'espace qui les affichent les téléchargent.
  */
 
-export const identityPaths = {
-  account: '/mon-espace',
-  profile: '/mon-espace/profil',
-  organizations: '/mon-espace/entreprise',
-  organization: (id: string) => `/mon-espace/entreprise/${encodeURIComponent(id)}`,
-} as const;
+export { identityPaths } from './paths';
 
 export const accountTexts = {
   common: {
@@ -22,7 +17,7 @@ export const accountTexts = {
   },
   home: {
     profileLink: 'Mon profil',
-    profileLinkText: 'Nom, numéro de connexion et e-mail.',
+    profileLinkText: 'Nom, numéro de connexion, e-mail et suppression du compte.',
     organizationsLink: 'Mon entreprise',
     organizationsLinkText: 'Compte entreprise, validation par KSP et e-mail de facturation.',
   },

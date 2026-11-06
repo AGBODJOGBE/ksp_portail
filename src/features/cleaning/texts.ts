@@ -120,6 +120,7 @@ export const cleaningTexts = {
     need: 'Votre besoin',
     place: 'Lieu',
     answers: 'Description',
+    answersUnavailable: 'Le détail de vos réponses n’est pas disponible pour cette demande.',
     options: 'Prestations complémentaires',
     frequency: 'Fréquence',
     inGroup: 'Cette prestation fait partie d’une demande groupée.',

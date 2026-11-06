@@ -9,6 +9,16 @@ export type PaymentErrorKind =
   | 'newKey'
   /** Coupure, prestataire injoignable, limite d'appels : renvoi possible avec la même clé. */
   | 'retry'
+  /**
+   * Paiement réussi pas encore enregistré (ADR-032, décision 7) : ne pas proposer de payer tout de suite,
+   * relire la fiche un peu plus tard.
+   */
+  | 'received'
+  /**
+   * Paiement à vérifier par l'équipe KSP (enregistrement trop long ou écart de montant, ADR-032) : plus
+   * aucun bouton de paiement, le client contacte le support.
+   */
+  | 'support'
   | 'other';
 
 export interface PaymentErrorView {
@@ -38,6 +48,12 @@ const MESSAGES: Record<string, { message: string; kind: PaymentErrorKind }> = {
     message: 'Le paiement n’a pas pu être préparé. Réessayez.',
     kind: 'newKey',
   },
+  PAYMENT_ALREADY_RECEIVED: {
+    message: paymentTexts.alreadyReceived,
+    kind: 'received',
+  },
+  PAYMENT_RECONCILIATION_PENDING: { message: paymentTexts.underReview, kind: 'support' },
+  PAYMENT_UNDER_REVIEW: { message: paymentTexts.underReview, kind: 'support' },
   PAYMENT_PROVIDER_UNAVAILABLE: {
     message:
       'Le service de paiement Mobile Money est momentanément indisponible. Réessayez dans quelques instants.',

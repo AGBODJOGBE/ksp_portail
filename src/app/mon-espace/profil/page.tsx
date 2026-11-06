@@ -1,7 +1,8 @@
+import Link from 'next/link';
 import { ButtonLink } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
-import { IconArrowLeft } from '@/components/ui/icons';
-import { accountTexts, identityPaths, ProfileSpace } from '@/features/identity';
+import { IconArrowLeft, IconArrowRight } from '@/components/ui/icons';
+import { accountTexts, deletionTexts, identityPaths, ProfileSpace } from '@/features/identity';
 
 const t = accountTexts;
 
@@ -20,6 +21,16 @@ export default function ProfilePage() {
         <p className="text-ink-muted">{t.profile.lead}</p>
       </div>
       <ProfileSpace />
+      <p className="text-small text-ink-muted border-line border-t pt-6">
+        {deletionTexts.settings.linkText}{' '}
+        <Link
+          href={identityPaths.settings}
+          className="text-ink inline-flex min-h-11 items-center gap-1 font-semibold underline underline-offset-4"
+        >
+          {deletionTexts.settings.link}
+          <IconArrowRight className="size-4" />
+        </Link>
+      </p>
     </div>
   );
 }

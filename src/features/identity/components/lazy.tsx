@@ -47,5 +47,25 @@ export const InlineLogin = dynamic(() => import('./inline-login').then((module_)
   loading: Loading,
 });
 
+/** « Supprimer mon compte » (ADR-036), sur la page « Mon compte ». */
+export const AccountDeletion = dynamic(
+  () => import('./account-deletion').then((module_) => module_.AccountDeletion),
+  { loading: Loading },
+);
+
+/**
+ * Compte en cours de suppression (session restreinte) et confirmation après la demande : affichés par la
+ * garde de l'espace, téléchargés seulement dans ces deux cas.
+ */
+export const PendingDeletion = dynamic(
+  () => import('./pending-deletion').then((module_) => module_.PendingDeletion),
+  { loading: Loading },
+);
+
+export const DeletionRequested = dynamic(
+  () => import('./pending-deletion').then((module_) => module_.DeletionRequested),
+  { loading: Loading },
+);
+
 /** E-mail à ajouter ou à vérifier, dans la rubrique « À faire » de l'accueil de l'espace. */
 export const ProfileTodo = dynamic(() => import('./profile-todo').then((module_) => module_.ProfileTodo));
