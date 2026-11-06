@@ -1,4 +1,5 @@
 import { ApiError } from '@/lib/api';
+import { needLines, summaryLines } from './answers-text';
 import { describeCleaningError } from './errors';
 import { ZONES } from './fake-gateway.test-utils';
 import { idempotentSubmission } from './idempotency';
@@ -139,5 +140,34 @@ describe('suspension d’une mission (ADR-030)', () => {
       'Service suspendu depuis le 11 décembre 2026. Les passages à venir sont annulés ; ils seront reprogrammés automatiquement à la reprise du service. Contactez KSP pour en savoir plus.',
     );
     expect(suspendedStatus({ cause: 'nouvelle_cause' }).label).toBe('Suspendue');
+  });
+});
+
+describe('réponses lisibles d’une demande (ADR-037)', () => {
+  const summary = {
+    fields: [{ code: 'rooms', label: 'Pièces', display: '6' }],
+    options: [
+      { optionCode: 'windows', label: 'Vitres', fields: [{ code: 'n', label: 'Fenêtres', display: '4' }] },
+    ],
+    frequency: { code: 'monthly', label: 'Tous les mois' },
+  };
+
+  it('met le résumé en lignes sans rien retraduire', () => {
+    expect(summaryLines(summary)).toEqual({
+      answers: ['Pièces : 6'],
+      options: ['Vitres (Fenêtres : 4)'],
+      frequency: 'Tous les mois',
+    });
+  });
+
+  it('préfère le résumé aux réponses brutes, sinon relit le formulaire, sinon le signale vide', () => {
+    expect(needLines(null, { answers: { rooms: 6 }, answerSummary: summary }).answers).toEqual([
+      'Pièces : 6',
+    ]);
+    expect(needLines(null, { answers: { rooms: 6 }, answerSummary: null })).toMatchObject({
+      answers: [],
+      empty: true,
+    });
+    expect(needLines(null, { answerSummary: { fields: [], options: [], frequency: null } }).empty).toBe(true);
   });
 });

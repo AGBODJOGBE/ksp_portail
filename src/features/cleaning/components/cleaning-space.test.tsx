@@ -546,3 +546,67 @@ describe('Mes prestations de nettoyage', () => {
     expect(screen.queryByRole('button', { name: /par Mobile Money/ })).not.toBeInTheDocument();
   });
 });
+
+describe('Détail d’une demande : réponses lisibles (ADR-037)', () => {
+  const field = (code: string, label: string, display: string) => ({
+    code,
+    label,
+    type: 'number',
+    value: 0,
+    display,
+    unitLabel: null,
+  });
+
+  function renderRequest(overrides: Record<string, unknown>) {
+    stubGateway({
+      [SERVICES_ROUTE]: { status: 200, body: SERVICES },
+      [`GET ${REQUESTS}/${REQUEST_ID}`]: { status: 200, body: quoteRequest(overrides) },
+    });
+    render(<RequestDetail id={REQUEST_ID} />);
+  }
+
+  it('affiche `answerSummary` tel quel : libellé et valeur, options, fréquence', async () => {
+    renderRequest({
+      answers: { surface: 120 },
+      answerSummary: {
+        fields: [field('surface', 'Superficie', '120 m²'), field('dirt', 'Niveau de saleté', 'Très sale')],
+        options: [
+          { optionCode: 'windows', label: 'Vitres', fields: [field('count', 'Nombre de fenêtres', '6')] },
+          { optionCode: 'furniture', label: 'Mobilier', fields: [] },
+        ],
+        frequency: { code: 'weekly', label: 'Toutes les semaines' },
+      },
+    });
+    expect(await screen.findByText('Superficie : 120 m²')).toBeInTheDocument();
+    expect(screen.getByText('Niveau de saleté : Très sale')).toBeInTheDocument();
+    expect(screen.getByText('Vitres (Nombre de fenêtres : 6)')).toBeInTheDocument();
+    expect(screen.getByText('Mobilier')).toBeInTheDocument();
+    expect(screen.getByText('Toutes les semaines')).toBeInTheDocument();
+    // Aucun code brut des réponses.
+    expect(screen.queryByText(/surface/)).toBeNull();
+  });
+
+  it('demande à l’ancien format : le résumé du service (« Type de locaux », « Quantité »)', async () => {
+    renderRequest({
+      answerSummary: {
+        fields: [
+          field('premisesType', 'Type de locaux', 'Maison'),
+          field('quantity', 'Quantité', '6 pièces'),
+        ],
+        options: [],
+        frequency: null,
+      },
+    });
+    expect(await screen.findByText('Type de locaux : Maison')).toBeInTheDocument();
+    expect(screen.getByText('Quantité : 6 pièces')).toBeInTheDocument();
+    expect(screen.queryByText('Fréquence')).toBeNull();
+  });
+
+  it('sans résumé ni réponses lisibles : repli explicite, jamais de valeurs brutes', async () => {
+    renderRequest({ answerSummary: null });
+    expect(
+      await screen.findByText('Le détail de vos réponses n’est pas disponible pour cette demande.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('house')).toBeNull();
+  });
+});

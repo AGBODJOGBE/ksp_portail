@@ -28,7 +28,7 @@ import {
   visitStatuses,
 } from '@/features/cleaning/texts';
 import { serviceName, useServices } from '@/features/cleaning/use-services';
-import { describeAnswers } from '@/features/cleaning/answers-text';
+import { needLines } from '@/features/cleaning/answers-text';
 import { LIFECYCLE, requestStage } from '@/features/cleaning/lifecycle';
 import { spaceTexts } from '@/features/cleaning/space-texts';
 import { DetailHeader, Facts, LoadError, Loading, NextStep, Panel } from './detail-parts';
@@ -241,7 +241,7 @@ export function RequestDetail({ id }: { id: string }) {
     request.status === 'expired' || (!!quote && request.status === 'quote_sent' && isPast(quote.validUntil));
   const canAnswer = request.status === 'quote_sent' && !!quote && !expired;
   const form = services.find((service) => service.code === request.serviceCode)?.form;
-  const need = describeAnswers(form, request);
+  const need = needLines(form, request);
   const status = statusOf(requestStatuses, request.status);
   const stage = requestStage(request);
   const closed = !OPEN.has(request.status) && request.status !== 'accepted';
@@ -369,13 +369,26 @@ export function RequestDetail({ id }: { id: string }) {
                   t.answers,
                   need.answers.length ? (
                     <ul key="answers" className="grid gap-1">
-                      {need.answers.map((line) => (
-                        <li key={line}>{line}</li>
+                      {need.answers.map((line, index) => (
+                        <li key={`${index}-${line}`}>{line}</li>
+                      ))}
+                    </ul>
+                  ) : need.empty ? (
+                    <span key="answers" className="text-ink-muted font-normal">
+                      {t.answersUnavailable}
+                    </span>
+                  ) : null,
+                ],
+                [
+                  t.options,
+                  need.options.length ? (
+                    <ul key="options" className="grid gap-1">
+                      {need.options.map((line, index) => (
+                        <li key={`${index}-${line}`}>{line}</li>
                       ))}
                     </ul>
                   ) : null,
                 ],
-                [t.options, need.options.join(', ')],
                 [t.frequency, need.frequency],
                 [t.address, `${request.address}, ${request.commune}`],
                 [t.recurrence, recurrenceLabel(request.recurrence)],
