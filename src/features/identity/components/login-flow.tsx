@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getDictionary } from '@/i18n';
 import { isDeletionPending, type Session, session } from '@/lib/api';
 import { RETURN_PARAM, safeReturnPath } from '@/features/identity/return-path';
-import { identityPaths } from '@/features/identity/texts';
+import { identityPaths } from '@/features/identity/paths';
 import type { OtpChallenge } from '@/features/identity/schemas';
 import { CodeStep } from './code-step';
 import { PhoneStep } from './phone-step';

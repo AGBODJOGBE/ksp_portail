@@ -14,3 +14,4 @@ export {
   ProfileTodo,
 } from './components/lazy';
 export { accountTexts, identityPaths } from './texts';
+export { deletionTexts } from './deletion-texts';

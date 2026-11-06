@@ -160,6 +160,8 @@ Mesure du 5 novembre 2026, après la demande de devis par lieu (ADR-034) : socle
 
 Mesure du 5 novembre 2026, après « Mon espace orienté actions » (lot 2) : `/mon-espace` 209,3 Ko (+0,7 Ko : rubrique « À faire », « Prestations en cours », chargées à la demande) ; `/mon-espace/paiements` 209,1 Ko (historique unifié) ; `/mon-espace/nettoyage/demandes` 208,5 Ko ; `/mon-espace/factures` 208,2 Ko. Le suivi d'un groupe, son formulaire d'acceptation et le reçu sont chargés à la demande. Budget « espace connecté » (215 Ko) tenu.
 
+Mesure du 6 novembre 2026, après la suppression du compte (ADR-036), les refus de paiement (ADR-032) et les réponses lisibles (ADR-037), comparée à un build de `main` : socle inchangé (177,9 Ko) ; `/connexion`, `/mon-espace/profil`, `/mon-espace/entreprise` et `/mon-espace/compte` 208,3 Ko (+0,5 Ko) ; `/mon-espace` 209,8 Ko ; `/mon-espace/paiements` 209,6 Ko ; `/mon-espace/nettoyage/demandes` 209,0 Ko ; `/mon-espace/factures` 208,7 Ko. Piège mesuré : la connexion qui lisait `identityPaths` dans `texts.ts` faisait entrer tous les textes du compte dans le premier téléchargement de l'espace (+2,3 Ko) ; les adresses sont dans `identity/paths.ts`, les textes de la suppression dans `deletion-texts.ts`, la date gardée après la demande dans `deletion-notice.ts` (sans texte).
+
 Budgets par type de page (validés le 19 octobre 2026) :
 
 | Type de page                                             | Budget   |

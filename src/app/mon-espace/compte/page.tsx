@@ -1,7 +1,7 @@
 import { ButtonLink } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { IconArrowLeft } from '@/components/ui/icons';
-import { AccountDeletion, accountTexts, identityPaths } from '@/features/identity';
+import { AccountDeletion, accountTexts, deletionTexts, identityPaths } from '@/features/identity';
 
 const t = accountTexts;
 
@@ -18,9 +18,9 @@ export default function AccountSettingsPage() {
           {t.common.backToAccount}
         </ButtonLink>
         <Heading as="h1" size="h1">
-          {t.settings.title}
+          {deletionTexts.settings.title}
         </Heading>
-        <p className="text-ink-muted">{t.settings.lead}</p>
+        <p className="text-ink-muted">{deletionTexts.settings.lead}</p>
       </div>
       <AccountDeletion />
     </div>

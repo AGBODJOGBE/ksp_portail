@@ -8,7 +8,7 @@ import { Heading } from '@/components/ui/heading';
 import { navigation } from '@/config/navigation';
 import { getDictionary } from '@/i18n';
 import { isDeletionPending, session, useSession } from '@/lib/api';
-import { deletionNotice } from '@/features/identity/deletion';
+import { deletionNotice } from '@/features/identity/deletion-notice';
 import { describeError } from '@/features/identity/errors';
 import { loginHref } from '@/features/identity/return-path';
 import { DeletionRequested, PendingDeletion } from './lazy';

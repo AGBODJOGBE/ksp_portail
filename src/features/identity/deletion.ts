@@ -1,11 +1,9 @@
-import { ApiError, session } from '@/lib/api';
+import { ApiError } from '@/lib/api';
 import type { DeletionObstacle } from './schemas';
+import { deletionTexts } from './deletion-texts';
 import { accountTexts } from './texts';
 
-/*
- * Suppression du compte (ADR-036), logique sans React : refus de la demande traduit pour l'écran, et
- * date prévue gardée en mémoire le temps d'afficher la confirmation (la demande ferme la session).
- */
+/* Suppression du compte (ADR-036), logique sans React : refus de la demande traduit pour l'écran. */
 
 export interface DeletionErrorView {
   message: string;
@@ -56,27 +54,7 @@ function obstaclesOf(details: Record<string, unknown>): DeletionObstacle[] {
 export function describeDeletionError(error: unknown): DeletionErrorView {
   if (!(error instanceof ApiError)) return { message: accountTexts.common.genericError, obstacles: [] };
   if (error.code === 'IDENTITY_DELETION_CHECK_UNAVAILABLE') {
-    return { message: accountTexts.deletion.unavailable, obstacles: [] };
+    return { message: deletionTexts.deletion.unavailable, obstacles: [] };
   }
   return { message: error.message, obstacles: obstaclesOf(error.details) };
 }
-
-/*
- * Date prévue de la suppression qui vient d'être demandée. La demande ferme toutes les sessions : la
- * garde de l'espace, qui n'a plus de session, affiche alors cette confirmation au lieu de « Vous n'êtes
- * plus connecté ». Mémoire de l'onglet seulement, oubliée dès qu'une session s'ouvre à nouveau.
- */
-let requestedFor: string | null = null;
-
-session.subscribe((current) => {
-  if (current) requestedFor = null;
-});
-
-export const deletionNotice = {
-  set(scheduledFor: string): void {
-    requestedFor = scheduledFor;
-  },
-  get(): string | null {
-    return requestedFor;
-  },
-};

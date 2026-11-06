@@ -14,10 +14,11 @@ import { describeAccountError } from '@/features/identity/account-errors';
 import { cancelAccountDeletion, getProfile, logout } from '@/features/identity/api';
 import { loginHref } from '@/features/identity/return-path';
 import type { CancelDeletionResponse } from '@/features/identity/schemas';
+import { deletionTexts } from '@/features/identity/deletion-texts';
 import { accountTexts, identityPaths } from '@/features/identity/texts';
 import { ObstacleList } from './account-deletion';
 
-const t = accountTexts.deletion;
+const t = deletionTexts.deletion;
 
 /**
  * Session restreinte d'un compte en cours de suppression (ADR-036), affichée par la garde à la place de

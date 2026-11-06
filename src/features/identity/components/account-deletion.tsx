@@ -8,12 +8,13 @@ import { IconArrowRight } from '@/components/ui/icons';
 import { session } from '@/lib/api';
 import { frenchSpacing } from '@/lib/typography';
 import { requestAccountDeletion } from '@/features/identity/api';
-import { type DeletionErrorView, deletionNotice, describeDeletionError } from '@/features/identity/deletion';
+import { type DeletionErrorView, describeDeletionError } from '@/features/identity/deletion';
+import { deletionNotice } from '@/features/identity/deletion-notice';
 import type { DeletionObstacle } from '@/features/identity/schemas';
-import { accountTexts, deletionObstacle } from '@/features/identity/texts';
+import { deletionObstacle, deletionTexts } from '@/features/identity/deletion-texts';
 import { Section } from './space-parts';
 
-const t = accountTexts.deletion;
+const t = deletionTexts.deletion;
 const SUBTITLE = 'font-display text-ink text-lg font-semibold';
 
 /** Obligations en cours, avec ce qu'il faut faire et l'écran où le faire. */

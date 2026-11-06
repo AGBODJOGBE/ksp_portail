@@ -3,10 +3,10 @@ import type { ReactNode } from 'react';
 import { Container } from '@/components/ui/container';
 import { Eyebrow } from '@/components/ui/eyebrow';
 import { navigation } from '@/config/navigation';
-import { accountTexts, RequireSession } from '@/features/identity';
+import { deletionTexts, RequireSession } from '@/features/identity';
 
 export const metadata: Metadata = {
-  title: accountTexts.settings.title,
+  title: deletionTexts.settings.title,
   robots: { index: false, follow: false },
 };
 
