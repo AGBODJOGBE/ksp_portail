@@ -19,6 +19,8 @@ export interface GatewayOptions {
   requestOtp?: { status: number; body: unknown };
   /** Session déjà ouverte (cookie de renouvellement valide). */
   signedIn?: boolean;
+  /** Compte en cours de suppression (ADR-036) : la connexion ouvre une session restreinte. */
+  deletionPending?: boolean;
   /** Routes d'un autre service (Nettoyage…) : réponse, ou `undefined` pour laisser la main. */
   routes?: (request: ExtraRequest) => { status: number; body: unknown } | undefined;
 }
@@ -37,11 +39,20 @@ export interface FakeGateway {
   /** En-têtes refusés par la gateway réelle (préfixe `x-` hors `x-app-version`) vus dans les requêtes. */
   forbiddenHeaders: string[];
   calls: Array<{ method: string; path: string; body: unknown }>;
+  /** Appels refusés à la session restreinte (`GATEWAY_ACCOUNT_DELETION_PENDING`) : jamais attendus. */
+  deniedWhilePending: string[];
 }
 
-const user = (firstName: string | null, lastName: string | null) => ({
+/** Routes ouvertes à la session restreinte d'un compte en cours de suppression (`x-ksp-pending-deletion`). */
+const PENDING_DELETION_ROUTES = new Set([
+  'GET /api/v1/identity/me',
+  'DELETE /api/v1/identity/me/deletion',
+  'POST /api/v1/identity/logout',
+]);
+
+const user = (firstName: string | null, lastName: string | null, status = 'active') => ({
   id: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d9e11',
-  status: 'active',
+  status,
   firstName,
   lastName,
   phone: '+2290197000045',
@@ -61,8 +72,13 @@ export async function mockGateway(page: Page, options: GatewayOptions = {}): Pro
     firstName: options.signedIn ? 'Koffi' : (null as string | null),
     lastName: options.signedIn ? 'Adjovi' : (null as string | null),
     attempts: 5,
+    deletion: options.deletionPending
+      ? { requestedAt: '2026-11-05T10:00:00Z', scheduledFor: '2026-12-05T10:00:00Z', postponedBy: [] }
+      : (null as null | { requestedAt: string; scheduledFor: string; postponedBy: unknown[] }),
   };
-  const gateway: FakeGateway = { forbiddenHeaders: [], calls: [] };
+  const gateway: FakeGateway = { forbiddenHeaders: [], calls: [], deniedWhilePending: [] };
+  const status = () => (state.deletion ? 'deletion_pending' : 'active');
+  const activeContext = { type: 'individual', organizationId: null, organizationName: null };
 
   const session = () => ({
     status: 'authenticated',
@@ -70,9 +86,9 @@ export async function mockGateway(page: Page, options: GatewayOptions = {}): Pro
     accessTokenExpiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
     refreshTokenExpiresAt: new Date(Date.now() + 30 * 86_400_000).toISOString(),
     sessionId: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d9e10',
-    user: user(state.firstName, state.lastName),
+    user: user(state.firstName, state.lastName, status()),
     profileIncomplete: !state.firstName || !state.lastName,
-    activeContext: { type: 'individual', organizationId: null, organizationName: null },
+    activeContext,
   });
 
   await page.route(`${GATEWAY}/api/v1/**`, async (route: Route) => {
@@ -105,6 +121,18 @@ export async function mockGateway(page: Page, options: GatewayOptions = {}): Pro
     );
     const reply = (status: number, json: unknown) => route.fulfill({ status, headers: cors, json });
     const authorized = request.headers().authorization === 'Bearer jeton-acces-e2e' && state.signedIn;
+    // Session restreinte : la gateway refuse toute route connectée qui ne l'accepte pas (ADR-036).
+    const key = `${request.method()} ${path}`;
+    if (authorized && state.deletion && !PENDING_DELETION_ROUTES.has(key)) {
+      gateway.deniedWhilePending.push(key);
+      return reply(
+        403,
+        error(
+          'GATEWAY_ACCOUNT_DELETION_PENDING',
+          'Votre compte est en cours de suppression : vous pouvez seulement annuler la suppression.',
+        ),
+      );
+    }
     const extra = options.routes?.({
       method: request.method(),
       path,
@@ -149,6 +177,35 @@ export async function mockGateway(page: Page, options: GatewayOptions = {}): Pro
           profileIncomplete: false,
           activeContext: { type: 'individual', organizationId: null, organizationName: null },
           pendingEmail: null,
+        });
+      case 'GET /api/v1/identity/me':
+        if (!authorized) return reply(401, error('GATEWAY_TOKEN_MISSING', 'Vous devez être connecté.'));
+        return reply(200, {
+          user: user(state.firstName, state.lastName, status()),
+          profileIncomplete: !state.firstName || !state.lastName,
+          activeContext,
+          pendingEmail: null,
+          deletion: state.deletion,
+        });
+      case 'POST /api/v1/identity/me/deletion':
+        if (!authorized) return reply(401, error('GATEWAY_TOKEN_MISSING', 'Vous devez être connecté.'));
+        // Compte gelé, toutes les sessions fermées (cookie de renouvellement effacé).
+        state.deletion = {
+          requestedAt: '2026-11-05T10:00:00Z',
+          scheduledFor: '2026-12-05T10:00:00Z',
+          postponedBy: [],
+        };
+        state.signedIn = false;
+        return reply(200, { deletion: state.deletion });
+      case 'DELETE /api/v1/identity/me/deletion':
+        if (!authorized) return reply(401, error('GATEWAY_TOKEN_MISSING', 'Vous devez être connecté.'));
+        state.deletion = null;
+        return reply(200, {
+          user: user(state.firstName, state.lastName),
+          profileIncomplete: false,
+          activeContext,
+          accessToken: 'jeton-acces-e2e',
+          accessTokenExpiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
         });
       case 'POST /api/v1/identity/logout':
         if (!authorized) return reply(401, error('GATEWAY_TOKEN_MISSING', 'Vous devez être connecté.'));
