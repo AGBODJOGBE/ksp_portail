@@ -80,7 +80,7 @@ export default function AccountPage() {
         <Eyebrow>{navigation.account.label}</Eyebrow>
         <div className="mt-5">
           <RequireSession>
-            {/* Pastille des notifications non lues (ADR-038), chargée à la demande. */}
+            {/* Pastille des notifications non lues (ADR-039), chargée à la demande. */}
             <div className="mb-6 flex justify-end">
               <NotificationBell />
             </div>

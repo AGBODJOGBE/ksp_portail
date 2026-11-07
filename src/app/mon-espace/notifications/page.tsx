@@ -3,7 +3,7 @@ import { Heading } from '@/components/ui/heading';
 import { NotificationCenter, NotificationPreferences, notificationTexts } from '@/features/notification';
 
 /**
- * Notifications de l'espace KSP (ADR-038) et choix des canaux. Le filtre est lu dans l'adresse sous
+ * Notifications de l'espace KSP (ADR-039) et choix des canaux. Le filtre est lu dans l'adresse sous
  * Suspense : la page reste statique.
  */
 export default function NotificationsPage() {

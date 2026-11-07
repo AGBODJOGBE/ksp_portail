@@ -83,7 +83,7 @@ function PreferencesForm({ initial }: { initial: Preferences }) {
   );
 }
 
-/** Canaux souhaités pour les messages facultatifs (ADR-038). */
+/** Canaux souhaités pour les messages facultatifs (ADR-039). */
 export function NotificationPreferences() {
   const preferences = useResource(useCallback(() => getPreferences(), []));
   const { state } = preferences;

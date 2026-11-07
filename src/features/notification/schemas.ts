@@ -1,7 +1,7 @@
 import * as z from 'zod/mini';
 
 /*
- * Notifications de l'espace KSP (contrat `ksp-api.v1.yaml`, routes `/api/v1/notification/…`, ADR-038),
+ * Notifications de l'espace KSP (contrat `ksp-api.v1.yaml`, routes `/api/v1/notification/…`, ADR-039),
  * champ par champ : un champ obligatoire absent rend la réponse invalide, un champ ajouté est ignoré.
  * Schémas lus dans le navigateur : `zod/mini`.
  */

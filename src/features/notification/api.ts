@@ -9,7 +9,7 @@ import {
   unreadCountSchema,
 } from './schemas';
 
-/** Centre de notifications de l'espace KSP (session requise, ADR-038). */
+/** Centre de notifications de l'espace KSP (session requise, ADR-039). */
 const NOTIFICATIONS = '/api/v1/notification/notifications';
 const PREFERENCES = '/api/v1/notification/preferences';
 
