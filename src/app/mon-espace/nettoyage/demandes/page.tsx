@@ -1,4 +1,5 @@
-import { Heading } from '@/components/ui/heading';
+import { navigation } from '@/config/navigation';
+import { BandHeader, BandTitle } from '@/components/ui/band-header';
 import { CleaningSpace, cleaningTexts } from '@/features/cleaning';
 import { ContextSwitcher } from '@/features/identity';
 
@@ -8,13 +9,15 @@ const t = cleaningTexts.space;
 export default function CleaningRequestsPage() {
   return (
     <div className="grid gap-10">
-      <div>
-        <Heading as="h1" size="h1">
-          {t.title}
-        </Heading>
-        <p className="text-ink-muted mt-3">{t.lead}</p>
-        <ContextSwitcher className="mt-5" />
-      </div>
+      <BandHeader>
+        <BandTitle
+          back={{ href: navigation.account.href, label: navigation.account.label }}
+          title={t.title}
+          lead={t.lead}
+        >
+          <ContextSwitcher />
+        </BandTitle>
+      </BandHeader>
       <CleaningSpace />
     </div>
   );

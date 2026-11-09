@@ -1,7 +1,6 @@
+import { BandHeader, BandTitle } from '@/components/ui/band-header';
 import Link from 'next/link';
-import { ButtonLink } from '@/components/ui/button';
-import { Heading } from '@/components/ui/heading';
-import { IconArrowLeft, IconArrowRight } from '@/components/ui/icons';
+import { IconArrowRight } from '@/components/ui/icons';
 import { accountTexts, deletionTexts, identityPaths, ProfileSpace } from '@/features/identity';
 
 const t = accountTexts;
@@ -10,16 +9,13 @@ const t = accountTexts;
 export default function ProfilePage() {
   return (
     <div className="grid gap-8">
-      <div className="grid gap-3">
-        <ButtonLink href={identityPaths.account} variant="ghost" className="-ml-3 justify-self-start">
-          <IconArrowLeft />
-          {t.common.backToAccount}
-        </ButtonLink>
-        <Heading as="h1" size="h1">
-          {t.profile.title}
-        </Heading>
-        <p className="text-ink-muted">{t.profile.lead}</p>
-      </div>
+      <BandHeader>
+        <BandTitle
+          back={{ href: identityPaths.account, label: t.common.backToAccount }}
+          title={t.profile.title}
+          lead={t.profile.lead}
+        />
+      </BandHeader>
       <ProfileSpace />
       <p className="text-small text-ink-muted border-line border-t pt-6">
         {deletionTexts.settings.linkText}{' '}

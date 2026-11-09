@@ -5,6 +5,7 @@ import { lazy, Suspense, useCallback, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
+import { BandHeader } from '@/components/ui/band-header';
 import { Heading } from '@/components/ui/heading';
 import { IconArrowRight } from '@/components/ui/icons';
 import { StepTimeline } from '@/components/ui/step-timeline';
@@ -21,7 +22,7 @@ import { paymentDue, paymentExpected } from '@/features/cleaning/payment-due';
 import type { GroupOutcome, PlaceCatalog, QuoteRequest, RequestGroup } from '@/features/cleaning/schemas';
 import { spaceTexts } from '@/features/cleaning/space-texts';
 import { cleaningTexts, requestStatuses, statusOf } from '@/features/cleaning/texts';
-import { BackLink, Loading, NextStep, Panel } from './detail-parts';
+import { BackLink, InlineLoading, LoadError, Loading, NextStep, Panel } from './detail-parts';
 import { ReasonAction } from './reason-action';
 import { placeLabel, usePlaceCatalog } from './request-group';
 
@@ -223,17 +224,7 @@ export function RequestGroupDetail({ id }: { id: string }) {
   if (group.state.status === 'loading') return <Loading />;
   if (group.state.status === 'error') {
     const view = describeCleaningError(group.state.error);
-    return (
-      <div className="grid justify-items-start gap-4">
-        <BackLink />
-        <FormMessage>{view.message}</FormMessage>
-        {view.kind === 'notFound' ? null : (
-          <Button variant="secondary" onClick={group.reload}>
-            {cleaningTexts.common.retry}
-          </Button>
-        )}
-      </div>
-    );
+    return <LoadError message={view.message} onRetry={view.kind === 'notFound' ? undefined : group.reload} />;
   }
 
   const data = group.state.data;
@@ -263,25 +254,28 @@ export function RequestGroupDetail({ id }: { id: string }) {
 
   return (
     <div className="grid gap-8">
-      <div className="grid gap-3">
+      <BandHeader
+        overlap={
+          <StepTimeline
+            steps={LIFECYCLE}
+            current={stage.current}
+            stopped={stage.stopped}
+            label={spaceTexts.lifecycle.label}
+            currentLabel={spaceTexts.lifecycle.current}
+            stoppedLabel={spaceTexts.lifecycle.stopped}
+            className="shadow-float"
+          />
+        }
+      >
         <BackLink />
-        <Heading as="h1" size="h2">
+        <Heading as="h1" size="h1" className="mt-3">
           {journeyTexts.group.title}
         </Heading>
-        <p className="text-ink-muted">
+        <p className="text-lead text-ink-muted mt-3">
           {journeyTexts.group.placeAndCommune(placeLabel(catalog, data.placeType), data.commune)} ·{' '}
           {journeyTexts.group.sentOn(formatDateTime(data.createdAt))}
         </p>
-      </div>
-
-      <StepTimeline
-        steps={LIFECYCLE}
-        current={stage.current}
-        stopped={stage.stopped}
-        label={spaceTexts.lifecycle.label}
-        currentLabel={spaceTexts.lifecycle.current}
-        stoppedLabel={spaceTexts.lifecycle.stopped}
-      />
+      </BandHeader>
 
       <FormMessage tone="info">{notice}</FormMessage>
       {outcome ? <Outcome outcome={outcome.value} kind={outcome.kind} name={name} /> : null}
@@ -305,7 +299,7 @@ export function RequestGroupDetail({ id }: { id: string }) {
       ) : null}
 
       {accepting && quotes.length ? (
-        <Suspense fallback={<Loading />}>
+        <Suspense fallback={<InlineLoading />}>
           <GroupAccept
             group={data}
             quotes={quotes}

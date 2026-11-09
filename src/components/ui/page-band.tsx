@@ -1,10 +1,9 @@
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 import { Container } from './container';
 import { Eyebrow } from './eyebrow';
 import { HeroBand } from './hero-band';
-import { IconArrowLeft } from './icons';
+import { BandBack } from './band-header';
 
 /**
  * En-tête court d'un écran (direction « Signature ») : bande bleu nuit avec lien de retour, surtitre,
@@ -41,15 +40,7 @@ export function PageBand({
       className={className}
       containerClassName="pt-5 sm:pt-8"
     >
-      {back ? (
-        <Link
-          href={back.href}
-          className="text-small text-ink-muted hover:text-ink -ml-1 inline-flex min-h-11 items-center gap-1.5 px-1 font-semibold"
-        >
-          <IconArrowLeft className="size-4" />
-          {back.label}
-        </Link>
-      ) : null}
+      {back ? <BandBack {...back} /> : null}
       <div
         className={cn(
           'grid gap-8 lg:grid-cols-12 lg:items-end lg:gap-10',

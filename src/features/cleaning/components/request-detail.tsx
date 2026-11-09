@@ -31,7 +31,7 @@ import { serviceName, useServices } from '@/features/cleaning/use-services';
 import { needLines } from '@/features/cleaning/answers-text';
 import { LIFECYCLE, requestStage } from '@/features/cleaning/lifecycle';
 import { spaceTexts } from '@/features/cleaning/space-texts';
-import { DetailHeader, Facts, LoadError, Loading, NextStep, Panel } from './detail-parts';
+import { DetailHeader, Facts, InlineLoading, LoadError, Loading, NextStep, Panel } from './detail-parts';
 import { ReasonAction } from './reason-action';
 
 // Le formulaire d'acceptation n'est téléchargé que si le client choisit d'accepter.
@@ -313,7 +313,7 @@ export function RequestDetail({ id }: { id: string }) {
                   {canAnswer ? (
                     <div className="border-line grid gap-4 border-t pt-5">
                       {accepting ? (
-                        <Suspense fallback={<Loading />}>
+                        <Suspense fallback={<InlineLoading />}>
                           <AcceptForm
                             requestId={request.id}
                             quote={quote}

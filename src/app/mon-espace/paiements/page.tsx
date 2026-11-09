@@ -1,4 +1,5 @@
-import { Heading } from '@/components/ui/heading';
+import { navigation } from '@/config/navigation';
+import { BandHeader, BandTitle } from '@/components/ui/band-header';
 import { BillingHistory, historyTexts } from '@/features/billing';
 import { ContextSwitcher } from '@/features/identity';
 import { paymentTexts } from '@/features/payment';
@@ -8,14 +9,16 @@ import { frenchSpacing } from '@/lib/typography';
 export default function PaymentsPage() {
   return (
     <div className="grid gap-10">
-      <div>
-        <Heading as="h1" size="h1">
-          {historyTexts.pageTitle}
-        </Heading>
-        <p className="text-ink-muted mt-3">{historyTexts.pageLead}</p>
-        <p className="text-small text-ink-muted mt-2">{frenchSpacing(paymentTexts.scope)}</p>
-        <ContextSwitcher className="mt-5" />
-      </div>
+      <BandHeader>
+        <BandTitle
+          back={{ href: navigation.account.href, label: navigation.account.label }}
+          title={historyTexts.pageTitle}
+          lead={historyTexts.pageLead}
+        >
+          <p className="text-small text-ink-muted">{frenchSpacing(paymentTexts.scope)}</p>
+          <ContextSwitcher />
+        </BandTitle>
+      </BandHeader>
       <BillingHistory />
     </div>
   );

@@ -211,8 +211,8 @@ function CleaningLists({ organizationId }: { organizationId: string | null }) {
 
 function EmptyState({ text, hint }: { text: string; hint?: string }) {
   return (
-    <div className="rounded-card border-line-strong grid justify-items-start gap-2 border border-dashed p-6">
-      <p className="text-ink font-medium">{text}</p>
+    <div className="grid justify-items-start gap-1">
+      <p className="text-ink font-semibold">{text}</p>
       {hint ? <p className="text-small text-ink-muted">{hint}</p> : null}
     </div>
   );
