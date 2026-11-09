@@ -8,8 +8,7 @@ import type { ContactDetails, ContactValue } from '@/config/contact';
 import { frenchSpacing } from '@/lib/typography';
 import { contactTexts as t } from '@/features/contact/content';
 
-const TILE =
-  'rounded-control bg-accent-soft text-accent-ink ring-accent-muted grid size-11 place-items-center ring-1 ring-inset';
+const TILE = 'rounded-icon bg-brand text-on-brand grid size-11 place-items-center';
 
 /** « +22901970000 » → « +229 01 97 00 00 » : lisible, sans changer le lien. */
 function displayPhone(value: string): string {

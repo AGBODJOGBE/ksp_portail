@@ -42,6 +42,7 @@ export const fr = {
     intro:
       'Un seul compte pour tous les services KSP. Pas de mot de passe : vous recevez un code de connexion sur WhatsApp.',
     newAccount: 'Pas encore de compte ? Il est créé avec votre numéro.',
+    help: 'Un souci pour vous connecter ? Notre équipe vous répond.',
     checking: 'Vérification de votre session…',
     phoneLegend: 'Votre numéro de téléphone',
     countryCode: 'Indicatif',
