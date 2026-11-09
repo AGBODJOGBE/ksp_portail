@@ -46,11 +46,14 @@ export function OfferGrid({
         <Card
           as="li"
           key={offer.title}
-          className={cn('flex flex-col p-6 sm:p-7', fiveOnThree && fiveOnThreeItem(index))}
+          className={cn(
+            'ease-soft hover:shadow-card flex flex-col p-6 transition-shadow duration-(--motion-slow) sm:p-7',
+            fiveOnThree && fiveOnThreeItem(index),
+          )}
         >
           <span
             aria-hidden="true"
-            className="font-display text-accent-ink text-sm font-semibold tabular-nums"
+            className="rounded-icon bg-tile text-tile-ink ring-tile-ring font-display grid size-10 place-items-center text-sm font-semibold tabular-nums ring-1 ring-inset"
           >
             {indexFormat.format(index + 1)}
           </span>

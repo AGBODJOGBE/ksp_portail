@@ -94,8 +94,8 @@ export const spaceTexts = {
     passageTitle: 'Prochain passage',
     passageText: (date: string) => `Nos agents interviennent le ${date}.`,
     seeAction: 'Voir',
+    agendaTitle: 'Votre agenda',
     ongoingTitle: 'Prestations en cours',
     ongoingNone: 'Aucune prestation en cours.',
-    shortcutsTitle: 'Raccourcis',
   },
 } as const;

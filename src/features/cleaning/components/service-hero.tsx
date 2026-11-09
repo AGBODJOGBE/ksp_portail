@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { SignatureArrow, SignatureBackdrop } from '@/components/ui/brand/signature';
+import { SignatureArrow } from '@/components/ui/brand/signature';
 import { Badge } from '@/components/ui/badge';
-import { Container } from '@/components/ui/container';
 import { Eyebrow } from '@/components/ui/eyebrow';
+import { HeroBand } from '@/components/ui/hero-band';
 import { IconCheck } from '@/components/ui/icons';
 import { PageActions } from '@/components/sections/page-actions';
 import type { MetierHeroContent } from '@/components/sections/types';
@@ -16,9 +16,11 @@ import { cleaningTexts, serviceJourney, zonesLine } from '@/features/cleaning/te
 const TITLE_ID = 'nettoyage-titre';
 
 /**
- * Premier écran du Nettoyage, pensé comme un e-service : la démarche en ligne se lit d'un coup d'œil
- * (quatre étapes, qui agit), l'action principale est visible tout de suite, les communes desservies
- * viennent de la gateway. Rendu par le serveur, sans animation : premier écran.
+ * Premier écran du Nettoyage, pensé comme un e-service (direction « Signature ») : bande bleu nuit, la
+ * démarche en ligne se lit d'un coup d'œil dans un panneau translucide (quatre étapes reliées par le fil
+ * de la signature), l'action principale est visible tout de suite, les communes desservies viennent de
+ * la gateway. Rendu par le serveur ; le titre n'est pas animé (premier affichage). Le bas de la bande
+ * est réservé à l'entrée de la demande, qui la chevauche.
  */
 export function CleaningServiceHero({
   content,
@@ -32,9 +34,8 @@ export function CleaningServiceHero({
   const h = cleaningTexts.hero;
   const metier = getMetier(content.metierId);
   return (
-    <section aria-labelledby={TITLE_ID} className="border-line relative isolate overflow-hidden border-b">
-      <SignatureBackdrop className="absolute inset-0 -z-10 size-full [mask-image:linear-gradient(100deg,transparent_50%,black_100%)] opacity-[0.06]" />
-      <Container className="grid gap-10 pt-6 pb-14 sm:pb-20 lg:grid-cols-12 lg:items-center lg:gap-12 lg:pt-8 lg:pb-24">
+    <HeroBand labelledBy={TITLE_ID} overlap containerClassName="pt-4 sm:pt-6 lg:pt-8">
+      <div className="grid gap-10 lg:grid-cols-12 lg:items-center lg:gap-12">
         <div className="lg:col-span-7">
           <nav aria-label={t.metier.breadcrumb}>
             <ol className="text-small text-ink-muted flex flex-wrap items-center gap-x-2">
@@ -57,7 +58,7 @@ export function CleaningServiceHero({
             </ol>
           </nav>
 
-          <div className="mt-6 flex flex-wrap items-center gap-3 sm:mt-10">
+          <div className="mt-6 flex flex-wrap items-center gap-3 sm:mt-8">
             <Eyebrow>{metier.label}</Eyebrow>
             <Badge tone="action" dot>
               {h.online}
@@ -79,30 +80,24 @@ export function CleaningServiceHero({
         </div>
 
         <div className="lg:col-span-5">
-          <div
-            data-tone="inverse"
-            className="rounded-panel shadow-raised relative isolate overflow-hidden p-6 sm:p-8"
-          >
-            <SignatureBackdrop className="absolute inset-0 -z-10 size-full opacity-[0.07]" />
+          <div className="rounded-panel border-line bg-brand-soft relative p-6 backdrop-blur-sm sm:p-8">
             <Eyebrow>{h.journeyEyebrow}</Eyebrow>
             <p className="font-display text-h3 text-ink mt-4 font-semibold">{h.journeyTitle}</p>
-            <ol className="mt-6 grid gap-0">
+            <ol className="relative mt-6 grid gap-6">
+              {/* Fil de la signature qui relie les étapes : bleu nuit, vert, or (éclaircis sur bleu nuit). */}
+              <span
+                aria-hidden="true"
+                className="grow-y from-signature-1 via-signature-2 to-signature-3 absolute top-5 bottom-5 left-[1.0625rem] w-0.5 bg-linear-to-b"
+              />
               {serviceJourney.map((step, index) => (
-                <li
-                  key={step.label}
-                  className={cn(
-                    'relative grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-4 pb-6 last:pb-0',
-                    // Fil de la signature entre les étapes.
-                    'before:bg-line-strong before:absolute before:top-10 before:bottom-1 before:left-[1.0625rem] before:w-0.5 last:before:hidden',
-                  )}
-                >
+                <li key={step.label} className="relative grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-4">
                   <span
                     aria-hidden="true"
                     className={cn(
                       'relative grid size-9 place-items-center rounded-full text-sm font-semibold tabular-nums',
                       index === 0
                         ? 'bg-action text-on-action'
-                        : 'bg-surface text-ink ring-line-strong ring-1',
+                        : 'bg-hero-deep text-ink ring-line-strong ring-1',
                     )}
                   >
                     {index + 1}
@@ -126,7 +121,7 @@ export function CleaningServiceHero({
             ) : null}
           </div>
         </div>
-      </Container>
-    </section>
+      </div>
+    </HeroBand>
   );
 }

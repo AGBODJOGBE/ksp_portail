@@ -1,7 +1,9 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { IconClock } from '@/components/ui/icons';
+import { DateBadge } from '@/components/ui/date-badge';
+import { Gauge } from '@/components/ui/gauge';
+import { IconInvoice } from '@/components/ui/icons';
 import { TodoItem, TodoNone, TodoPanel, TodoState } from '@/components/ui/todo-panel';
 import { ApiError, contextKey, useSession } from '@/lib/api';
 import { formatShortDate, formatXof } from '@/lib/format';
@@ -34,8 +36,9 @@ function Todo() {
     <TodoPanel
       id="todo-factures"
       title={billingTexts.title}
-      icon={<IconClock className="size-5" />}
+      icon={<IconInvoice className="size-5" />}
       link={{ href: billingPaths.list, label: t.seeAll }}
+      count={state.status === 'ready' ? state.data.length : undefined}
     >
       {state.status === 'ready' ? (
         state.data.length ? (
@@ -45,6 +48,9 @@ function Todo() {
               return (
                 <TodoItem
                   key={invoice.id}
+                  media={
+                    <DateBadge iso={invoice.dueAt} tone={invoice.status === 'overdue' ? 'danger' : 'brand'} />
+                  }
                   title={billingTexts.invoice(invoice.number)}
                   badge={
                     <Badge tone={status.tone} dot>
@@ -53,7 +59,27 @@ function Todo() {
                   }
                   text={t.itemText(formatXof(invoice.balance), formatShortDate(invoice.dueAt))}
                   action={{ href: billingPaths.invoice(invoice.id), label: t.action }}
-                />
+                >
+                  {/* Montants tels que renvoyés par la gateway : réglé et reste dû, sur le total. */}
+                  <Gauge
+                    max={invoice.total.amount}
+                    label={t.gaugeLabel(formatXof(invoice.paid), formatXof(invoice.total))}
+                    segments={[
+                      {
+                        label: t.paidLabel,
+                        value: invoice.paid.amount,
+                        tone: 'action',
+                        display: formatXof(invoice.paid),
+                      },
+                      {
+                        label: t.balanceLabel,
+                        value: invoice.balance.amount,
+                        tone: invoice.status === 'overdue' ? 'danger' : 'brand',
+                        display: formatXof(invoice.balance),
+                      },
+                    ]}
+                  />
+                </TodoItem>
               );
             })}
           </ul>

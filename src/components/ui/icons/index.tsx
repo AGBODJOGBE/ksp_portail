@@ -299,3 +299,38 @@ export function IconCalendar(props: IconProps) {
     </Icon>
   );
 }
+
+export function IconFileCheck(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4Z" />
+      <path d="M14 3v4h4M9.5 14.5l2 2 3.5-4" />
+    </Icon>
+  );
+}
+
+export function IconInvoice(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4Z" />
+      <path d="M14 3v4h4M9 12h6M9 16h4" />
+    </Icon>
+  );
+}
+
+export function IconCard(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="3" y="5.5" width="18" height="13" rx="2" />
+      <path d="M3 10h18M7 15h3" />
+    </Icon>
+  );
+}
+
+export function IconSwap(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M7 7h12l-3-3M17 17H5l3 3" />
+    </Icon>
+  );
+}

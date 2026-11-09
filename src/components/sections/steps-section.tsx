@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { SignatureArrow } from '@/components/ui/brand/signature';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Section, type SectionTone } from '@/components/ui/section';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -27,15 +28,16 @@ export function StepList({ steps, className }: { steps: ReadonlyArray<Step>; cla
           key={step.title}
           className={cn(
             'relative grid grid-cols-[2.75rem_minmax(0,1fr)] gap-x-5 pb-10 last:pb-0 sm:gap-x-6',
-            // Fil qui relie les étapes, sous le losange numéroté.
-            'before:bg-line-strong before:absolute before:top-12 before:bottom-2 before:left-[1.3125rem] before:w-px last:before:hidden',
+            // Fil de la signature qui relie les étapes, sous la pastille numérotée.
+            'before:from-signature-1 before:to-signature-2 before:absolute before:top-12 before:bottom-1 before:left-[1.3125rem] before:w-0.5 before:rounded-full before:bg-linear-to-b last:before:hidden',
           )}
         >
-          <span aria-hidden="true" className="relative grid size-11 place-items-center">
-            <span className="bg-accent-soft border-accent-muted absolute inset-1.5 rounded-full border" />
-            <span className="font-display text-accent-ink relative text-base font-semibold tabular-nums">
-              {index + 1}
-            </span>
+          <span
+            aria-hidden="true"
+            className="bg-brand text-on-brand font-display relative grid size-11 place-items-center rounded-full text-base font-semibold tabular-nums shadow-sm"
+          >
+            {index + 1}
+            {index === steps.length - 1 ? <SignatureArrow className="absolute -right-2.5 h-3 w-2.5" /> : null}
           </span>
           <div className="pt-1.5">
             <Badge tone={ACTOR_TONES[step.actor]}>{actorLabel(step)}</Badge>
