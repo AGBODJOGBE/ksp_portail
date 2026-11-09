@@ -18,6 +18,14 @@ const publicSchema = z.object({
   whatsappNumber: z.optional(
     z.string().check(z.regex(/^\d{8,15}$/, 'Numéro international sans « + », par exemple 22990000000.')),
   ),
+  /** Coordonnées de la page Contact (`config/contact.ts`) ; absentes : valeurs d'exemple signalées. */
+  contactPhone: z.optional(
+    z
+      .string()
+      .check(z.regex(/^\+[1-9]\d{6,14}$/, 'Numéro au format international, par exemple +22901970000.')),
+  ),
+  contactEmail: z.optional(z.email({ error: 'Adresse e-mail attendue, par exemple contact@ksp.bj.' })),
+  contactAddress: z.optional(z.string().check(z.minLength(5), z.maxLength(200))),
   portailUrl: url(),
   shopUrl: url(),
   printUrl: url(),
@@ -29,6 +37,9 @@ export const publicEnv = publicSchema.parse({
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3010',
   apiUrl: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000',
   whatsappNumber: emptyToUndefined(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER),
+  contactPhone: emptyToUndefined(process.env.NEXT_PUBLIC_CONTACT_PHONE),
+  contactEmail: emptyToUndefined(process.env.NEXT_PUBLIC_CONTACT_EMAIL),
+  contactAddress: emptyToUndefined(process.env.NEXT_PUBLIC_CONTACT_ADDRESS),
   portailUrl: process.env.NEXT_PUBLIC_PORTAIL_URL ?? 'http://localhost:3010',
   shopUrl: process.env.NEXT_PUBLIC_SHOP_URL ?? 'http://localhost:3020',
   printUrl: process.env.NEXT_PUBLIC_PRINT_URL ?? 'http://localhost:3030',
