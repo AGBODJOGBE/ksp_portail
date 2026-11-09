@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button, ButtonLink, buttonClasses } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
@@ -15,6 +15,7 @@ import { nextPollDelay, safeCheckoutUrl } from '@/features/payment/polling';
 import type { Payment } from '@/features/payment/schemas';
 import {
   FINAL_STATUSES,
+  TOP_UP,
   UNSUCCESSFUL,
   paymentPaths,
   paymentTexts as t,
@@ -137,8 +138,12 @@ function usePaymentPolling(id: string) {
   };
 }
 
-/** Page de retour du prestataire : statut du paiement, message clair, liens vers l'objet payé. */
-export function PaymentReturn({ id }: { id: string }) {
+/**
+ * Page de retour du prestataire : statut du paiement, message clair, liens vers l'objet payé.
+ * `topUpResult` : rendu sous le statut d'une recharge réussie du portefeuille (solde relu, retour au
+ * paiement interrompu), fourni par la route pour que cette fonctionnalité n'importe pas le portefeuille.
+ */
+export function PaymentReturn({ id, topUpResult }: { id: string; topUpResult?: ReactNode }) {
   const { view, restart } = usePaymentPolling(id);
 
   if (view.status === 'loading') {
@@ -168,6 +173,9 @@ export function PaymentReturn({ id }: { id: string }) {
   const checkout = pending ? safeCheckoutUrl(payment.checkoutUrl) : null;
   const subject = subjectPath(payment.subject);
   const isInvoice = payment.subject.type === 'billing_invoice';
+  const isTopUp = payment.subject.type === TOP_UP;
+  // Recharge réussie : le bloc du portefeuille porte déjà ses liens.
+  const toppedUp = isTopUp && payment.status === 'succeeded' && !!topUpResult;
   const facts: ReadonlyArray<readonly [string, string | null]> = [
     [t.amount, formatXof(payment.amount)],
     [t.reference, payment.providerReference],
@@ -201,7 +209,7 @@ export function PaymentReturn({ id }: { id: string }) {
         <div role="status" className="grid gap-2">
           <p className="text-ink text-lg font-semibold">{status.message}</p>
           {UNSUCCESSFUL.has(payment.status) ? (
-            <p className="text-ink-muted">{`${t.lateSuccess} ${t.tryAgain}`}</p>
+            <p className="text-ink-muted">{`${t.lateSuccess} ${isTopUp ? t.tryTopUpAgain : t.tryAgain}`}</p>
           ) : null}
           {pending && polling ? <p className="text-small text-ink-muted">{t.checking}</p> : null}
           {pending && !polling ? <p className="text-ink-muted">{t.stillPending}</p> : null}
@@ -222,6 +230,7 @@ export function PaymentReturn({ id }: { id: string }) {
         )}
       </section>
 
+      {toppedUp ? topUpResult : null}
       {payment.status === 'succeeded' ? <Receipt payment={payment} /> : null}
 
       <div className="flex flex-wrap gap-3 print:hidden">
@@ -240,9 +249,9 @@ export function PaymentReturn({ id }: { id: string }) {
             {t.contactSupport}
           </ButtonLink>
         ) : null}
-        {subject ? (
+        {subject && !toppedUp ? (
           <ButtonLink href={subject} variant={checkout || payment.underReview ? 'secondary' : 'primary'}>
-            {isInvoice ? t.seeInvoice : t.seeMission}
+            {isTopUp ? t.seeWallet : isInvoice ? t.seeInvoice : t.seeMission}
           </ButtonLink>
         ) : null}
         <ButtonLink href={paymentPaths.list} variant="ghost">
