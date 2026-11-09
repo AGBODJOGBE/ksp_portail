@@ -44,7 +44,18 @@ export function KeyFiguresSection({ content }: { content: HomeContent['keyFigure
       ) : (
         <ul className="reveal-stagger mt-10 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {Array.from({ length: PENDING_FIGURES }, (_, index) => (
-            <Placeholder as="li" key={index} title="Chiffre clé à venir" />
+            <Placeholder
+              as="li"
+              key={index}
+              title="Chiffre clé à venir"
+              media={
+                // Silhouette d'un chiffre, sans valeur : la place du futur chiffre clé.
+                <span aria-hidden="true" className="flex items-end gap-1.5 px-5 pt-6 sm:px-6">
+                  <span className="bg-surface-sunken h-9 w-16 rounded-md sm:h-11 sm:w-20" />
+                  <span className="bg-surface-sunken h-4 w-6 rounded" />
+                </span>
+              }
+            />
           ))}
         </ul>
       )}
@@ -100,8 +111,14 @@ export function RealisationsSection({ content }: { content: HomeContent['realisa
                 title="Réalisation à venir"
                 className={index > 0 ? 'max-sm:hidden' : undefined}
                 media={
-                  <span className="bg-surface-sunken relative grid aspect-[4/3] place-items-center overflow-hidden">
-                    <IconImage className="text-ink-subtle relative size-8" />
+                  <span
+                    aria-hidden="true"
+                    className="from-brand-soft to-surface-sunken relative grid aspect-[4/3] place-items-center overflow-hidden bg-linear-to-br"
+                  >
+                    <SignatureBackdrop className="absolute inset-0 size-full opacity-[0.08]" />
+                    <span className="rounded-icon bg-brand text-on-brand shadow-card relative grid size-14 place-items-center">
+                      <IconImage className="size-7" />
+                    </span>
                   </span>
                 }
               >
@@ -153,7 +170,7 @@ export function TestimonialsSection({ content }: { content: HomeContent['testimo
                 media={
                   <span
                     aria-hidden="true"
-                    className="font-display text-accent-ink px-6 pt-6 text-6xl leading-none"
+                    className="font-display text-accent-ink px-5 pt-6 text-6xl leading-none sm:px-6"
                   >
                     «
                   </span>

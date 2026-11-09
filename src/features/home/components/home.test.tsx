@@ -4,15 +4,15 @@ import { homeContent } from '@/features/home/content';
 import { KeyFiguresSection, TestimonialsSection } from './proof-sections';
 
 describe('accueil', () => {
-  it('affiche la promesse du groupe en titre principal', () => {
-    render(<HomePage />);
+  it('affiche la promesse du groupe en titre principal', async () => {
+    render(await HomePage());
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       'Vos services du quotidien, réunis par un seul groupe',
     );
   });
 
-  it('présente les six métiers, chacun avec son lien et son action', () => {
-    render(<HomePage />);
+  it('présente les six métiers, chacun avec son lien et son action', async () => {
+    render(await HomePage());
     const section = screen.getByRole('region', { name: 'Six métiers, un seul groupe' });
     const links = within(section).getAllByRole('link');
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
@@ -26,8 +26,8 @@ describe('accueil', () => {
     expect(within(section).getByText('Simuler ma prestation')).toBeInTheDocument();
   });
 
-  it('n’invente aucun contenu : sans données, il affiche des emplacements « à venir »', () => {
-    const { container } = render(<HomePage />);
+  it('n’invente aucun contenu : sans données, il affiche des emplacements « à venir »', async () => {
+    const { container } = render(await HomePage());
     expect(container.querySelectorAll('[data-placeholder]').length).toBeGreaterThan(0);
     expect(screen.getByRole('region', { name: 'Chiffres clés' })).toHaveTextContent('Chiffre clé à venir');
   });

@@ -301,6 +301,42 @@
   color: var(--color-ink);
 }
 
+/*
+ * Ton clair dans une zone inversée (carte blanche posée sur la bande héros) : les rôles reprennent leur
+ * valeur par défaut. Mêmes déclarations que les jetons sémantiques de `@theme`, sans le fond.
+ */
+[data-tone='light'] {
+  --color-canvas: var(--color-neutral-25);
+  --color-surface: var(--color-white);
+  --color-surface-muted: var(--color-neutral-50);
+  --color-surface-sunken: var(--color-neutral-100);
+  --color-ink: var(--color-brand-900);
+  --color-ink-muted: var(--color-neutral-700);
+  --color-ink-subtle: var(--color-neutral-600);
+  --color-line: var(--color-neutral-200);
+  --color-line-strong: var(--color-neutral-300);
+  --color-line-control: var(--color-neutral-500);
+  --color-brand: var(--color-brand-900);
+  --color-brand-strong: var(--color-brand-950);
+  --color-brand-soft: var(--color-brand-50);
+  --color-brand-ink: var(--color-brand-700);
+  --color-on-brand: var(--color-white);
+  --color-action-ink: var(--color-green-700);
+  --color-action-soft: var(--color-green-50);
+  --color-action-muted: var(--color-green-200);
+  --color-accent-soft: var(--color-gold-50);
+  --color-accent-muted: var(--color-gold-200);
+  --color-accent-ink: var(--color-brand-700);
+  --color-focus: var(--color-brand-600);
+  --color-signature-1: var(--color-brand-900);
+  --color-signature-2: var(--color-green-600);
+  --color-signature-track: var(--color-neutral-200);
+  --color-tile: var(--color-brand-50);
+  --color-tile-ink: var(--color-brand-800);
+  --color-tile-ring: var(--color-brand-100);
+  color: var(--color-ink);
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
@@ -433,6 +469,18 @@
       animation: ksp-reveal-fade linear both;
       animation-timeline: view();
       animation-range: entry 0% entry 55%;
+    }
+    /* Fil qui se trace au défilement (étapes de l'accueil). */
+    .reveal-grow-x,
+    .reveal-grow-y {
+      animation: ksp-grow-x linear both;
+      animation-timeline: view();
+      animation-range: entry 20% cover 45%;
+      transform-origin: left center;
+    }
+    .reveal-grow-y {
+      animation-name: ksp-grow-y;
+      transform-origin: center top;
     }
     /* Léger décalage entre éléments voisins, exprimé en portion de défilement. */
     .reveal-stagger > :nth-child(3n + 2) {
@@ -642,6 +690,67 @@
   }
   .skeleton::after {
     animation: ksp-shimmer 1.4s ease-in-out infinite;
+  }
+}
+
+/*
+ * Soulignement or tracé sous un mot-clé d'un grand titre (accueil) : un fond en bas du texte, qui suit
+ * les retours à la ligne, et qui se déploie de gauche à droite au premier affichage.
+ */
+.underline-draw {
+  background-image: linear-gradient(90deg, var(--color-accent), var(--color-accent-bright));
+  background-repeat: no-repeat;
+  background-position: 0 92%;
+  background-size: 100% 0.12em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  padding-bottom: 0.04em;
+}
+@keyframes ksp-underline {
+  from {
+    background-size: 0% 0.12em;
+  }
+}
+/* Flottement lent d'un élément d'illustration (aperçu de l'espace) ; `--i` décale la phase. */
+@keyframes ksp-float {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .underline-draw {
+    animation: ksp-underline 1s var(--ease-soft) 300ms both;
+  }
+  .float {
+    animation: ksp-float 6s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * -2s);
+  }
+}
+
+/*
+ * En-tête au défilement (sans JavaScript) : en haut de page, il se fond dans la page ; dès qu'on défile,
+ * un verre léger (fond translucide et flou), un trait et une ombre douce le détachent du contenu.
+ * Navigateurs sans animation liée au défilement : l'état « détaché » est l'état de base.
+ */
+.site-header {
+  background-color: rgb(250 252 255 / 0.86);
+  border-bottom: 1px solid var(--color-line);
+  box-shadow: 0 8px 24px -18px rgb(15 40 80 / 0.35);
+  -webkit-backdrop-filter: saturate(1.6) blur(14px);
+  backdrop-filter: saturate(1.6) blur(14px);
+}
+@keyframes ksp-header-scrolled {
+  from {
+    background-color: var(--color-canvas);
+    border-bottom-color: transparent;
+    box-shadow: 0 0 0 transparent;
+  }
+}
+@supports (animation-timeline: scroll()) {
+  .site-header {
+    animation: ksp-header-scrolled linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 96px;
   }
 }
 

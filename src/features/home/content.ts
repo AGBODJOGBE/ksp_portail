@@ -34,11 +34,85 @@ export const homeContent = {
     secondaryAction: { label: 'Nous contacter', href: '/contact' },
     panelTitle: 'Un seul compte pour tous les services KSP',
     panelText: 'Dossiers, commandes, factures et paiements, réunis au même endroit.',
+    /* Atouts vérifiables du portail (aucun chiffre) : affichés sous les boutons. */
+    highlights: [
+      'Connexion par code WhatsApp, sans mot de passe',
+      'Devis et suivi en ligne',
+      'Paiement par Mobile Money',
+    ],
+    /*
+     * Aperçu illustré de Mon espace KSP : libellés réels de l'espace, aucune donnée (ni montant, ni date).
+     * Purement décoratif : masqué aux lecteurs d'écran, qui lisent `panelTitle` et `panelText`.
+     */
+    preview: {
+      caption: 'Aperçu de Mon espace KSP',
+      items: [
+        { label: 'Devis à accepter', service: 'Nettoyage', tone: 'action' },
+        { label: 'Facture à régler', service: 'Mobile Money', tone: 'accent' },
+        { label: 'Dossier en cours', service: 'Recouvrement', tone: 'brand' },
+      ],
+    },
   },
   metiers: {
     eyebrow: 'Nos métiers',
     title: 'Six métiers, un seul groupe',
     lead: 'Choisissez un service : chaque métier a son équipe, et un seul compte vous suit partout.',
+  },
+  journey: {
+    eyebrow: 'Comment ça marche',
+    title: 'Du besoin au service rendu, en quatre étapes',
+    lead: 'Le même fil pour tous les métiers : vous faites la demande, KSP s’occupe du reste et vous suivez chaque étape.',
+    steps: [
+      {
+        title: 'Choisissez un service',
+        text: 'Nettoyage, recouvrement, immobilier, impression, marketplace ou livraison.',
+      },
+      {
+        title: 'Faites votre demande en ligne',
+        text: 'Décrivez votre besoin : devis, dossier ou commande, sans vous déplacer.',
+      },
+      {
+        title: 'Suivez chaque étape',
+        text: 'Devis, rendez-vous, passages et factures se retrouvent dans Mon espace KSP.',
+      },
+      {
+        title: 'Réglez en toute simplicité',
+        text: 'Paiement par Mobile Money, reçu disponible dans votre espace.',
+      },
+    ],
+  },
+  trust: {
+    eyebrow: 'Pourquoi KSP',
+    title: 'Un groupe, des engagements clairs',
+    lead: 'Ce que vous trouvez sur chaque service du groupe, dès aujourd’hui.',
+    items: [
+      {
+        icon: 'user',
+        title: 'Un seul compte',
+        text: 'Le même numéro de téléphone vous connecte à tous les services KSP, sans mot de passe.',
+      },
+      {
+        icon: 'file',
+        title: 'Des conditions claires',
+        text: 'Devis, mandat ou contrat : vous validez avant que KSP n’intervienne.',
+      },
+      {
+        icon: 'clock',
+        title: 'Un suivi en direct',
+        text: 'Chaque demande avance étape par étape, visible depuis votre espace.',
+      },
+      {
+        icon: 'card',
+        title: 'Un paiement en ligne',
+        text: 'Mobile Money, factures et reçus réunis au même endroit.',
+      },
+    ],
+  },
+  zones: {
+    eyebrow: 'Zones desservies',
+    title: 'Où intervient KSP Nettoyage',
+    lead: 'Les communes où nos équipes interviennent aujourd’hui, tenues à jour par le service Nettoyage.',
+    action: { label: 'Demander un devis de nettoyage', href: '/nettoyage/demande' },
   },
   keyFigures: {
     eyebrow: 'Le groupe en chiffres',
