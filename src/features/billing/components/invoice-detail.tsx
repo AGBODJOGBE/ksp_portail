@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
@@ -10,15 +10,15 @@ import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { formatNumber, formatShortDate, formatXof } from '@/lib/format';
 import { useResource } from '@/lib/use-resource';
-import { PayButton } from '@/features/payment';
-import { getInvoice } from '@/features/billing/api';
+import { WalletPay } from '@/features/wallet';
+import { getInvoice, payInvoice } from '@/features/billing/api';
 import { billingPaths, billingTexts as t, invoiceMethods, invoiceStatus } from '@/features/billing/texts';
 
 /** Contrat d'origine : pour le Nettoyage, la mission (adresse fixée par la fonctionnalité cleaning). */
 const SOURCE_PATHS: Record<string, (id: string) => string> = {
   cleaning: (id) => `/mon-espace/nettoyage/missions/${encodeURIComponent(id)}`,
 };
-/** Factures payables en ligne (le reste dû est vérifié par payment, ADR-031). */
+/** Factures payables avec le portefeuille (le reste dû est débité en entier par billing, ADR-046). */
 const PAYABLE = new Set(['pending_payment', 'overdue']);
 
 /** Message d'une lecture refusée ; une facture introuvable ne se « réessaie » pas. */
@@ -45,7 +45,9 @@ function BackLink() {
 
 /** Détail d'une facture : période, lignes, total, échéance, règlements. */
 export function InvoiceDetail({ id }: { id: string }) {
-  const { state, reload, refresh } = useResource(useCallback(() => getInvoice(id), [id]));
+  const { state, reload, refresh, set } = useResource(useCallback(() => getInvoice(id), [id]));
+  // Paiement par le portefeuille enregistré : montant et solde restant, annoncés (zone `status`).
+  const [paid, setPaid] = useState<string | null>(null);
 
   if (state.status === 'loading') {
     return (
@@ -132,6 +134,7 @@ export function InvoiceDetail({ id }: { id: string }) {
         <FormMessage tone="info">{`${t.pendingNotice(formatShortDate(invoice.dueAt))} ${t.howToPay}`}</FormMessage>
       ) : null}
       {invoice.status === 'cancelled' ? <FormMessage tone="info">{t.cancelledNotice}</FormMessage> : null}
+      <FormMessage tone="success">{paid}</FormMessage>
 
       {PAYABLE.has(invoice.status) && invoice.balance.amount > 0 ? (
         <section
@@ -141,9 +144,13 @@ export function InvoiceDetail({ id }: { id: string }) {
           <Heading as="h2" size="h3" id="facture-payer">
             {t.payTitle}
           </Heading>
-          <PayButton
-            subject={{ subjectType: 'billing_invoice', subjectId: invoice.id }}
+          <WalletPay
+            pay={(key) => payInvoice(invoice.id, key)}
             amount={invoice.balance}
+            onPaid={(updated, notice) => {
+              set(updated);
+              setPaid(notice);
+            }}
             onStale={refresh}
           />
         </section>

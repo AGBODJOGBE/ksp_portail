@@ -13,7 +13,7 @@ import { spaceTexts } from '@/features/cleaning/space-texts';
 import {
   OFFERED_PAYMENT_METHODS,
   cleaningTexts,
-  paymentMethods,
+  planMethods,
   paymentOptions,
   paymentTimings,
 } from '@/features/cleaning/texts';
@@ -212,7 +212,7 @@ export function GroupAccept({
             legend={cleaningTexts.requestDetail.paymentMethod}
             name={`${id}-moyen`}
             value={plan.method}
-            options={OFFERED_PAYMENT_METHODS.map((value) => ({ value, label: paymentMethods[value]! }))}
+            options={OFFERED_PAYMENT_METHODS.map((value) => ({ value, label: planMethods[value]! }))}
             onChange={(method) => setPlan({ ...plan, method })}
           />
         </fieldset>

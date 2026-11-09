@@ -12,7 +12,7 @@ import type { AcceptResponse, PaymentPlan, Quote } from '@/features/cleaning/sch
 import {
   OFFERED_PAYMENT_METHODS,
   cleaningTexts,
-  paymentMethods,
+  planMethods,
   paymentOptions,
   paymentTimings,
 } from '@/features/cleaning/texts';
@@ -235,7 +235,7 @@ export function AcceptForm({
               legend={t.paymentMethod}
               name={`${id}-moyen`}
               value={plan.method}
-              options={OFFERED_PAYMENT_METHODS.map((value) => ({ value, label: paymentMethods[value]! }))}
+              options={OFFERED_PAYMENT_METHODS.map((value) => ({ value, label: planMethods[value]! }))}
               onChange={(method) => setPlan({ ...plan, method })}
             />
           </div>
@@ -252,7 +252,7 @@ export function AcceptForm({
             {t.firstPayment(
               formatXof(firstPayment),
               (paymentTimings[plan.timing] ?? plan.timing).toLowerCase(),
-              (paymentMethods[plan.method] ?? plan.method).toLowerCase(),
+              (planMethods[plan.method] ?? plan.method).toLowerCase(),
             )}
           </p>
         )}

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ButtonLink } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { IconCheck } from '@/components/ui/icons';
-import { cancelMission, getMission } from '@/features/cleaning/api';
+import { cancelMission, getMission, payMission } from '@/features/cleaning/api';
 import { describeCleaningError } from '@/features/cleaning/errors';
 import { cn } from '@/lib/cn';
 import {
@@ -20,7 +20,7 @@ import {
   formatXof,
 } from '@/lib/format';
 import { useResource } from '@/lib/use-resource';
-import { PayButton, paymentTexts } from '@/features/payment';
+import { WalletPay, walletTexts } from '@/features/wallet';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import { type Intervention, type Mission, suspensionCauses } from '@/features/cleaning/schemas';
 import {
@@ -30,6 +30,7 @@ import {
   missionStatuses,
   paymentMethods,
   paymentOptions,
+  planMethods,
   paymentStatuses,
   paymentTimings,
   recurrenceLabel,
@@ -85,7 +86,7 @@ function PassagesProgress({ done, planned, label }: { done: number; planned: num
   );
 }
 
-/** Paiement en ligne proposé au particulier (ADR-031), avec le libellé de son bouton. */
+/** Paiement en ligne proposé au particulier, avec son portefeuille (ADR-046), et le libellé de son bouton. */
 const PAYMENT_ID = 'paiement';
 
 function onlinePayment(mission: Mission) {
@@ -93,14 +94,27 @@ function onlinePayment(mission: Mission) {
   if (!due) return null;
   const label =
     due.part === 'deposit'
-      ? paymentTexts.payDeposit
+      ? walletTexts.payDeposit
       : due.nothingPaid
-        ? paymentTexts.pay
-        : paymentTexts.payBalance;
+        ? walletTexts.pay
+        : walletTexts.payBalance;
   return { part: due.part, label, amount: due.amount };
 }
 
-function PaymentView({ mission, kind, onStale }: { mission: Mission; kind: Kind; onStale: () => void }) {
+function PaymentView({
+  mission,
+  kind,
+  notice,
+  onPaid,
+  onStale,
+}: {
+  mission: Mission;
+  kind: Kind;
+  /** Paiement par le portefeuille enregistré : montant et solde restant, annoncés (zone `status`). */
+  notice: string | null;
+  onPaid: (mission: Mission, notice: string) => void;
+  onStale: () => void;
+}) {
   const payment = mission.payment;
   if (kind === 'business') {
     return (
@@ -145,7 +159,7 @@ function PaymentView({ mission, kind, onStale }: { mission: Mission; kind: Kind;
             [
               paymentOptions[plan.option] ?? plan.option,
               (paymentTimings[plan.timing] ?? plan.timing).toLowerCase(),
-              (paymentMethods[plan.method] ?? plan.method).toLowerCase(),
+              (planMethods[plan.method] ?? plan.method).toLowerCase(),
             ].join(', '),
           ],
           [
@@ -154,11 +168,13 @@ function PaymentView({ mission, kind, onStale }: { mission: Mission; kind: Kind;
           ],
         ]}
       />
+      <FormMessage tone="success">{notice}</FormMessage>
       {online ? (
-        <PayButton
-          subject={{ subjectType: 'cleaning_mission', subjectId: mission.id, part: online.part }}
+        <WalletPay
+          pay={(key) => payMission(mission.id, online.part, key)}
           label={online.label}
           amount={online.amount}
+          onPaid={onPaid}
           onStale={onStale}
         />
       ) : null}
@@ -171,7 +187,8 @@ function PaymentView({ mission, kind, onStale }: { mission: Mission; kind: Kind;
               <li key={record.id} className="text-ink flex flex-wrap justify-between gap-x-4 py-2">
                 <span>
                   {paymentMethods[record.method] ?? record.method} · {formatShortDate(record.recordedAt)}
-                  {record.reference ? ` · ${record.reference}` : ''}
+                  {record.reference && record.method !== 'wallet' ? ` · ${record.reference}` : ''}
+                  {record.refundedAt ? ` · ${t.refunded(formatShortDate(record.refundedAt))}` : ''}
                 </span>
                 <span className="font-semibold tabular-nums">{formatXof(record.amount)}</span>
               </li>
@@ -290,6 +307,7 @@ export function MissionDetail({ id }: { id: string }) {
   const { state, reload, refresh, set } = useResource(useCallback(() => getMission(id), [id]));
   const [notice, setNotice] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [paid, setPaid] = useState<string | null>(null);
 
   if (state.status === 'loading') return <Loading />;
   if (state.status === 'error') {
@@ -420,7 +438,17 @@ export function MissionDetail({ id }: { id: string }) {
 
           <div id={PAYMENT_ID} className="scroll-mt-[calc(var(--header-h)+1rem)]">
             <Panel id="paiement-titre" title={t.paymentTitle}>
-              <PaymentView mission={mission} kind={kind} onStale={refresh} />
+              <PaymentView
+                mission={mission}
+                kind={kind}
+                notice={paid}
+                onPaid={(updated, notice) => {
+                  set(updated);
+                  setNotice(null);
+                  setPaid(notice);
+                }}
+                onStale={refresh}
+              />
             </Panel>
           </div>
 

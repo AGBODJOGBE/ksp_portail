@@ -1,10 +1,11 @@
 import type { Mission } from './schemas';
 
 /**
- * Paiement en ligne qu'un particulier peut faire sur une mission (ADR-031) : l'acompte tant qu'il est
- * attendu, sinon le reste dû. Le montant est lu tel quel sur la mission (acompte, ou total quand rien
- * n'est encore réglé) ; après un règlement partiel, `amount` est null et la page du prestataire affiche
- * le montant calculé par KSP. `null` : rien à payer en ligne (mission d'entreprise, annulée ou réglée).
+ * Paiement en ligne qu'un particulier peut faire sur une mission (portefeuille, ADR-046) : l'acompte tant
+ * qu'il est attendu, sinon le reste dû. Le montant est lu tel quel sur la mission : `depositDue` ou
+ * `remainingDue` calculés par cleaning ; à défaut (gateway antérieure), l'acompte ou le total quand rien
+ * n'est encore réglé, sinon null (montant calculé par KSP au paiement). `null` : rien à payer en ligne
+ * (mission d'entreprise, annulée ou réglée).
  */
 export function paymentDue(mission: Mission): {
   part: 'deposit' | 'balance';
@@ -16,9 +17,14 @@ export function paymentDue(mission: Mission): {
   if (mission.status === 'cancelled' || payment.status === 'paid') return null;
   const nothingPaid = payment.paid.amount === 0;
   if (payment.status === 'due' && payment.plan.option === 'deposit' && payment.depositPercent > 0) {
-    return { part: 'deposit', amount: nothingPaid ? payment.depositAmount : null, nothingPaid };
+    const amount = payment.depositDue ?? (nothingPaid ? payment.depositAmount : null);
+    return { part: 'deposit', amount, nothingPaid };
   }
-  return { part: 'balance', amount: nothingPaid ? payment.total : null, nothingPaid };
+  return {
+    part: 'balance',
+    amount: payment.remainingDue ?? (nothingPaid ? payment.total : null),
+    nothingPaid,
+  };
 }
 
 /**
