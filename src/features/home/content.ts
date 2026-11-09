@@ -1,5 +1,8 @@
 import type { Realisation } from '@/components/sections/types';
 import type { MetierId } from '@/config/metiers';
+import { getDictionary } from '@/i18n';
+
+const { account, common } = getDictionary();
 
 /*
  * Contenus de l'accueil. Textes provisoires (à valider), prêts à être remplacés par Payload CMS.
@@ -31,15 +34,11 @@ export const homeContent = {
     titleAccent: 'réunis par un seul groupe',
     lead: 'Recouvrement, immobilier clés en main, nettoyage, impression, marketplace et livraison : le Groupe KSP vous accompagne, avec un seul compte pour tous ses services.',
     primaryAction: { label: 'Découvrir nos métiers', href: '#metiers' },
-    secondaryAction: { label: 'Nous contacter', href: '/contact' },
-    panelTitle: 'Un seul compte pour tous les services KSP',
-    panelText: 'Dossiers, commandes, factures et paiements, réunis au même endroit.',
+    secondaryAction: { label: common.contactUs, href: '/contact' },
+    panelTitle: account.promiseTitle,
+    panelText: account.promiseText,
     /* Atouts vérifiables du portail (aucun chiffre) : affichés sous les boutons. */
-    highlights: [
-      'Connexion par code WhatsApp, sans mot de passe',
-      'Devis et suivi en ligne',
-      'Paiement par Mobile Money',
-    ],
+    highlights: account.promiseHighlights,
     /*
      * Aperçu illustré de Mon espace KSP : libellés réels de l'espace, aucune donnée (ni montant, ni date).
      * Purement décoratif : masqué aux lecteurs d'écran, qui lisent `panelTitle` et `panelText`.
@@ -138,7 +137,7 @@ export const homeContent = {
     eyebrow: 'Un projet, une question ?',
     title: 'Parlons de votre besoin',
     lead: 'Décrivez-nous votre situation : nous vous orientons vers le bon service.',
-    primaryAction: { label: 'Nous contacter', href: '/contact' },
+    primaryAction: { label: common.contactUs, href: '/contact' },
   },
 };
 

@@ -8,7 +8,6 @@ import { Container } from '@/components/ui/container';
 import { Eyebrow } from '@/components/ui/eyebrow';
 import { contactHref, navigation } from '@/config/navigation';
 import { LoginFlow } from '@/features/identity';
-import { homeContent } from '@/features/home';
 import { getDictionary } from '@/i18n';
 import { frenchSpacing } from '@/lib/typography';
 import { pageMetadata } from '@/lib/seo/metadata';
@@ -21,17 +20,18 @@ export const metadata: Metadata = {
 /** Connexion par téléphone : coque statique, parcours dans un composant client (F-005, option A). */
 export default function LoginPage() {
   const t = getDictionary();
-  const promise = homeContent.hero;
   return (
     <>
       <HeroBand containerClassName="pt-8 pb-16 sm:pt-14 sm:pb-24">
         <div className="grid gap-8 lg:grid-cols-12 lg:items-center lg:gap-12">
           <div className="lg:col-span-6">
             <Eyebrow>{navigation.account.label}</Eyebrow>
-            <p className="font-display text-h2 text-ink mt-4 font-semibold">{promise.panelTitle}</p>
-            <p className="text-lead text-ink-muted mt-4 max-lg:hidden">{frenchSpacing(promise.panelText)}</p>
+            <p className="font-display text-h2 text-ink mt-4 font-semibold">{t.account.promiseTitle}</p>
+            <p className="text-lead text-ink-muted mt-4 max-lg:hidden">
+              {frenchSpacing(t.account.promiseText)}
+            </p>
             <ul className="text-ink mt-8 grid gap-3 max-lg:hidden">
-              {promise.highlights.map((item) => (
+              {t.account.promiseHighlights.map((item) => (
                 <li key={item} className="flex items-center gap-3">
                   <span className="bg-action-soft ring-action-muted grid size-6 shrink-0 place-items-center rounded-full ring-1">
                     <IconCheck className="text-action-ink size-3.5" />
@@ -67,7 +67,7 @@ export default function LoginPage() {
           href={contactHref()}
           className="text-ink inline-flex min-h-11 items-center gap-1.5 font-semibold underline-offset-4 hover:underline"
         >
-          {homeContent.closing.primaryAction.label}
+          {t.common.contactUs}
           <IconArrowRight className="size-4" />
         </Link>
       </Container>

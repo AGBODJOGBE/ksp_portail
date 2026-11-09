@@ -6,7 +6,6 @@ import { HeroBand } from '@/components/ui/hero-band';
 import { IconArrowRight } from '@/components/ui/icons';
 import { LinkCard } from '@/components/ui/link-card';
 import { contactHref, navigation } from '@/config/navigation';
-import { homeContent } from '@/features/home';
 import { getDictionary } from '@/i18n';
 
 /**
@@ -35,7 +34,7 @@ export default function NotFound() {
             </ButtonArrow>
           </ButtonLink>
           <ButtonLink href={contactHref()} variant="secondary" size="lg">
-            {homeContent.closing.primaryAction.label}
+            {t.common.contactUs}
           </ButtonLink>
         </div>
       </HeroBand>
