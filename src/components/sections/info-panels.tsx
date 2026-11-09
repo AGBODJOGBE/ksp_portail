@@ -22,8 +22,9 @@ export type InfoPanel = {
 type PanelTone = 'default' | 'accent' | 'inverse';
 
 const PANEL_TONES: Record<PanelTone, string> = {
-  default: 'bg-surface border-line',
-  accent: 'bg-accent-soft border-accent-muted',
+  default: 'bg-surface border-line shadow-xs',
+  // Encadré clair mis en relief : liseré de la signature et ombre teintée (direction « Signature »).
+  accent: 'signature-edge bg-surface border-line shadow-card',
   // Le ton inverse redéfinit les jetons (fond bleu nuit) : voir [data-tone='inverse'] dans globals.css.
   inverse: 'border-transparent',
 };

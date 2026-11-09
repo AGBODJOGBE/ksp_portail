@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
-import { IconImage } from '@/components/ui/icons';
-import { Placeholder } from '@/components/ui/placeholder';
+import { Placeholder, PlaceholderPhoto } from '@/components/ui/placeholder';
 import { Section, type SectionTone } from '@/components/ui/section';
 import { SectionHeader } from '@/components/ui/section-header';
 import type { Realisation } from '@/components/sections/types';
@@ -33,13 +32,7 @@ export function PendingGrid({
           key={index}
           title={content.pendingTitle}
           className={index > 0 ? 'max-sm:hidden' : undefined}
-          media={
-            withMedia ? (
-              <span className="bg-surface-sunken relative grid aspect-[4/3] place-items-center overflow-hidden">
-                <IconImage className="text-ink-subtle relative size-8" />
-              </span>
-            ) : undefined
-          }
+          media={withMedia ? <PlaceholderPhoto /> : undefined}
         >
           {content.pendingText}
         </Placeholder>

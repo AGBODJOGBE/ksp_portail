@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { SignatureBackdrop } from '@/components/ui/brand/signature';
-import { IconClock } from '@/components/ui/icons';
+import { IconClock, IconImage } from '@/components/ui/icons';
 import { cn } from '@/lib/cn';
 
 /**
@@ -40,5 +40,20 @@ export function Placeholder({
         {children ? <span className="text-small">{children}</span> : null}
       </span>
     </Tag>
+  );
+}
+
+/** Zone réservée à une future photo (réalisations) : dégradé bleu nuit pâle, signature, tuile d'image. */
+export function PlaceholderPhoto() {
+  return (
+    <span
+      aria-hidden="true"
+      className="from-brand-soft to-surface-sunken relative grid aspect-[4/3] place-items-center overflow-hidden bg-linear-to-br"
+    >
+      <SignatureBackdrop className="absolute inset-0 size-full opacity-[0.08]" />
+      <span className="rounded-icon bg-brand text-on-brand shadow-card relative grid size-14 place-items-center">
+        <IconImage className="size-7" />
+      </span>
+    </span>
   );
 }

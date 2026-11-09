@@ -76,8 +76,8 @@ function PlaceStep({ draft, catalog, errors, update, clearError }: StepProps) {
               key={place.code}
               className={cn(
                 'group rounded-card border-line bg-surface relative flex cursor-pointer gap-4 border p-4 shadow-xs sm:p-5',
-                'ease-soft transition-[border-color,transform] duration-(--motion-fast) active:scale-[0.99]',
-                'hover:border-line-strong has-[:checked]:border-action has-[:checked]:bg-action-soft',
+                'ease-soft transition-[border-color,box-shadow,transform] duration-(--motion-fast) active:scale-[0.99]',
+                'hover:border-line-strong hover:shadow-card has-[:checked]:border-action has-[:checked]:bg-action-soft has-[:checked]:shadow-card',
                 'has-[:focus-visible]:outline-focus has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2',
               )}
             >
@@ -95,7 +95,7 @@ function PlaceStep({ draft, catalog, errors, update, clearError }: StepProps) {
               />
               <span
                 aria-hidden="true"
-                className="bg-brand-soft text-brand-ink group-has-[:checked]:bg-action group-has-[:checked]:text-on-action grid size-12 shrink-0 place-items-center rounded-full transition-colors duration-(--motion-fast)"
+                className="rounded-icon bg-brand text-on-brand group-hover:text-accent-bright group-has-[:checked]:bg-action group-has-[:checked]:text-on-action grid size-12 shrink-0 place-items-center transition-colors duration-(--motion-fast)"
               >
                 <PlaceIcon icon={place.icon} className="size-6" />
               </span>

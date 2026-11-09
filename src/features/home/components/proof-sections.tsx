@@ -1,11 +1,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { SignatureBackdrop } from '@/components/ui/brand/signature';
-import { IconArrowRight, IconImage } from '@/components/ui/icons';
+import { IconArrowRight } from '@/components/ui/icons';
 import { Badge } from '@/components/ui/badge';
 import { ButtonArrow, ButtonLink } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Placeholder } from '@/components/ui/placeholder';
+import { Placeholder, PlaceholderPhoto } from '@/components/ui/placeholder';
 import { Section } from '@/components/ui/section';
 import { SectionHeader } from '@/components/ui/section-header';
 import type { HomeContent } from '@/features/home/content';
@@ -110,17 +110,7 @@ export function RealisationsSection({ content }: { content: HomeContent['realisa
                 key={index}
                 title="Réalisation à venir"
                 className={index > 0 ? 'max-sm:hidden' : undefined}
-                media={
-                  <span
-                    aria-hidden="true"
-                    className="from-brand-soft to-surface-sunken relative grid aspect-[4/3] place-items-center overflow-hidden bg-linear-to-br"
-                  >
-                    <SignatureBackdrop className="absolute inset-0 size-full opacity-[0.08]" />
-                    <span className="rounded-icon bg-brand text-on-brand shadow-card relative grid size-14 place-items-center">
-                      <IconImage className="size-7" />
-                    </span>
-                  </span>
-                }
+                media={<PlaceholderPhoto />}
               >
                 Photo et description publiées prochainement.
               </Placeholder>
