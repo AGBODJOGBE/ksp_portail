@@ -8,10 +8,10 @@ import { FormMessage } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
 import { IconArrowRight } from '@/components/ui/icons';
 import { StepTimeline } from '@/components/ui/step-timeline';
-import { PayButton, paymentTexts } from '@/features/payment';
+import { WalletPay, walletTexts } from '@/features/wallet';
 import { formatDateTime, formatShortDate, formatXof, isPast } from '@/lib/format';
 import { useResource } from '@/lib/use-resource';
-import { cancelRequestGroup, getMission, getRequestGroup } from '@/features/cleaning/api';
+import { cancelRequestGroup, getMission, getRequestGroup, payMission } from '@/features/cleaning/api';
 import { type CleaningErrorView, describeCleaningError } from '@/features/cleaning/errors';
 import { idempotentSubmission } from '@/features/cleaning/idempotency';
 import { journeyTexts } from '@/features/cleaning/journey-texts';
@@ -53,9 +53,13 @@ function nextText(group: RequestGroup, quotes: number): string {
   return t.nextClosed;
 }
 
-/** Après l'acceptation : le paiement Mobile Money de chaque mission créée, s'il est attendu maintenant. */
+/**
+ * Après l'acceptation : le paiement par le portefeuille de chaque mission créée, s'il est attendu
+ * maintenant. Après une recharge, le client revient sur la fiche de la mission pour payer.
+ */
 function MissionPayment({ id, name }: { id: string; name: (code: string) => string }) {
   const mission = useResource(useCallback(() => getMission(id), [id]));
+  const [paid, setPaid] = useState<string | null>(null);
   if (mission.state.status === 'loading') {
     return (
       <p role="status" className="text-small text-ink-muted">
@@ -80,14 +84,20 @@ function MissionPayment({ id, name }: { id: string; name: (code: string) => stri
           <IconArrowRight className="size-4" />
         </Link>
       </div>
+      <FormMessage tone="success">{paid}</FormMessage>
       {due ? (
-        <PayButton
-          subject={{ subjectType: 'cleaning_mission', subjectId: data.id, part: due.part }}
-          label={due.part === 'deposit' ? paymentTexts.payDeposit : paymentTexts.pay}
+        <WalletPay
+          pay={(key) => payMission(data.id, due.part, key)}
+          label={due.part === 'deposit' ? walletTexts.payDeposit : walletTexts.pay}
           amount={due.amount}
+          returnTo={cleaningPaths.mission(data.id)}
+          onPaid={(updated, notice) => {
+            mission.set(updated);
+            setPaid(notice);
+          }}
           onStale={mission.refresh}
         />
-      ) : (
+      ) : paid ? null : (
         <p className="text-small text-ink-muted">{spaceTexts.outcome.noPayNow}</p>
       )}
     </li>
@@ -189,7 +199,7 @@ function GroupItem({ request, name }: { request: QuoteRequest; name: (code: stri
 /**
  * Suivi d'une demande groupée (`GET /cleaning/quote-request-groups/{id}`, adresse des messages
  * regroupés, ADR-035) : frise de la prestation, une action principale (accepter les devis en une fois),
- * prestations et montants, annulation de ce qui est encore ouvert, puis paiement Mobile Money des
+ * prestations et montants, annulation de ce qui est encore ouvert, puis paiement par le portefeuille des
  * missions créées.
  */
 export function RequestGroupDetail({ id }: { id: string }) {

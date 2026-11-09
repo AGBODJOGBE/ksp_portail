@@ -62,7 +62,7 @@ export const spaceTexts = {
     skippedTitle: 'Laissées de côté',
     payTitle: 'Régler maintenant',
     payLead:
-      'Payez par Mobile Money : vous êtes redirigé vers la page sécurisée du prestataire, puis vous revenez ici.',
+      'Payez avec votre portefeuille KSP ; s’il ne suffit pas, rechargez-le par Mobile Money puis revenez ici.',
     noPayNow: 'Rien à régler en ligne pour le moment : vous paierez selon la façon choisie.',
     loadingMission: 'Chargement de la mission…',
   },

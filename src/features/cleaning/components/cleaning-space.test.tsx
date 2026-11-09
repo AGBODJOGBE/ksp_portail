@@ -493,44 +493,113 @@ describe('Mes prestations de nettoyage', () => {
     expect(screen.getByText('1 passage par semaine, pendant 2 mois')).toBeInTheDocument();
     expect(screen.getByText('Liste de contrôle : 1 sur 2')).toBeInTheDocument();
     expect(screen.getAllByText(/Awa B\./).length).toBeGreaterThan(0);
-    // Acompte reçu : le solde se paie en ligne ; son montant (calculé par KSP) est sur la page de paiement.
+    // Acompte reçu : le solde se paie avec le portefeuille ; sans `remainingDue` (gateway antérieure),
+    // son montant est calculé par KSP au paiement.
     expect(
-      await screen.findByRole('button', { name: 'Payer le solde par Mobile Money' }),
+      await screen.findByRole('button', { name: 'Payer le solde avec mon portefeuille' }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Le montant restant dû est calculé par KSP/)).toBeInTheDocument();
+    expect(screen.getByText(/Montant calculé par KSP/)).toBeInTheDocument();
   });
 
-  it('mission d’un particulier, acompte attendu : paiement en ligne de l’acompte (ADR-031)', async () => {
+  it('mission d’un particulier, acompte attendu : payé avec le portefeuille (ADR-046)', async () => {
+    const due = mission({
+      payment: {
+        ...mission().payment,
+        status: 'due',
+        paid: { amount: 0, currency: 'XOF' },
+        payments: [],
+        depositDue: { amount: 10200, currency: 'XOF' },
+        remainingDue: { amount: 34000, currency: 'XOF' },
+      },
+    });
+    const paid = mission({
+      payment: {
+        ...mission().payment,
+        payments: [
+          {
+            ...mission().payment.payments[0]!,
+            method: 'wallet',
+            reference: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d7001',
+            refundedAt: null,
+          },
+        ],
+        depositDue: null,
+        remainingDue: { amount: 23800, currency: 'XOF' },
+      },
+    });
+    const wallet = (amount: number) => ({
+      status: 200,
+      body: { prepaid: { balance: { amount, currency: 'XOF' }, lastEntryAt: null } },
+    });
     const { calls } = stubGateway({
+      [SERVICES_ROUTE]: { status: 200, body: SERVICES },
+      [`GET /api/v1/cleaning/missions/${MISSION_ID}`]: { status: 200, body: due },
+      'GET /api/v1/wallet/me': [wallet(50000), wallet(39800)],
+      [`POST /api/v1/cleaning/missions/${MISSION_ID}/pay`]: [
+        // Conflit d'écriture : renvoi avec la même clé, rien n'est payé deux fois.
+        { status: 409, body: errorBody('CLEANING_CONCURRENT_UPDATE', 'Conflit.') },
+        { status: 200, body: paid },
+      ],
+    });
+    render(<MissionDetail id={MISSION_ID} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Payer l’acompte avec mon portefeuille' }));
+    // Confirmation : montant (acompte encore dû, lu sur la mission) et solde après.
+    expect(plain(screen.getByText('Solde après paiement').nextElementSibling?.textContent ?? null)).toBe(
+      '39 800 F CFA',
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Confirmer le paiement de 10\s200\sF\sCFA/ }));
+    expect(await screen.findByText(/Une autre opération était en cours/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Confirmer le paiement/ }));
+    expect(
+      await screen.findByText(
+        /Paiement de 10\s200\sF\sCFA effectué depuis votre portefeuille\. Solde restant : 39\s800\sF\sCFA\./,
+      ),
+    ).toBeInTheDocument();
+    const posts = calls.filter((call) => call.method === 'POST');
+    expect(posts.map((call) => call.body)).toEqual([{ part: 'deposit' }, { part: 'deposit' }]);
+    expect(posts[0]?.headers['Idempotency-Key']).toMatch(/^[A-Za-z0-9_-]{8,100}$/);
+    expect(posts[1]?.headers['Idempotency-Key']).toBe(posts[0]?.headers['Idempotency-Key']);
+    // Le règlement apparaît, moyen « Portefeuille KSP », sans l'identifiant technique du débit.
+    expect(screen.getByText(/Portefeuille KSP ·/)).not.toHaveTextContent('0192f1c4');
+  });
+
+  it('solde insuffisant : rien n’est débité, « Recharger » le montant manquant est proposé', async () => {
+    stubGateway({
       [SERVICES_ROUTE]: { status: 200, body: SERVICES },
       [`GET /api/v1/cleaning/missions/${MISSION_ID}`]: {
         status: 200,
         body: mission({
-          payment: {
-            ...mission().payment,
-            status: 'due',
-            paid: { amount: 0, currency: 'XOF' },
-            payments: [],
-          },
+          payment: { ...mission().payment, remainingDue: { amount: 23800, currency: 'XOF' } },
         }),
       },
-      'POST /api/v1/payment/payments': {
+      // Solde suffisant à l'ouverture, dépensé entre-temps : la gateway refuse sans rien débiter.
+      'GET /api/v1/wallet/me': {
+        status: 200,
+        body: {
+          prepaid: { balance: { amount: 30000, currency: 'XOF' }, lastEntryAt: null },
+          topUpLimits: { min: { amount: 500, currency: 'XOF' }, max: { amount: 1000000, currency: 'XOF' } },
+        },
+      },
+      [`POST /api/v1/cleaning/missions/${MISSION_ID}/pay`]: {
         status: 422,
-        body: errorBody('PAYMENT_NOTHING_DUE', 'Il n’y a rien à payer pour le moment.'),
+        body: {
+          error: {
+            code: 'WALLET_INSUFFICIENT_FUNDS',
+            message: 'Solde insuffisant.',
+            details: {
+              balance: { amount: 3800, currency: 'XOF' },
+              missing: { amount: 20000, currency: 'XOF' },
+            },
+            correlationId: 'c-test',
+          },
+        },
       },
     });
     render(<MissionDetail id={MISSION_ID} />);
-    const pay = await screen.findByRole('button', { name: 'Payer l’acompte par Mobile Money' });
-    expect(screen.getByText(/Montant à payer/)).toHaveTextContent(/10\s200\sF\sCFA/);
-    fireEvent.click(pay);
-    expect(await screen.findByText(/Ce montant est déjà réglé/)).toBeInTheDocument();
-    const create = calls.find((call) => call.method === 'POST');
-    expect(create?.body).toEqual({ subjectType: 'cleaning_mission', subjectId: MISSION_ID, part: 'deposit' });
-    expect(create?.headers['Idempotency-Key']).toBeTruthy();
-    // Refus « rien à payer » : la mission est relue.
-    await waitFor(() =>
-      expect(calls.filter((call) => call.path === `/api/v1/cleaning/missions/${MISSION_ID}`)).toHaveLength(2),
-    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Payer le solde avec mon portefeuille' }));
+    fireEvent.click(screen.getByRole('button', { name: /Confirmer le paiement de 23\s800/ }));
+    expect(await screen.findByText(/Solde insuffisant : il vous manque 20\s000\sF\sCFA\./)).toHaveFocus();
+    expect(screen.getByRole('button', { name: /Recharger 20\s000\sF\sCFA/ })).toBeInTheDocument();
   });
 
   it('mission d’entreprise : pas de paiement en ligne (facture mensuelle)', async () => {
@@ -543,7 +612,7 @@ describe('Mes prestations de nettoyage', () => {
     });
     render(<MissionDetail id={MISSION_ID} />);
     expect(await screen.findByText(/Contrat d’entreprise/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /par Mobile Money/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /avec mon portefeuille/ })).not.toBeInTheDocument();
   });
 });
 

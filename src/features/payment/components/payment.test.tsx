@@ -1,5 +1,4 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { PayButton, redirect } from './pay-button';
 import { PaymentReturn } from './payment-return';
 import { PaymentSimulation } from './payment-simulation';
 
@@ -74,162 +73,13 @@ function stubGateway(routes: Record<string, Reply | Reply[]>) {
   return calls;
 }
 
-const to = vi.fn();
 beforeEach(() => {
   push.mockReset();
-  to.mockReset();
-  vi.spyOn(redirect, 'to').mockImplementation(to);
 });
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   vi.useRealTimers();
-});
-
-describe('Bouton « Payer par Mobile Money »', () => {
-  it('envoie l’objet sans montant, avec une clé d’idempotence, puis ouvre la page du prestataire', async () => {
-    const calls = stubGateway({ [`POST ${PAYMENTS}`]: { status: 200, body: payment() } });
-    render(
-      <PayButton
-        subject={{ subjectType: 'cleaning_mission', subjectId: MISSION_ID, part: 'deposit' }}
-        label="Payer l’acompte par Mobile Money"
-        amount={xof(10200)}
-      />,
-    );
-    expect(screen.getByText(/Montant à payer/)).toHaveTextContent(/10\s200\sF\sCFA/);
-    fireEvent.click(screen.getByRole('button', { name: 'Payer l’acompte par Mobile Money' }));
-    await waitFor(() => expect(to).toHaveBeenCalledWith(payment().checkoutUrl));
-    expect(calls[0]?.body).toEqual({
-      subjectType: 'cleaning_mission',
-      subjectId: MISSION_ID,
-      part: 'deposit',
-    });
-    expect(calls[0]?.headers['Idempotency-Key']).toMatch(/^[A-Za-z0-9_-]{8,100}$/);
-  });
-
-  it('garde la même clé quand le prestataire est injoignable, puis réussit au renvoi', async () => {
-    const calls = stubGateway({
-      [`POST ${PAYMENTS}`]: [
-        {
-          status: 503,
-          body: errorBody('PAYMENT_PROVIDER_UNAVAILABLE', 'Le service de paiement est indisponible.'),
-        },
-        {
-          status: 200,
-          body: payment({
-            subject: { type: 'billing_invoice', id: INVOICE_ID, part: null, reference: 'FAC-1' },
-          }),
-        },
-      ],
-    });
-    render(
-      <PayButton subject={{ subjectType: 'billing_invoice', subjectId: INVOICE_ID }} amount={xof(300000)} />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Payer par Mobile Money' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(/momentanément indisponible/);
-    fireEvent.click(screen.getByRole('button', { name: 'Payer par Mobile Money' }));
-    await waitFor(() => expect(to).toHaveBeenCalled());
-    expect(calls[0]?.body).toEqual({ subjectType: 'billing_invoice', subjectId: INVOICE_ID });
-    expect(calls[1]?.headers['Idempotency-Key']).toBe(calls[0]?.headers['Idempotency-Key']);
-  });
-
-  it('montant déjà réglé : message clair et relecture de la fiche', async () => {
-    stubGateway({
-      [`POST ${PAYMENTS}`]: { status: 422, body: errorBody('PAYMENT_NOTHING_DUE', 'Il n’y a rien à payer.') },
-    });
-    const onStale = vi.fn();
-    render(
-      <PayButton
-        subject={{ subjectType: 'cleaning_mission', subjectId: MISSION_ID, part: 'balance' }}
-        amount={null}
-        onStale={onStale}
-      />,
-    );
-    expect(screen.getByText(/calculé par KSP/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Payer par Mobile Money' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Ce montant est déjà réglé');
-    expect(onStale).toHaveBeenCalled();
-    expect(to).not.toHaveBeenCalled();
-  });
-
-  it('limite d’appels (429) et objet hors périmètre : messages traduits', async () => {
-    stubGateway({
-      [`POST ${PAYMENTS}`]: [
-        { status: 429, body: errorBody('GATEWAY_RATE_LIMITED', 'Too many') },
-        { status: 404, body: errorBody('PAYMENT_SUBJECT_NOT_FOUND', 'introuvable') },
-      ],
-    });
-    render(
-      <PayButton subject={{ subjectType: 'billing_invoice', subjectId: INVOICE_ID }} amount={xof(1000)} />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Payer par Mobile Money' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(/Trop de tentatives de paiement/);
-    fireEvent.click(screen.getByRole('button', { name: 'Payer par Mobile Money' }));
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/compte actif/));
-  });
-
-  it('paiement déjà reçu, pas encore enregistré : pas de bouton qui boucle, « Actualiser » relit la fiche', async () => {
-    const calls = stubGateway({
-      [`POST ${PAYMENTS}`]: {
-        status: 409,
-        body: errorBody('PAYMENT_ALREADY_RECEIVED', 'Paiement déjà reçu.'),
-      },
-    });
-    const onStale = vi.fn();
-    render(
-      <PayButton
-        subject={{ subjectType: 'cleaning_mission', subjectId: MISSION_ID, part: 'balance' }}
-        amount={xof(5000)}
-        onStale={onStale}
-      />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Payer par Mobile Money' }));
-    expect(
-      await screen.findByText(
-        /Paiement déjà reçu, en cours d’enregistrement : réessayez dans quelques instants/,
-      ),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Payer par Mobile Money' })).toBeNull();
-    expect(onStale).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Actualiser' }));
-    expect(onStale).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('button', { name: 'Payer par Mobile Money' })).toBeInTheDocument();
-    expect(calls).toHaveLength(1);
-    expect(to).not.toHaveBeenCalled();
-  });
-
-  it.each(['PAYMENT_RECONCILIATION_PENDING', 'PAYMENT_UNDER_REVIEW'])(
-    '%s : vérification par le support, plus aucun bouton de paiement',
-    async (code) => {
-      stubGateway({ [`POST ${PAYMENTS}`]: { status: 409, body: errorBody(code, 'message brut') } });
-      render(
-        <PayButton subject={{ subjectType: 'billing_invoice', subjectId: INVOICE_ID }} amount={xof(1000)} />,
-      );
-      fireEvent.click(screen.getByRole('button', { name: 'Payer par Mobile Money' }));
-      expect(
-        await screen.findByText('Un paiement est en cours de vérification ; contactez le support KSP.'),
-      ).toBeInTheDocument();
-      expect(screen.getByRole('alert')).toHaveTextContent(/contactez le support KSP/);
-      expect(screen.queryByRole('button', { name: /Payer|Actualiser/ })).toBeNull();
-      expect(screen.getByRole('link', { name: 'Contacter le support KSP' })).toHaveAttribute(
-        'href',
-        '/contact?sujet=paiement',
-      );
-    },
-  );
-
-  it('paiement déjà terminé avec cette clé : page de retour', async () => {
-    stubGateway({
-      [`POST ${PAYMENTS}`]: { status: 200, body: payment({ status: 'succeeded', checkoutUrl: null }) },
-    });
-    render(
-      <PayButton subject={{ subjectType: 'billing_invoice', subjectId: INVOICE_ID }} amount={xof(1000)} />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Payer par Mobile Money' }));
-    await waitFor(() => expect(push).toHaveBeenCalledWith(`/mon-espace/paiements/${PAYMENT_ID}`));
-    expect(to).not.toHaveBeenCalled();
-  });
 });
 
 describe('Page de retour', () => {
@@ -261,6 +111,47 @@ describe('Page de retour', () => {
       await vi.advanceTimersByTimeAsync(30000);
     });
     expect(calls).toHaveLength(3);
+  });
+
+  it('recharge du portefeuille réussie : bloc du portefeuille, reçu, sans lien en double', async () => {
+    const topUp = {
+      type: 'wallet_top_up',
+      id: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d9e11',
+      part: null,
+      reference: null,
+    };
+    stubGateway({
+      [`GET ${PAYMENTS}/${PAYMENT_ID}`]: {
+        status: 200,
+        body: payment({ subject: topUp, status: 'succeeded', completedAt: '2026-11-02T09:01:00Z' }),
+      },
+    });
+    render(<PaymentReturn id={PAYMENT_ID} topUpResult={<p>Bloc du portefeuille</p>} />);
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Recharge du portefeuille' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Bloc du portefeuille')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Reçu de paiement' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Voir mon portefeuille' })).not.toBeInTheDocument();
+  });
+
+  it('recharge échouée : relancer depuis le portefeuille', async () => {
+    const topUp = {
+      type: 'wallet_top_up',
+      id: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d9e11',
+      part: null,
+      reference: null,
+    };
+    stubGateway({
+      [`GET ${PAYMENTS}/${PAYMENT_ID}`]: { status: 200, body: payment({ subject: topUp, status: 'failed' }) },
+    });
+    render(<PaymentReturn id={PAYMENT_ID} topUpResult={<p>Bloc du portefeuille</p>} />);
+    expect(await screen.findByText(/relancer une recharge depuis votre portefeuille/)).toBeInTheDocument();
+    expect(screen.queryByText('Bloc du portefeuille')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Voir mon portefeuille' })).toHaveAttribute(
+      'href',
+      '/mon-espace/portefeuille',
+    );
   });
 
   it('écart de montant : « Paiement reçu, en cours de vérification »', async () => {

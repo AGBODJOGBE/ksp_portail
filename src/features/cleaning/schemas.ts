@@ -344,8 +344,19 @@ export const paymentStateSchema = z.object({
       /** Back-office (ADR-029), facultatif. */
       recordedByName: z.optional(z.nullable(z.string())),
       recordedAt: z.string(),
+      /**
+       * Paiement par le portefeuille remboursé (mission annulée, ADR-046) : il ne compte plus dans `paid`.
+       * Facultatif : absent d'une gateway antérieure.
+       */
+      refundedAt: z.optional(z.nullable(z.string())),
     }),
   ),
+  /**
+   * Reste dû et acompte encore attendu, calculés par cleaning : montants débités par
+   * `POST /cleaning/missions/{id}/pay`. Facultatifs : absents d'une gateway antérieure.
+   */
+  remainingDue: z.optional(moneySchema),
+  depositDue: z.optional(z.nullable(moneySchema)),
 });
 
 /**

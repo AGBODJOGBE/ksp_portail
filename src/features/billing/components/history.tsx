@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { IconArrowRight } from '@/components/ui/icons';
 import {
-  PayButton,
   listPayments,
   paymentPaths,
   paymentTexts,
@@ -15,10 +14,11 @@ import {
   subjectLabel,
   type Payment,
 } from '@/features/payment';
+import { WalletPay } from '@/features/wallet';
 import { ApiError, contextKey, useSession } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { formatShortDate, formatXof, isPast } from '@/lib/format';
-import { listInvoices } from '@/features/billing/api';
+import { listInvoices, payInvoice } from '@/features/billing/api';
 import type { Invoice } from '@/features/billing/schemas';
 import { billingPaths, billingTexts, historyTexts as t, invoiceStatus } from '@/features/billing/texts';
 
@@ -60,7 +60,15 @@ function merge(previous: Entry[], invoices: Invoice[], payments: Payment[]): Ent
 
 const DUE = new Set(['pending_payment', 'overdue']);
 
-function InvoiceRow({ invoice, onStale }: { invoice: Invoice; onStale: () => void }) {
+function InvoiceRow({
+  invoice,
+  onPaid,
+  onStale,
+}: {
+  invoice: Invoice;
+  onPaid: (notice: string) => void;
+  onStale: () => void;
+}) {
   const status = invoiceStatus(invoice.status);
   const due = DUE.has(invoice.status) && invoice.balance.amount > 0;
   const [paying, setPaying] = useState(false);
@@ -105,9 +113,10 @@ function InvoiceRow({ invoice, onStale }: { invoice: Invoice; onStale: () => voi
           )}
           {paying ? (
             <div className="sm:col-span-2">
-              <PayButton
-                subject={{ subjectType: 'billing_invoice', subjectId: invoice.id }}
+              <WalletPay
+                pay={(key) => payInvoice(invoice.id, key)}
                 amount={invoice.balance}
+                onPaid={(_, notice) => onPaid(notice)}
                 onStale={onStale}
               />
             </div>
@@ -151,6 +160,8 @@ function History() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [moreError, setMoreError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  // Paiement par le portefeuille enregistré : gardé hors de la liste, qui est relue.
+  const [paid, setPaid] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -199,84 +210,101 @@ function History() {
     }
   }
 
-  if (state.status === 'loading') {
-    return (
-      <div role="status" className="grid gap-3">
-        <span className="sr-only">{billingTexts.loading}</span>
-        {[0, 1, 2].map((row) => (
-          <span
-            key={row}
-            aria-hidden="true"
-            className="bg-surface-sunken rounded-control block h-20 animate-pulse motion-reduce:animate-none"
-          />
-        ))}
-      </div>
-    );
-  }
-  if (state.status === 'error') {
-    return (
-      <div className="grid justify-items-start gap-3">
-        <FormMessage>{state.message}</FormMessage>
-        <Button variant="secondary" onClick={reload}>
-          {billingTexts.retry}
-        </Button>
-      </div>
-    );
-  }
+  function content() {
+    if (state.status === 'loading') {
+      return (
+        <div role="status" className="grid gap-3">
+          <span className="sr-only">{billingTexts.loading}</span>
+          {[0, 1, 2].map((row) => (
+            <span
+              key={row}
+              aria-hidden="true"
+              className="bg-surface-sunken rounded-control block h-20 animate-pulse motion-reduce:animate-none"
+            />
+          ))}
+        </div>
+      );
+    }
+    if (state.status === 'error') {
+      return (
+        <div className="grid justify-items-start gap-3">
+          <FormMessage>{state.message}</FormMessage>
+          <Button variant="secondary" onClick={reload}>
+            {billingTexts.retry}
+          </Button>
+        </div>
+      );
+    }
 
-  const due = state.entries.filter(
-    (entry): entry is Extract<Entry, { kind: 'invoice' }> =>
-      entry.kind === 'invoice' && DUE.has(entry.invoice.status) && entry.invoice.balance.amount > 0,
-  );
+    const due = state.entries.filter(
+      (entry): entry is Extract<Entry, { kind: 'invoice' }> =>
+        entry.kind === 'invoice' && DUE.has(entry.invoice.status) && entry.invoice.balance.amount > 0,
+    );
+
+    return (
+      <div className="grid gap-8">
+        <section
+          aria-labelledby="historique-du"
+          className="rounded-card border-line bg-surface grid gap-2 border p-5 shadow-xs sm:p-6"
+        >
+          <h2 id="historique-du" className="font-display text-ink text-xl font-semibold">
+            {t.dueTitle}
+          </h2>
+          {due.length ? (
+            <p className="text-ink">{t.dueCount(due.length)}</p>
+          ) : (
+            <p className="text-ink-muted">{t.nothingDue}</p>
+          )}
+        </section>
+
+        <section aria-labelledby="historique-titre" className="grid gap-3">
+          <h2 id="historique-titre" className="font-display text-ink text-xl font-semibold">
+            {t.title}
+          </h2>
+          {state.entries.length ? (
+            <ul className="rounded-card border-line bg-surface divide-line divide-y border px-4 shadow-xs sm:px-5">
+              {state.entries.map((entry) =>
+                entry.kind === 'invoice' ? (
+                  <InvoiceRow
+                    key={entry.invoice.id}
+                    invoice={entry.invoice}
+                    onPaid={(notice) => {
+                      setPaid(notice);
+                      reload();
+                    }}
+                    onStale={reload}
+                  />
+                ) : (
+                  <PaymentRow key={entry.payment.id} payment={entry.payment} />
+                ),
+              )}
+            </ul>
+          ) : (
+            <div className="grid gap-1">
+              <p className="text-ink">{t.empty}</p>
+              <p className="text-small text-ink-muted">{paymentTexts.emptyHint}</p>
+            </div>
+          )}
+          {state.more ? (
+            <Button
+              variant="secondary"
+              onClick={loadMore}
+              aria-busy={loadingMore || undefined}
+              className="justify-self-start"
+            >
+              {loadingMore ? billingTexts.loading : t.more}
+            </Button>
+          ) : null}
+          <FormMessage>{moreError}</FormMessage>
+        </section>
+      </div>
+    );
+  }
 
   return (
-    <div className="grid gap-8">
-      <section
-        aria-labelledby="historique-du"
-        className="rounded-card border-line bg-surface grid gap-2 border p-5 shadow-xs sm:p-6"
-      >
-        <h2 id="historique-du" className="font-display text-ink text-xl font-semibold">
-          {t.dueTitle}
-        </h2>
-        {due.length ? (
-          <p className="text-ink">{t.dueCount(due.length)}</p>
-        ) : (
-          <p className="text-ink-muted">{t.nothingDue}</p>
-        )}
-      </section>
-
-      <section aria-labelledby="historique-titre" className="grid gap-3">
-        <h2 id="historique-titre" className="font-display text-ink text-xl font-semibold">
-          {t.title}
-        </h2>
-        {state.entries.length ? (
-          <ul className="rounded-card border-line bg-surface divide-line divide-y border px-4 shadow-xs sm:px-5">
-            {state.entries.map((entry) =>
-              entry.kind === 'invoice' ? (
-                <InvoiceRow key={entry.invoice.id} invoice={entry.invoice} onStale={reload} />
-              ) : (
-                <PaymentRow key={entry.payment.id} payment={entry.payment} />
-              ),
-            )}
-          </ul>
-        ) : (
-          <div className="grid gap-1">
-            <p className="text-ink">{t.empty}</p>
-            <p className="text-small text-ink-muted">{paymentTexts.emptyHint}</p>
-          </div>
-        )}
-        {state.more ? (
-          <Button
-            variant="secondary"
-            onClick={loadMore}
-            aria-busy={loadingMore || undefined}
-            className="justify-self-start"
-          >
-            {loadingMore ? billingTexts.loading : t.more}
-          </Button>
-        ) : null}
-        <FormMessage>{moreError}</FormMessage>
-      </section>
+    <div className="grid gap-6">
+      <FormMessage tone="success">{paid}</FormMessage>
+      {content()}
     </div>
   );
 }

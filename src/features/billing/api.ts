@@ -23,3 +23,14 @@ export async function listInvoices(cursor?: string, status?: InvoiceStatusFilter
 export async function getInvoice(id: string): Promise<Invoice> {
   return parseResponse(invoiceSchema, await api.get(`${INVOICES}/${encodeURIComponent(id)}`));
 }
+
+/**
+ * Reste dû d'une facture payé depuis le portefeuille prépayé (ADR-046) : celui de l'organisation active ou
+ * le mien. Débité en entier ; la même clé ne débite qu'une fois. Sans corps.
+ */
+export async function payInvoice(id: string, idempotencyKey: string): Promise<Invoice> {
+  return parseResponse(
+    invoiceSchema,
+    await api.post(`${INVOICES}/${encodeURIComponent(id)}/pay`, undefined, { idempotencyKey }),
+  );
+}

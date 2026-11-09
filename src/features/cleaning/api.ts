@@ -248,6 +248,21 @@ export async function getMission(id: string): Promise<Mission> {
   return parseResponse(missionSchema, await api.get(`${MISSIONS}/${encodeURIComponent(id)}`));
 }
 
+/**
+ * Acompte ou reste dû d'une mission payé depuis le portefeuille prépayé (ADR-046) : le montant n'est
+ * jamais envoyé (calculé par cleaning, débité en entier) ; la même clé ne débite qu'une fois.
+ */
+export async function payMission(
+  id: string,
+  part: 'deposit' | 'balance',
+  idempotencyKey: string,
+): Promise<Mission> {
+  return parseResponse(
+    missionSchema,
+    await api.post(`${MISSIONS}/${encodeURIComponent(id)}/pay`, { part }, { idempotencyKey }),
+  );
+}
+
 export async function cancelMission(id: string, reason: string): Promise<Mission> {
   return parseResponse(
     missionSchema,

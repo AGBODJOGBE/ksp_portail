@@ -226,6 +226,7 @@ export const cleaningTexts = {
     noPayments: 'Aucun règlement enregistré pour le moment.',
     howToPay:
       'Vous pouvez aussi régler auprès de l’équipe KSP (espèces, Mobile Money), qui l’enregistre ici.',
+    refunded: (date: string) => `remboursé dans le portefeuille le ${date}`,
     cancellationReason: 'Motif de l’annulation',
     cancel: 'Annuler la mission',
     cancelTitle: 'Annuler la mission',
@@ -418,14 +419,25 @@ export const paymentTimings: Record<string, string> = {
   after: 'Après la prestation',
 };
 /**
- * Moyens d'un règlement reçu ou prévu. `mobile_money_online` : paiement en ligne confirmé par le
- * prestataire (service payment, ADR-031), proposé à l'acceptation d'un devis (le contrat l'accepte) ; le
- * client peut aussi payer en ligne depuis la fiche de la mission quel que soit le moyen prévu.
+ * Moyens d'un règlement reçu. `mobile_money_online` : paiement Mobile Money direct confirmé par le
+ * prestataire (ADR-031, déprécié, gardé pour l'historique) ; `wallet` : payé depuis le portefeuille
+ * prépayé (ADR-046).
  */
 export const paymentMethods: Record<string, string> = {
   cash: 'Espèces',
   mobile_money_offline: 'Mobile Money (auprès de l’équipe)',
   mobile_money_online: 'Mobile Money en ligne',
+  wallet: 'Portefeuille KSP',
+};
+
+/**
+ * Moyens prévus à l'acceptation d'un devis. Le contrat n'a pas de valeur `wallet` pour le plan :
+ * `mobile_money_online` (« le client paie en ligne depuis la fiche ») se fait désormais avec le
+ * portefeuille prépayé, rechargé par Mobile Money (ADR-046).
+ */
+export const planMethods: Record<string, string> = {
+  ...paymentMethods,
+  mobile_money_online: 'En ligne, avec mon portefeuille',
 };
 export const OFFERED_PAYMENT_METHODS = ['mobile_money_online', 'cash', 'mobile_money_offline'] as const;
 

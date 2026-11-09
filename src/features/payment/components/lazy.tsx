@@ -12,10 +12,6 @@ function Loading() {
   return <p role="status" aria-busy="true" className="text-ink-muted min-h-11" />;
 }
 
-export const PayButton = dynamic(() => import('./pay-button').then((module_) => module_.PayButton), {
-  loading: Loading,
-});
-
 export const PaymentReturn = dynamic(
   () => import('./payment-return').then((module_) => module_.PaymentReturn),
   { loading: Loading },

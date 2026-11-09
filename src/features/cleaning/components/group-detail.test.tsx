@@ -114,13 +114,13 @@ describe('suivi d’une demande groupée', () => {
     expect(screen.getByText(/2 devis vous attendent/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Accepter les devis' }));
 
-    // Récapitulatif (montants de la gateway), créneau commun, paiement Mobile Money en ligne par défaut.
+    // Récapitulatif (montants de la gateway), créneau commun, paiement en ligne (portefeuille) par défaut.
     const form = await screen.findByRole('form', { name: 'Accepter les devis' }, LAZY);
     expect(within(form).getByText(/68\s000\sF\sCFA/)).toBeInTheDocument();
     fireEvent.click(within(form).getByRole('button', { name: 'Confirmer et réserver' }));
     expect(within(form).getByText('Choisissez un créneau.')).toBeInTheDocument();
     fireEvent.click(within(form).getAllByRole('radio')[0]!);
-    expect(within(form).getByRole('radio', { name: 'Mobile Money en ligne' })).toBeChecked();
+    expect(within(form).getByRole('radio', { name: 'En ligne, avec mon portefeuille' })).toBeChecked();
     fireEvent.click(within(form).getByRole('button', { name: 'Confirmer et réserver' }));
 
     expect(await screen.findByText('Réservation confirmée')).toBeInTheDocument();
@@ -131,7 +131,7 @@ describe('suivi d’une demande groupée', () => {
       slotStart: QUOTE.proposedSlots[0]!.start,
       paymentPlan: { option: 'deposit', timing: 'before', method: 'mobile_money_online' },
     });
-    // Enchaînement sur le paiement : acompte lu sur la mission créée.
+    // Enchaînement sur le paiement par le portefeuille : acompte lu sur la mission créée.
     expect(await screen.findByRole('button', { name: /Payer l’acompte/ }, LAZY)).toBeInTheDocument();
     expect(screen.getByText(/10\s200\sF\sCFA/)).toBeInTheDocument();
   });

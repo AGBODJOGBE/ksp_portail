@@ -151,11 +151,13 @@ describe('Mes factures', () => {
       'href',
       '/mon-espace/nettoyage/missions/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1000',
     );
-    // Paiement en ligne (ADR-031) : le montant affiché est le reste dû de la facture.
-    const pay = screen.getByRole('region', { name: 'Payer en ligne' });
-    expect(await within(pay).findByRole('button', { name: 'Payer par Mobile Money' })).toBeInTheDocument();
-    expect(plain(within(pay).getByText(/Montant à payer/).textContent)).toBe(
-      'Montant à payer : 300 000 F CFA',
+    // Paiement par le portefeuille (ADR-046) : le montant affiché est le reste dû de la facture.
+    const pay = screen.getByRole('region', { name: 'Payer avec le portefeuille' });
+    expect(
+      await within(pay).findByRole('button', { name: 'Payer avec mon portefeuille' }),
+    ).toBeInTheDocument();
+    expect(plain(within(pay).getByText('Montant à payer').nextElementSibling?.textContent ?? null)).toBe(
+      '300 000 F CFA',
     );
   });
 

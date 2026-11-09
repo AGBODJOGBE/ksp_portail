@@ -10,14 +10,18 @@ export const paymentPaths = {
   simulation: '/mon-espace/paiements/simulation',
 } as const;
 
+/** Recharge du portefeuille prépayé (ADR-046) : objet `wallet_top_up`, identifiant = titulaire. */
+export const TOP_UP = 'wallet_top_up';
+
 /**
- * Objet payé → écran du portail. Adresses fixées par cleaning et billing, recopiées ici : leurs index
- * importent cette fonctionnalité (bouton de paiement), l'inverse ferait un cycle.
+ * Objet payé → écran du portail. Adresses fixées par cleaning, billing et wallet, recopiées ici : billing
+ * importe cette fonctionnalité (historique) et wallet aussi (redirection), l'inverse ferait un cycle.
  */
 export function subjectPath(subject: { type: string; id: string }): string | null {
   const id = encodeURIComponent(subject.id);
   if (subject.type === 'cleaning_mission') return `/mon-espace/nettoyage/missions/${id}`;
   if (subject.type === 'billing_invoice') return `/mon-espace/factures/${id}`;
+  if (subject.type === TOP_UP) return '/mon-espace/portefeuille';
   return null;
 }
 
@@ -33,12 +37,12 @@ export const paymentTexts = {
   receiptPrint: 'Imprimer le reçu',
   receiptNote:
     'Confirmé par le prestataire de paiement et enregistré par KSP. Conservez ce reçu : la référence permet au support de le retrouver.',
-  lead: 'Reste dû, échéances, paiements Mobile Money et reçus, au même endroit.',
+  lead: 'Reste dû, échéances, recharges du portefeuille et reçus, au même endroit.',
   scope:
     'Les paiements affichés sont ceux du compte actif : votre compte personnel, ou l’entreprise que vous représentez.',
   empty: 'Aucun paiement en ligne pour le moment.',
   emptyHint:
-    'Payez une prestation ou une facture par Mobile Money depuis sa fiche : le paiement apparaîtra ici.',
+    'Rechargez votre portefeuille par Mobile Money, puis payez vos prestations et factures avec : vos recharges apparaîtront ici.',
   loading: 'Chargement…',
   retry: 'Réessayer',
   loadMore: 'Afficher plus',
@@ -47,22 +51,8 @@ export const paymentTexts = {
   notFound: 'Ce paiement est introuvable. Il appartient peut-être à un autre compte.',
   genericError: 'Une erreur est survenue. Réessayez dans quelques instants.',
 
-  // Bouton de paiement (fiche d'une mission ou d'une facture).
-  pay: 'Payer par Mobile Money',
-  payDeposit: 'Payer l’acompte par Mobile Money',
-  payBalance: 'Payer le solde par Mobile Money',
-  paying: 'Ouverture de la page de paiement…',
-  amountToPay: 'Montant à payer',
-  amountByKsp: 'Le montant restant dû est calculé par KSP et affiché sur la page de paiement.',
-  payHint:
-    'MTN ou Moov : vous saisissez votre numéro sur la page sécurisée du prestataire, puis validez sur votre téléphone.',
-  noCheckout: 'La page de paiement n’est pas encore prête. Réessayez dans quelques instants.',
   resume: 'Reprendre le paiement',
-  // Refus d'un nouveau paiement tant que le précédent n'est pas enregistré ou vérifié (ADR-032).
-  alreadyReceived:
-    'Paiement déjà reçu, en cours d’enregistrement : réessayez dans quelques instants. Inutile de payer à nouveau.',
-  refresh: 'Actualiser',
-  refreshing: 'Actualisation…',
+  // Paiement à vérifier par l'équipe KSP (ADR-032).
   underReview: 'Un paiement est en cours de vérification ; contactez le support KSP.',
   underReviewHint:
     'Aucun nouveau paiement n’est possible tant que l’équipe KSP ne l’a pas vérifié : vous ne payez jamais deux fois.',
@@ -73,9 +63,11 @@ export const paymentTexts = {
     deposit: 'Acompte de la prestation',
     balance: 'Solde de la prestation',
     invoice: (reference: string | null) => (reference ? `Facture ${reference}` : 'Facture'),
+    topUp: 'Recharge du portefeuille',
   },
   seeMission: 'Voir la prestation',
   seeInvoice: 'Voir la facture',
+  seeWallet: 'Voir mon portefeuille',
   seeAll: 'Voir mes paiements',
   checking: 'Vérification auprès du prestataire…',
   stillPending:
@@ -89,6 +81,7 @@ export const paymentTexts = {
   lateSuccess:
     'Si votre compte Mobile Money a quand même été débité, le paiement sera confirmé automatiquement dans les 24 heures.',
   tryAgain: 'Vous pouvez relancer un paiement depuis la fiche.',
+  tryTopUpAgain: 'Vous pouvez relancer une recharge depuis votre portefeuille.',
 
   // Page de paiement simulée (développement).
   simulationTitle: 'Page de paiement simulée',
@@ -196,5 +189,6 @@ export function subjectLabel(subject: {
 }): string {
   const t = paymentTexts.paymentOf;
   if (subject.type === 'billing_invoice') return t.invoice(subject.reference);
+  if (subject.type === TOP_UP) return t.topUp;
   return subject.part === 'deposit' ? t.deposit : t.balance;
 }
