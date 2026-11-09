@@ -35,7 +35,7 @@ const otherSites = siteConfig.ecosystem.filter((site) => site.id !== siteConfig.
 
 function MetierTile({ id }: { id: Parameters<typeof MetierIcon>[0]['id'] }) {
   return (
-    <span className="rounded-control bg-accent-soft text-accent-ink ring-accent-muted grid size-11 shrink-0 place-items-center ring-1 ring-inset">
+    <span className="rounded-icon bg-brand text-on-brand group-hover/item:text-accent-bright grid size-11 shrink-0 place-items-center transition-colors duration-(--motion-base)">
       <MetierIcon id={id} className="size-[1.375rem]" />
     </span>
   );
@@ -44,7 +44,7 @@ function MetierTile({ id }: { id: Parameters<typeof MetierIcon>[0]['id'] }) {
 export function SiteHeader() {
   const t = getDictionary();
   return (
-    <header className="border-line bg-canvas sticky top-0 z-(--z-header) border-b [view-transition-name:site-header]">
+    <header className="site-header sticky top-0 z-(--z-header) [view-transition-name:site-header]">
       <Container className="flex h-(--header-h) items-center gap-4 lg:gap-8">
         <Logo />
 

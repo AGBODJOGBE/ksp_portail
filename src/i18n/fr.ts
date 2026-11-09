@@ -8,6 +8,7 @@ export const fr = {
     backHome: "Retour à l'accueil",
     retry: 'Réessayer',
     comingSoon: 'Bientôt disponible',
+    contactUs: 'Nous contacter',
     contactWhatsapp: 'Nous écrire sur WhatsApp',
     ecosystem: "L'écosystème KSP",
     legal: 'Informations légales',
@@ -22,6 +23,14 @@ export const fr = {
     closeMenu: 'Fermer le menu',
   },
   account: {
+    /* Promesse du compte unique : accueil (aperçu de l'espace) et page de connexion. */
+    promiseTitle: 'Un seul compte pour tous les services KSP',
+    promiseText: 'Dossiers, commandes, factures et paiements, réunis au même endroit.',
+    promiseHighlights: [
+      'Connexion par code WhatsApp, sans mot de passe',
+      'Devis et suivi en ligne',
+      'Paiement par Mobile Money',
+    ],
     servicesTitle: 'Vos services',
     todoTitle: 'À faire',
     todoLead: 'Ce qui attend une action de votre part, le plus urgent d’abord.',
@@ -42,6 +51,7 @@ export const fr = {
     intro:
       'Un seul compte pour tous les services KSP. Pas de mot de passe : vous recevez un code de connexion sur WhatsApp.',
     newAccount: 'Pas encore de compte ? Il est créé avec votre numéro.',
+    help: 'Un souci pour vous connecter ? Notre équipe vous répond.',
     checking: 'Vérification de votre session…',
     phoneLegend: 'Votre numéro de téléphone',
     countryCode: 'Indicatif',

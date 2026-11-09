@@ -1,8 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { Container } from '@/components/ui/container';
-import { Eyebrow } from '@/components/ui/eyebrow';
-import { navigation } from '@/config/navigation';
+import { BandFrame } from '@/components/ui/band-header';
 import { cleaningTexts } from '@/features/cleaning';
 import { RequireSession } from '@/features/identity';
 
@@ -17,11 +15,8 @@ export const metadata: Metadata = {
  */
 export default function CleaningSpaceLayout({ children }: { children: ReactNode }) {
   return (
-    <Container className="py-10 sm:py-16">
-      <Eyebrow>{navigation.account.label}</Eyebrow>
-      <div className="mt-5">
-        <RequireSession>{children}</RequireSession>
-      </div>
-    </Container>
+    <BandFrame>
+      <RequireSession>{children}</RequireSession>
+    </BandFrame>
   );
 }

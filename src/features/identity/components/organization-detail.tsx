@@ -2,10 +2,10 @@
 
 import { useCallback, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Button, ButtonLink } from '@/components/ui/button';
+import { BandBack, BandHeader } from '@/components/ui/band-header';
+import { Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
-import { IconArrowLeft } from '@/components/ui/icons';
 import { useSession } from '@/lib/api';
 import { formatShortDate } from '@/lib/format';
 import { frenchSpacing } from '@/lib/typography';
@@ -22,12 +22,7 @@ const t = accountTexts.organization;
 const BILLING_OPEN = new Set(['pending_review', 'active']);
 
 function BackLink() {
-  return (
-    <ButtonLink href={identityPaths.organizations} variant="ghost" className="-ml-3 justify-self-start">
-      <IconArrowLeft />
-      {t.back}
-    </ButtonLink>
-  );
+  return <BandBack href={identityPaths.organizations} label={t.back} />;
 }
 
 /** Fiche d'un compte entreprise : état et suite, informations, e-mail de facturation, passage en contexte. */
@@ -41,14 +36,18 @@ export function OrganizationDetail({ id }: { id: string }) {
   if (state.status === 'error') {
     const view = describeAccountError(state.error);
     return (
-      <div className="grid justify-items-start gap-4">
-        <BackLink />
-        <FormMessage>{view.message}</FormMessage>
-        {view.notFound ? null : (
-          <Button variant="secondary" onClick={reload}>
-            {accountTexts.common.retry}
-          </Button>
-        )}
+      <div className="grid gap-8">
+        <BandHeader>
+          <BackLink />
+        </BandHeader>
+        <div className="rounded-card border-line bg-surface grid justify-items-start gap-4 border p-5 shadow-xs sm:p-6">
+          <FormMessage>{view.message}</FormMessage>
+          {view.notFound ? null : (
+            <Button variant="secondary" onClick={reload}>
+              {accountTexts.common.retry}
+            </Button>
+          )}
+        </div>
       </div>
     );
   }
@@ -62,31 +61,36 @@ export function OrganizationDetail({ id }: { id: string }) {
 
   return (
     <div className="grid gap-8">
-      <div className="grid gap-3">
+      <BandHeader>
         <BackLink />
-        <div className="flex flex-wrap items-center gap-3">
-          <Heading as="h1" size="h2" className="break-words">
+        <div className="mt-3">
+          <Badge tone={status.tone} dot>
+            {status.label}
+          </Badge>
+        </div>
+        <div className="mt-3 grid gap-3">
+          <Heading as="h1" size="h1" className="break-words">
             {organization.legalName}
           </Heading>
-          <Badge tone={status.tone}>{status.label}</Badge>
+          {status.hint ? <p className="text-lead text-ink-muted">{frenchSpacing(status.hint)}</p> : null}
+          {organization.status === 'active' ? (
+            inUse ? (
+              <p className="text-ink font-medium">{t.inUse}</p>
+            ) : (
+              <div className="grid justify-items-start gap-3">
+                <Button
+                  variant="inverse"
+                  onClick={() => void context.switchTo(organization.id)}
+                  aria-busy={context.busy || undefined}
+                >
+                  {context.busy ? accountTexts.context.applying : t.useContext}
+                </Button>
+                <FormMessage>{context.error}</FormMessage>
+              </div>
+            )
+          ) : null}
         </div>
-        {status.hint ? <p className="text-ink">{frenchSpacing(status.hint)}</p> : null}
-        {organization.status === 'active' ? (
-          inUse ? (
-            <p className="text-ink font-medium">{t.inUse}</p>
-          ) : (
-            <div className="grid justify-items-start gap-3">
-              <Button
-                onClick={() => void context.switchTo(organization.id)}
-                aria-busy={context.busy || undefined}
-              >
-                {context.busy ? accountTexts.context.applying : t.useContext}
-              </Button>
-              <FormMessage>{context.error}</FormMessage>
-            </div>
-          )
-        ) : null}
-      </div>
+      </BandHeader>
 
       <Section id="entreprise-infos-titre" title={t.detailsTitle}>
         <dl className="grid gap-4 sm:grid-cols-2">

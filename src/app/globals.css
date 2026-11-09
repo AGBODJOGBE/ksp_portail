@@ -38,7 +38,9 @@
   --color-brand-500: #536d95;
   --color-brand-600: #3a5581;
   --color-brand-700: #28426c;
+  --color-brand-750: #1d3d6e;
   --color-brand-800: #18325b;
+  --color-brand-850: #0b2147;
   --color-brand-900: #0f2850;
   --color-brand-950: #031434;
 
@@ -151,6 +153,20 @@
   --color-signature-2: var(--color-green-600);
   --color-signature-3: var(--color-gold-500);
   --color-signature-track: var(--color-neutral-200);
+
+  /*
+   * ——— Système v2 (direction « Signature ») — rôles communs au portail et au back-office (futur ksp-ui) ———
+   * Toile des espaces connectés : un cran sous la toile, pour détacher les cartes blanches.
+   */
+  --color-canvas-space: var(--color-neutral-50);
+  /* Bande héros : bleu nuit qui s'assombrit vers le bas, halo plus clair en haut à droite (850 et 750 : entre-deux). */
+  --color-hero: var(--color-brand-900);
+  --color-hero-deep: var(--color-brand-850);
+  --color-hero-halo: var(--color-brand-750);
+  /* Fond d'une tuile d'icône (cartes d'action, services). */
+  --color-tile: var(--color-brand-soft);
+  --color-tile-ink: var(--color-brand-800);
+  --color-tile-ring: var(--color-brand-100);
 }
 
 @theme {
@@ -180,6 +196,16 @@
   --text-eyebrow: 0.8125rem;
   --text-eyebrow--line-height: 1.2;
   --text-eyebrow--letter-spacing: 0.14em;
+  /* Chiffres (tuiles, montants) : police des titres, chiffres tabulaires (`tabular-nums`). */
+  --text-figure-lg: clamp(2.5rem, 2rem + 2vw, 3.5rem);
+  --text-figure-lg--line-height: 1.05;
+  --text-figure-lg--letter-spacing: -0.035em;
+  --text-figure: clamp(1.875rem, 1.65rem + 0.9vw, 2.25rem);
+  --text-figure--line-height: 1.1;
+  --text-figure--letter-spacing: -0.025em;
+  --text-figure-sm: 1.375rem;
+  --text-figure-sm--line-height: 1.2;
+  --text-figure-sm--letter-spacing: -0.015em;
 
   /* Espacements : grille de 4 px de Tailwind, plus le rythme vertical des sections. */
   --spacing-section: clamp(4rem, 2.6rem + 6vw, 8rem);
@@ -195,15 +221,24 @@
   --radius-control: 0.625rem;
   --radius-card: 1rem;
   --radius-panel: 1.5rem;
+  /* Tuiles d'icône (12 px), entre le contrôle et la carte (16 px). */
+  --radius-icon: 0.75rem;
 
-  /* Ombres teintées bleu nuit, toujours discrètes. */
+  /* Ombres teintées bleu nuit, toujours discrètes. Échelle : xs → sm → card → raised → float. */
   --shadow-xs: 0 1px 2px rgb(15 40 80 / 0.06);
+  --shadow-sm: 0 1px 2px rgb(15 40 80 / 0.05), 0 6px 16px -10px rgb(15 40 80 / 0.24);
   --shadow-card: 0 1px 2px rgb(15 40 80 / 0.05), 0 12px 32px -16px rgb(15 40 80 / 0.22);
   --shadow-raised: 0 2px 4px rgb(15 40 80 / 0.06), 0 24px 48px -20px rgb(15 40 80 / 0.32);
+  /* Feuille posée sur la bande héros (chevauchement). */
+  --shadow-float: 0 2px 4px rgb(15 40 80 / 0.06), 0 28px 56px -24px rgb(15 40 80 / 0.4);
+  /* Halo vert sous le bouton d'action principal. */
+  --shadow-action: 0 10px 24px -12px rgb(0 134 81 / 0.55);
 
   /* Mouvement */
   --ease-soft: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ease-exit: cubic-bezier(0.4, 0, 0.7, 0.2);
+  /* Léger rebond : apparition d'une pastille, d'une coche. */
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 /* Variables de composants (hors thème : pas d'utilitaire généré). */
@@ -213,6 +248,10 @@
   --motion-base: 200ms;
   --motion-slow: 320ms;
   --motion-reveal: 400ms;
+  /* Système v2 : compteurs, tracés (courbes, jauges, fils), décalage d'une cascade. */
+  --motion-count: 1100ms;
+  --motion-draw: 900ms;
+  --motion-stagger: 60ms;
   --z-header: 40;
   --z-float: 50;
 }
@@ -250,7 +289,51 @@
   /* Vert éclairci sur bleu nuit : « GROUP » et la barre verte restent lisibles (5,8:1 au lieu de 3,2:1). */
   --color-signature-2: var(--color-green-400);
   --color-signature-track: rgb(255 255 255 / 0.18);
+  /* Fonds pâles (étiquettes) : teintes translucides, pour garder le texte clair lisible sur bleu nuit. */
+  --color-action-soft: rgb(91 180 130 / 0.16);
+  --color-action-muted: rgb(140 208 167 / 0.35);
+  --color-accent-soft: rgb(212 160 24 / 0.16);
+  --color-accent-muted: rgb(229 182 79 / 0.4);
+  --color-tile: rgb(255 255 255 / 0.08);
+  --color-tile-ink: var(--color-gold-400);
+  --color-tile-ring: rgb(255 255 255 / 0.16);
   background-color: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+/*
+ * Ton clair dans une zone inversée (carte blanche posée sur la bande héros) : les rôles reprennent leur
+ * valeur par défaut. Mêmes déclarations que les jetons sémantiques de `@theme`, sans le fond.
+ */
+[data-tone='light'] {
+  --color-canvas: var(--color-neutral-25);
+  --color-surface: var(--color-white);
+  --color-surface-muted: var(--color-neutral-50);
+  --color-surface-sunken: var(--color-neutral-100);
+  --color-ink: var(--color-brand-900);
+  --color-ink-muted: var(--color-neutral-700);
+  --color-ink-subtle: var(--color-neutral-600);
+  --color-line: var(--color-neutral-200);
+  --color-line-strong: var(--color-neutral-300);
+  --color-line-control: var(--color-neutral-500);
+  --color-brand: var(--color-brand-900);
+  --color-brand-strong: var(--color-brand-950);
+  --color-brand-soft: var(--color-brand-50);
+  --color-brand-ink: var(--color-brand-700);
+  --color-on-brand: var(--color-white);
+  --color-action-ink: var(--color-green-700);
+  --color-action-soft: var(--color-green-50);
+  --color-action-muted: var(--color-green-200);
+  --color-accent-soft: var(--color-gold-50);
+  --color-accent-muted: var(--color-gold-200);
+  --color-accent-ink: var(--color-brand-700);
+  --color-focus: var(--color-brand-600);
+  --color-signature-1: var(--color-brand-900);
+  --color-signature-2: var(--color-green-600);
+  --color-signature-track: var(--color-neutral-200);
+  --color-tile: var(--color-brand-50);
+  --color-tile-ink: var(--color-brand-800);
+  --color-tile-ring: var(--color-brand-100);
   color: var(--color-ink);
 }
 
@@ -387,6 +470,18 @@
       animation-timeline: view();
       animation-range: entry 0% entry 55%;
     }
+    /* Fil qui se trace au défilement (étapes de l'accueil). */
+    .reveal-grow-x,
+    .reveal-grow-y {
+      animation: ksp-grow-x linear both;
+      animation-timeline: view();
+      animation-range: entry 20% cover 45%;
+      transform-origin: left center;
+    }
+    .reveal-grow-y {
+      animation-name: ksp-grow-y;
+      transform-origin: center top;
+    }
     /* Léger décalage entre éléments voisins, exprimé en portion de défilement. */
     .reveal-stagger > :nth-child(3n + 2) {
       animation-range: entry 6% entry 61%;
@@ -459,6 +554,203 @@
   from {
     opacity: 0;
     transform: translateY(0.75rem);
+  }
+}
+
+/*
+ * ——— Système v2 (direction « Signature ») ———
+ * Surfaces : bande héros, liseré signature des cartes d'action. Mouvement : cascade, compteur, tracé,
+ * jauge, pastille, squelette. Le contenu est toujours visible sans animation : chaque animation part
+ * d'un état masqué vers l'état final, qui est l'état de base ; tout s'arrête sous `prefers-reduced-motion`.
+ */
+@utility hero-band {
+  background-color: var(--color-hero);
+  background-image:
+    radial-gradient(75rem 25rem at 85% -10%, var(--color-hero-halo) 0%, transparent 60%),
+    linear-gradient(180deg, var(--color-hero), var(--color-hero-deep));
+}
+
+/* Liseré de la signature sur le bord gauche : un tiers bleu nuit, le reste en vert. */
+@utility signature-edge {
+  position: relative;
+  &::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 0.875rem;
+    bottom: 0.875rem;
+    width: 4px;
+    border-radius: 0 4px 4px 0;
+    background: linear-gradient(180deg, var(--color-signature-1) 0 38%, var(--color-signature-2) 38% 100%);
+  }
+}
+
+/* Compteur : la valeur finale (`--count-to`) est la valeur de base ; l'animation part de zéro. */
+@property --ksp-n {
+  syntax: '<integer>';
+  inherits: false;
+  initial-value: 0;
+}
+.count-up {
+  --ksp-n: var(--count-to, 0);
+  counter-reset: ksp-n var(--ksp-n);
+}
+.count-up::before {
+  content: counter(ksp-n);
+}
+
+/* Squelette : bloc atténué, reflet qui passe (arrêté sous mouvement réduit). */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-surface-sunken);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.6), transparent);
+}
+
+@keyframes ksp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+}
+@keyframes ksp-count {
+  from {
+    --ksp-n: 0;
+  }
+}
+@keyframes ksp-draw {
+  from {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes ksp-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes ksp-grow-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes ksp-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  70% {
+    transform: scale(1.06);
+  }
+}
+@keyframes ksp-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Cascade : `--i` (rang de l'élément) décale l'arrivée de `--motion-stagger`. */
+  .rise {
+    animation: ksp-rise var(--motion-reveal) var(--ease-soft) both;
+    animation-delay: calc(var(--i, 0) * var(--motion-stagger));
+  }
+  .count-up {
+    animation: ksp-count var(--motion-count) var(--ease-soft) both;
+    animation-delay: 150ms;
+  }
+  /* Tracé d'un chemin SVG (`pathLength="1"`) : courbe, coche, fil. */
+  .draw {
+    animation: ksp-draw var(--motion-draw) var(--ease-soft) backwards;
+    animation-delay: calc(var(--i, 0) * 120ms + 200ms);
+  }
+  .grow-x {
+    transform-origin: left center;
+    animation: ksp-grow-x var(--motion-draw) var(--ease-soft) both;
+    animation-delay: calc(var(--i, 0) * 120ms + 150ms);
+  }
+  .grow-y {
+    transform-origin: center top;
+    animation: ksp-grow-y var(--motion-draw) var(--ease-soft) both;
+    animation-delay: 150ms;
+  }
+  .pop {
+    animation: ksp-pop var(--motion-slow) var(--ease-spring) both;
+    animation-delay: calc(var(--i, 0) * 120ms + 250ms);
+  }
+  .skeleton::after {
+    animation: ksp-shimmer 1.4s ease-in-out infinite;
+  }
+}
+
+/*
+ * Soulignement or tracé sous un mot-clé d'un grand titre (accueil) : un fond en bas du texte, qui suit
+ * les retours à la ligne, et qui se déploie de gauche à droite au premier affichage.
+ */
+.underline-draw {
+  background-image: linear-gradient(90deg, var(--color-accent), var(--color-accent-bright));
+  background-repeat: no-repeat;
+  background-position: 0 92%;
+  background-size: 100% 0.12em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  padding-bottom: 0.04em;
+}
+@keyframes ksp-underline {
+  from {
+    background-size: 0% 0.12em;
+  }
+}
+/* Flottement lent d'un élément d'illustration (aperçu de l'espace) ; `--i` décale la phase. */
+@keyframes ksp-float {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .underline-draw {
+    animation: ksp-underline 1s var(--ease-soft) 300ms both;
+  }
+  .float {
+    animation: ksp-float 6s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * -2s);
+  }
+}
+
+/*
+ * En-tête au défilement (sans JavaScript) : en haut de page, il se fond dans la page ; dès qu'on défile,
+ * un verre léger (fond translucide et flou), un trait et une ombre douce le détachent du contenu.
+ * Navigateurs sans animation liée au défilement : l'état « détaché » est l'état de base.
+ */
+.site-header {
+  background-color: rgb(250 252 255 / 0.86);
+  border-bottom: 1px solid var(--color-line);
+  box-shadow: 0 8px 24px -18px rgb(15 40 80 / 0.35);
+  -webkit-backdrop-filter: saturate(1.6) blur(14px);
+  backdrop-filter: saturate(1.6) blur(14px);
+}
+@keyframes ksp-header-scrolled {
+  from {
+    background-color: var(--color-canvas);
+    border-bottom-color: transparent;
+    box-shadow: 0 0 0 transparent;
+  }
+}
+@supports (animation-timeline: scroll()) {
+  .site-header {
+    animation: ksp-header-scrolled linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 96px;
   }
 }
 

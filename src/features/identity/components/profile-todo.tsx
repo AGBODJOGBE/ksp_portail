@@ -1,6 +1,7 @@
 'use client';
 
-import { IconUser } from '@/components/ui/icons';
+import { ActionCardIcon } from '@/components/ui/action-card';
+import { IconMail, IconUser } from '@/components/ui/icons';
 import { TodoItem, TodoPanel } from '@/components/ui/todo-panel';
 import { useSession } from '@/lib/api';
 import { accountTexts, identityPaths } from '@/features/identity/texts';
@@ -21,9 +22,15 @@ export function ProfileTodo() {
       title={t.title}
       icon={<IconUser className="size-5" />}
       link={{ href: identityPaths.profile, label: accountTexts.home.profileLink }}
+      count={1}
     >
       <ul className="grid gap-3">
         <TodoItem
+          media={
+            <ActionCardIcon>
+              <IconMail />
+            </ActionCardIcon>
+          }
           title={user.email ? t.emailUnverified : t.emailMissing}
           text={user.email ? t.emailUnverifiedText(user.email) : t.emailMissingText}
           action={{ href: identityPaths.profile, label: t.action }}

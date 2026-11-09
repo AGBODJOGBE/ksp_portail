@@ -1,11 +1,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { SignatureBackdrop } from '@/components/ui/brand/signature';
-import { IconArrowRight, IconImage } from '@/components/ui/icons';
+import { IconArrowRight } from '@/components/ui/icons';
 import { Badge } from '@/components/ui/badge';
 import { ButtonArrow, ButtonLink } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Placeholder } from '@/components/ui/placeholder';
+import { Placeholder, PlaceholderPhoto } from '@/components/ui/placeholder';
 import { Section } from '@/components/ui/section';
 import { SectionHeader } from '@/components/ui/section-header';
 import type { HomeContent } from '@/features/home/content';
@@ -44,7 +44,18 @@ export function KeyFiguresSection({ content }: { content: HomeContent['keyFigure
       ) : (
         <ul className="reveal-stagger mt-10 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {Array.from({ length: PENDING_FIGURES }, (_, index) => (
-            <Placeholder as="li" key={index} title="Chiffre clé à venir" />
+            <Placeholder
+              as="li"
+              key={index}
+              title="Chiffre clé à venir"
+              media={
+                // Silhouette d'un chiffre, sans valeur : la place du futur chiffre clé.
+                <span aria-hidden="true" className="flex items-end gap-1.5 px-5 pt-6 sm:px-6">
+                  <span className="bg-surface-sunken h-9 w-16 rounded-md sm:h-11 sm:w-20" />
+                  <span className="bg-surface-sunken h-4 w-6 rounded" />
+                </span>
+              }
+            />
           ))}
         </ul>
       )}
@@ -99,11 +110,7 @@ export function RealisationsSection({ content }: { content: HomeContent['realisa
                 key={index}
                 title="Réalisation à venir"
                 className={index > 0 ? 'max-sm:hidden' : undefined}
-                media={
-                  <span className="bg-surface-sunken relative grid aspect-[4/3] place-items-center overflow-hidden">
-                    <IconImage className="text-ink-subtle relative size-8" />
-                  </span>
-                }
+                media={<PlaceholderPhoto />}
               >
                 Photo et description publiées prochainement.
               </Placeholder>
@@ -153,7 +160,7 @@ export function TestimonialsSection({ content }: { content: HomeContent['testimo
                 media={
                   <span
                     aria-hidden="true"
-                    className="font-display text-accent-ink px-6 pt-6 text-6xl leading-none"
+                    className="font-display text-accent-ink px-5 pt-6 text-6xl leading-none sm:px-6"
                   >
                     «
                   </span>

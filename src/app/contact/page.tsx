@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 import { ButtonLink } from '@/components/ui/button';
-import { Container } from '@/components/ui/container';
-import { Eyebrow } from '@/components/ui/eyebrow';
+import { PageBand, PageSheet } from '@/components/ui/page-band';
 import { Heading } from '@/components/ui/heading';
 import { IconClock } from '@/components/ui/icons';
 import { contactConfig } from '@/config/contact';
@@ -49,50 +48,48 @@ function ContactJsonLd() {
  */
 export default function ContactPage() {
   return (
-    <Container className="py-12 sm:py-16">
+    <>
       <BreadcrumbJsonLd items={[{ name: 'Contact', path: '/contact' }]} />
       <ContactJsonLd />
-      <div className="max-w-reading">
-        <Eyebrow>Groupe KSP</Eyebrow>
-        <Heading as="h1" size="h1" className="mt-4">
-          {t.title}
-        </Heading>
-        <p className="text-ink-muted mt-4 text-lg">{frenchSpacing(t.lead)}</p>
-      </div>
-
-      <section aria-labelledby="contact-moyens" className="mt-10">
-        <Heading as="h2" size="h2" id="contact-moyens" className="sr-only">
-          {t.channelsTitle}
-        </Heading>
-        <Suspense fallback={<ContactChannels contact={contactConfig} subject={null} />}>
-          <ContactWithSubject contact={contactConfig} />
-        </Suspense>
-      </section>
-
-      <div className="mt-10 grid gap-6 lg:grid-cols-2">
+      <PageBand eyebrow="Groupe KSP" title={t.title} lead={frenchSpacing(t.lead)} />
+      <PageSheet bare>
         <section
-          aria-labelledby="contact-horaires"
-          className="rounded-card border-line bg-surface border p-5 sm:p-6"
+          aria-labelledby="contact-moyens"
+          className="rounded-panel border-line bg-surface shadow-float border p-5 sm:p-8"
         >
-          <Heading as="h2" size="h3" id="contact-horaires" className="flex items-center gap-2">
-            <IconClock className="size-5" />
-            {t.hoursTitle}
+          <Heading as="h2" size="h2" id="contact-moyens" className="sr-only">
+            {t.channelsTitle}
           </Heading>
-          <p className="text-ink-muted mt-2">{frenchSpacing(contactConfig.hours)}</p>
+          <Suspense fallback={<ContactChannels contact={contactConfig} subject={null} />}>
+            <ContactWithSubject contact={contactConfig} />
+          </Suspense>
         </section>
-        <section
-          aria-labelledby="contact-espace"
-          className="rounded-card border-line bg-surface border p-5 sm:p-6"
-        >
-          <Heading as="h2" size="h3" id="contact-espace">
-            {t.accountTitle}
-          </Heading>
-          <p className="text-ink-muted mt-2">{frenchSpacing(t.accountText)}</p>
-          <ButtonLink href={navigation.account.href} variant="secondary" className="mt-4">
-            {t.accountAction}
-          </ButtonLink>
-        </section>
-      </div>
-    </Container>
+
+        <div className="mt-10 grid gap-6 lg:grid-cols-2">
+          <section
+            aria-labelledby="contact-horaires"
+            className="rounded-card border-line bg-surface shadow-card border p-5 sm:p-6"
+          >
+            <Heading as="h2" size="h3" id="contact-horaires" className="flex items-center gap-2">
+              <IconClock className="size-5" />
+              {t.hoursTitle}
+            </Heading>
+            <p className="text-ink-muted mt-2">{frenchSpacing(contactConfig.hours)}</p>
+          </section>
+          <section
+            aria-labelledby="contact-espace"
+            className="signature-edge rounded-card border-line bg-surface shadow-card border p-5 sm:p-6"
+          >
+            <Heading as="h2" size="h3" id="contact-espace">
+              {t.accountTitle}
+            </Heading>
+            <p className="text-ink-muted mt-2">{frenchSpacing(t.accountText)}</p>
+            <ButtonLink href={navigation.account.href} variant="secondary" className="mt-4">
+              {t.accountAction}
+            </ButtonLink>
+          </section>
+        </div>
+      </PageSheet>
+    </>
   );
 }

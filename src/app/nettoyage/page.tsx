@@ -47,7 +47,7 @@ export default async function NettoyagePage() {
         intro={content.steps.intro}
         steps={content.steps.items}
         aside={
-          <div className="rounded-card border-line bg-surface border p-6 shadow-xs">
+          <div className="signature-edge rounded-card border-line bg-surface shadow-card border p-6 pl-7">
             <p className="font-display text-ink text-lg font-semibold">{booking.title}</p>
             <p className="text-small text-ink-muted mt-1">{booking.text}</p>
             <PageActions actions={[booking.action]} size="md" highlightFirst={false} className="mt-4" />

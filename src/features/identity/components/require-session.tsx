@@ -5,6 +5,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { ButtonLink, Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
+import { Skeleton } from '@/components/ui/skeleton';
 import { navigation } from '@/config/navigation';
 import { getDictionary } from '@/i18n';
 import { isDeletionPending, session, useSession } from '@/lib/api';
@@ -29,7 +30,17 @@ function currentPath(pathname: string): string {
  * refuserait ses appels). Le backend reste seul juge des droits : cette garde n'évite que d'afficher un
  * espace vide ou en erreur.
  */
-export function RequireSession({ children }: { children: ReactNode }) {
+export function RequireSession({
+  children,
+  fallbackClassName,
+}: {
+  children: ReactNode;
+  /**
+   * Cadre des écrans de la garde (attente, erreur, profil à compléter…) quand la page place ses
+   * propres blocs pleine largeur (bande héros) : la garde y reprend les marges de la page.
+   */
+  fallbackClassName?: string;
+}) {
   const t = getDictionary();
   const { replace } = useRouter();
   const pathname = usePathname();
@@ -56,13 +67,16 @@ export function RequireSession({ children }: { children: ReactNode }) {
     };
   }, [attempt, pathname, replace]);
 
+  const frame = (node: ReactNode) =>
+    fallbackClassName ? <div className={fallbackClassName}>{node}</div> : node;
+
   if (current) {
-    if (isDeletionPending(current)) return <PendingDeletion />;
-    return current.profileIncomplete ? <ProfileForm autoFocus /> : <>{children}</>;
+    if (isDeletionPending(current)) return frame(<PendingDeletion />);
+    return current.profileIncomplete ? frame(<ProfileForm autoFocus />) : <>{children}</>;
   }
 
   if (phase === 'unavailable') {
-    return (
+    return frame(
       <div className="grid justify-items-start gap-5">
         <FormMessage>{`${t.account.unavailable} ${error ?? ''}`.trim()}</FormMessage>
         <Button
@@ -73,15 +87,15 @@ export function RequireSession({ children }: { children: ReactNode }) {
         >
           {t.common.retry}
         </Button>
-      </div>
+      </div>,
     );
   }
 
   // Session terminée pendant la visite : suppression du compte demandée ici, ou déconnexion ailleurs.
   if (phase === 'ready') {
     const scheduledFor = deletionNotice.get();
-    if (scheduledFor) return <DeletionRequested scheduledFor={scheduledFor} />;
-    return (
+    if (scheduledFor) return frame(<DeletionRequested scheduledFor={scheduledFor} />);
+    return frame(
       <div>
         <Heading as="h1" size="h2">
           {t.account.endedTitle}
@@ -90,13 +104,17 @@ export function RequireSession({ children }: { children: ReactNode }) {
         <ButtonLink href={loginHref(currentPath(pathname))} className="mt-6">
           {navigation.login.label}
         </ButtonLink>
-      </div>
+      </div>,
     );
   }
 
-  return (
-    <p role="status" className="text-ink-muted">
-      {t.account.loading}
-    </p>
+  // Attente de la session : squelette de l'en-tête et d'un panneau, annoncé une seule fois.
+  return frame(
+    <div role="status" className="grid gap-4">
+      <span className="sr-only">{t.account.loading}</span>
+      <Skeleton className="h-10 w-64 max-w-full" />
+      <Skeleton className="h-4 w-80 max-w-full" />
+      <Skeleton className="rounded-card mt-4 h-28 w-full" />
+    </div>,
   );
 }

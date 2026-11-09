@@ -1,5 +1,6 @@
+import { navigation } from '@/config/navigation';
+import { BandHeader, BandTitle } from '@/components/ui/band-header';
 import { Suspense } from 'react';
-import { Heading } from '@/components/ui/heading';
 import { NotificationCenter, NotificationPreferences, notificationTexts } from '@/features/notification';
 
 /**
@@ -8,14 +9,15 @@ import { NotificationCenter, NotificationPreferences, notificationTexts } from '
  */
 export default function NotificationsPage() {
   return (
-    <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
-      <div className="grid gap-8">
-        <div>
-          <Heading as="h1" size="h1">
-            {notificationTexts.title}
-          </Heading>
-          <p className="text-ink-muted mt-3">{notificationTexts.lead}</p>
-        </div>
+    <div className="grid gap-10">
+      <BandHeader>
+        <BandTitle
+          back={{ href: navigation.account.href, label: navigation.account.label }}
+          title={notificationTexts.title}
+          lead={notificationTexts.lead}
+        />
+      </BandHeader>
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <Suspense
           fallback={
             <p role="status" className="text-ink-muted">
@@ -25,8 +27,8 @@ export default function NotificationsPage() {
         >
           <NotificationCenter />
         </Suspense>
+        <NotificationPreferences />
       </div>
-      <NotificationPreferences />
     </div>
   );
 }

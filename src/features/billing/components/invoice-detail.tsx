@@ -2,10 +2,12 @@
 
 import { useCallback, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { BandBack, BandHeader } from '@/components/ui/band-header';
 import { Button, ButtonLink } from '@/components/ui/button';
+import { Gauge } from '@/components/ui/gauge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { FormMessage } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
-import { IconArrowLeft } from '@/components/ui/icons';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { formatNumber, formatShortDate, formatXof } from '@/lib/format';
@@ -35,12 +37,7 @@ function describe(error: unknown): { message: string; notFound: boolean } {
 }
 
 function BackLink() {
-  return (
-    <ButtonLink href={billingPaths.list} variant="ghost" className="-ml-3 justify-self-start">
-      <IconArrowLeft />
-      {t.back}
-    </ButtonLink>
-  );
+  return <BandBack href={billingPaths.list} label={t.back} />;
 }
 
 /** Détail d'une facture : période, lignes, total, échéance, règlements. */
@@ -51,29 +48,33 @@ export function InvoiceDetail({ id }: { id: string }) {
 
   if (state.status === 'loading') {
     return (
-      <div role="status" className="grid gap-6">
+      <div role="status" className="grid gap-8">
         <span className="sr-only">{t.loading}</span>
-        {['h-11 w-48', 'h-9 w-2/3 max-w-md', 'h-28', 'h-56'].map((size) => (
-          <span
-            key={size}
-            aria-hidden="true"
-            className={`bg-surface-sunken rounded-card block animate-pulse motion-reduce:animate-none ${size}`}
-          />
-        ))}
+        <BandHeader overlap={<Skeleton className="rounded-card h-28" />}>
+          <div className="grid gap-3" aria-hidden="true">
+            <Skeleton className="h-11 w-48" />
+            <Skeleton className="h-11 w-2/3 max-w-md" />
+          </div>
+        </BandHeader>
+        <Skeleton className="rounded-card h-56" />
       </div>
     );
   }
   if (state.status === 'error') {
     const view = describe(state.error);
     return (
-      <div className="grid justify-items-start gap-4">
-        <BackLink />
-        <FormMessage>{view.message}</FormMessage>
-        {view.notFound ? null : (
-          <Button variant="secondary" onClick={reload}>
-            {t.retry}
-          </Button>
-        )}
+      <div className="grid gap-8">
+        <BandHeader>
+          <BackLink />
+        </BandHeader>
+        <div className="rounded-card border-line bg-surface grid justify-items-start gap-4 border p-5 shadow-xs sm:p-6">
+          <FormMessage>{view.message}</FormMessage>
+          {view.notFound ? null : (
+            <Button variant="secondary" onClick={reload}>
+              {t.retry}
+            </Button>
+          )}
+        </div>
       </div>
     );
   }
@@ -90,44 +91,71 @@ export function InvoiceDetail({ id }: { id: string }) {
 
   return (
     <div className="grid gap-8">
-      <div className="grid gap-3">
+      <BandHeader
+        overlap={
+          <div className="rounded-card border-line bg-surface shadow-float grid gap-5 border p-5 sm:p-6">
+            {/* Montants de la gateway : total, déjà réglé, reste à régler (`balance`), échéance. */}
+            <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {(
+                [
+                  [t.total, formatXof(invoice.total)],
+                  [t.paid, formatXof(invoice.paid)],
+                  [t.balance, formatXof(invoice.balance)],
+                  [t.dueLabel, formatShortDate(invoice.dueAt)],
+                ] as const
+              ).map(([label, value], index) => (
+                <div key={label} className={index === 2 ? 'sm:border-line sm:border-l sm:pl-4' : undefined}>
+                  <dt className="text-small text-ink-muted">{label}</dt>
+                  <dd
+                    className={cn(
+                      'font-display text-figure-sm mt-1 font-semibold tabular-nums',
+                      // Une seule couleur à la fois : les classes s'ajoutent sans se remplacer (`cn`).
+                      index === 2 && invoice.status === 'overdue' ? 'text-danger' : 'text-ink',
+                    )}
+                  >
+                    {value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            {invoice.total.amount > 0 ? (
+              <Gauge
+                // Montants déjà donnés juste au-dessus : la jauge n'en répète pas la légende.
+                legend={false}
+                max={invoice.total.amount}
+                label={t.dashboard.gaugeLabel(formatXof(invoice.paid), formatXof(invoice.total))}
+                segments={[
+                  {
+                    label: t.dashboard.paidLabel,
+                    value: invoice.paid.amount,
+                    tone: 'action',
+                    display: formatXof(invoice.paid),
+                  },
+                  {
+                    label: t.dashboard.balanceLabel,
+                    value: invoice.balance.amount,
+                    tone: invoice.status === 'overdue' ? 'danger' : 'brand',
+                    display: formatXof(invoice.balance),
+                  },
+                ]}
+              />
+            ) : null}
+          </div>
+        }
+      >
         <BackLink />
-        <div>
+        <div className="mt-3">
           <Badge tone={status.tone} dot>
             {status.label}
           </Badge>
         </div>
-        <Heading as="h1" size="h2">
+        <Heading as="h1" size="h1" className="mt-3">
           {t.invoice(invoice.number)}
         </Heading>
-        <p className="text-ink-muted">
+        <p className="text-lead text-ink-muted mt-3">
           {t.period(formatShortDate(invoice.periodStart), formatShortDate(invoice.periodEnd))}
         </p>
-      </div>
-
-      {/* Montants de la gateway : total, déjà réglé, reste à régler (`balance`), échéance. */}
-      <dl className="rounded-card border-line bg-surface grid grid-cols-2 gap-4 border p-5 shadow-xs sm:grid-cols-4 sm:p-6">
-        {(
-          [
-            [t.total, formatXof(invoice.total)],
-            [t.paid, formatXof(invoice.paid)],
-            [t.balance, formatXof(invoice.balance)],
-            [t.dueLabel, formatShortDate(invoice.dueAt)],
-          ] as const
-        ).map(([label, value], index) => (
-          <div key={label} className={index === 2 ? 'sm:border-line sm:border-l sm:pl-4' : undefined}>
-            <dt className="text-small text-ink-muted">{label}</dt>
-            <dd
-              className={cn(
-                'font-display text-ink mt-1 text-xl font-semibold tabular-nums',
-                index === 2 && invoice.status === 'overdue' && 'text-danger',
-              )}
-            >
-              {value}
-            </dd>
-          </div>
-        ))}
-      </dl>
+      </BandHeader>
 
       {invoice.status === 'overdue' ? <FormMessage>{`${t.overdueNotice} ${t.howToPay}`}</FormMessage> : null}
       {invoice.status === 'pending_payment' ? (
@@ -139,7 +167,7 @@ export function InvoiceDetail({ id }: { id: string }) {
       {PAYABLE.has(invoice.status) && invoice.balance.amount > 0 ? (
         <section
           aria-labelledby="facture-payer"
-          className="rounded-card border-line bg-surface grid gap-4 border p-5 sm:p-6"
+          className="signature-edge rounded-card border-line bg-surface shadow-card grid gap-4 border p-5 sm:p-6"
         >
           <Heading as="h2" size="h3" id="facture-payer">
             {t.payTitle}

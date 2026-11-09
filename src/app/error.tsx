@@ -1,10 +1,15 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Container } from '@/components/ui/container';
+import { Button, ButtonLink } from '@/components/ui/button';
+import { HeroBand } from '@/components/ui/hero-band';
+import { IconAlert } from '@/components/ui/icons';
 import { getDictionary } from '@/i18n';
 
+/**
+ * Erreur d'affichage (direction « Signature ») : bande bleu nuit, pictogramme d'alerte, message clair,
+ * « Réessayer » en action principale et retour à l'accueil.
+ */
 export default function ErrorPage({
   error,
   reset,
@@ -18,12 +23,23 @@ export default function ErrorPage({
     console.error(error);
   }, [error]);
   return (
-    <Container className="py-24 text-center">
-      <h1 className="font-display text-h1 text-ink font-semibold">{t.errors.genericTitle}</h1>
-      <p className="text-ink-muted mt-3">{t.errors.genericText}</p>
-      <Button onClick={reset} className="mt-8">
-        {t.common.retry}
-      </Button>
-    </Container>
+    <HeroBand containerClassName="pt-12 pb-20 sm:pt-20 sm:pb-28">
+      <span
+        aria-hidden="true"
+        className="rounded-icon bg-accent text-on-accent pop grid size-16 place-items-center"
+      >
+        <IconAlert className="size-8" />
+      </span>
+      <h1 className="font-display text-h1 text-ink mt-8 font-semibold">{t.errors.genericTitle}</h1>
+      <p className="text-lead text-ink-muted mt-4 max-w-xl">{t.errors.genericText}</p>
+      <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+        <Button onClick={reset} variant="action" size="lg">
+          {t.common.retry}
+        </Button>
+        <ButtonLink href="/" variant="secondary" size="lg">
+          {t.common.backHome}
+        </ButtonLink>
+      </div>
+    </HeroBand>
   );
 }

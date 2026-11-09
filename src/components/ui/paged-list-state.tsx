@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
+import { Illustration, type IllustrationName } from '@/components/ui/illustrations';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { PagedList } from '@/lib/use-paged-list';
 
 export interface PagedListLabels {
@@ -16,11 +18,14 @@ export function PagedListState<T>({
   empty,
   labels: t,
   children,
+  emptyIllustration = 'soon',
 }: {
   list: PagedList<T>;
   empty: ReactNode;
   labels: PagedListLabels;
   children: ReactNode;
+  /** Illustration de la liste vide (`soon` : rien encore ; `done` : tout est traité). */
+  emptyIllustration?: IllustrationName;
 }) {
   if (list.loading && !list.items.length) {
     return (
@@ -30,10 +35,10 @@ export function PagedListState<T>({
           <span
             key={row}
             aria-hidden="true"
-            className="rounded-card border-line bg-surface grid gap-2 border p-4 sm:p-5"
+            className="rounded-card border-line bg-surface grid gap-2.5 border p-4 shadow-xs sm:p-5"
           >
-            <span className="bg-surface-sunken rounded-control h-4 w-2/3 max-w-xs animate-pulse motion-reduce:animate-none" />
-            <span className="bg-surface-sunken rounded-control h-3 w-1/2 max-w-[14rem] animate-pulse motion-reduce:animate-none" />
+            <Skeleton className="h-4 w-2/3 max-w-xs" />
+            <Skeleton className="h-3 w-1/2 max-w-[14rem]" />
           </span>
         ))}
       </div>
@@ -41,7 +46,15 @@ export function PagedListState<T>({
   }
   return (
     <div className="grid gap-4">
-      {list.items.length ? children : list.error ? null : empty}
+      {list.items.length ? (
+        children
+      ) : list.error ? null : (
+        // Liste vide : carte blanche avec une petite illustration aux couleurs du logo.
+        <div className="rounded-card border-line bg-surface flex items-center gap-5 border p-5 shadow-xs sm:p-6">
+          <Illustration name={emptyIllustration} className="w-20 shrink-0 max-sm:hidden" />
+          <div className="min-w-0 flex-1">{empty}</div>
+        </div>
+      )}
       {list.error ? (
         <div className="grid justify-items-start gap-3">
           <FormMessage>{list.error}</FormMessage>

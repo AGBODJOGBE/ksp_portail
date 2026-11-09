@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react';
 import { SignatureArrow } from '@/components/ui/brand/signature';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
-import { Button, ButtonLink } from '@/components/ui/button';
+import { BandBack, BandHeader } from '@/components/ui/band-header';
+import { Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
-import { IconArrowLeft, IconCheck, IconClock, IconUser } from '@/components/ui/icons';
+import { IconCheck, IconClock, IconUser } from '@/components/ui/icons';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/cn';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import { type Actor, actorLabels, cleaningTexts } from '@/features/cleaning/texts';
@@ -13,12 +15,7 @@ import { frenchSpacing } from '@/lib/typography';
 /** Briques communes aux écrans de « Mes prestations de nettoyage » (liste, demande, mission). */
 
 export function BackLink() {
-  return (
-    <ButtonLink href={cleaningPaths.space} variant="ghost" className="-ml-3 justify-self-start">
-      <IconArrowLeft />
-      {cleaningTexts.common.back}
-    </ButtonLink>
-  );
+  return <BandBack href={cleaningPaths.space} label={cleaningTexts.common.back} />;
 }
 
 /** Étiquette de l'acteur attendu : « À vous d'agir » (vert) ou « KSP s'en occupe » (bleu nuit). */
@@ -49,24 +46,27 @@ export function DetailHeader({
   progress?: ReactNode;
 }) {
   return (
-    <div className="grid gap-4">
+    <BandHeader
+      overlap={
+        progress ? (
+          <div className="rounded-card border-line bg-surface shadow-float border p-4 sm:p-5">{progress}</div>
+        ) : undefined
+      }
+    >
       <BackLink />
-      <div className="grid gap-3">
+      <div className="mt-3 grid gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={status.tone} dot>
             {status.label}
           </Badge>
           {tag ? <Badge>{tag}</Badge> : null}
         </div>
-        <Heading as="h1" size="h2">
+        <Heading as="h1" size="h1">
           {title}
         </Heading>
-        <p className="text-ink-muted">{subtitle}</p>
+        <p className="text-lead text-ink-muted">{subtitle}</p>
       </div>
-      {progress ? (
-        <div className="rounded-card border-line bg-surface border p-4 sm:p-5">{progress}</div>
-      ) : null}
-    </div>
+    </BandHeader>
   );
 }
 
@@ -187,34 +187,48 @@ export function Facts({
 
 export function LoadError({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="grid justify-items-start gap-4">
-      <BackLink />
-      <FormMessage>{message}</FormMessage>
-      {onRetry ? (
-        <Button variant="secondary" onClick={onRetry}>
-          {cleaningTexts.common.retry}
-        </Button>
-      ) : null}
+    <div className="grid gap-8">
+      <BandHeader>
+        <BackLink />
+      </BandHeader>
+      <div className="rounded-card border-line bg-surface grid justify-items-start gap-4 border p-5 shadow-xs sm:p-6">
+        <FormMessage>{message}</FormMessage>
+        {onRetry ? (
+          <Button variant="secondary" onClick={onRetry}>
+            {cleaningTexts.common.retry}
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }
 
-const BONE = 'bg-surface-sunken rounded-control animate-pulse motion-reduce:animate-none';
-
-/** Squelette d'un détail (en-tête, fil de progression, deux panneaux), annoncé comme chargement. */
+/** Squelette d'un détail (en-tête sur la bande, fil de progression, deux panneaux), annoncé comme chargement. */
 export function Loading() {
   return (
     <div role="status" className="grid gap-8">
       <span className="sr-only">{cleaningTexts.space.loading}</span>
-      <div className="grid gap-3" aria-hidden="true">
-        <div className={`${BONE} h-11 w-48`} />
-        <div className={`${BONE} h-6 w-32 rounded-full`} />
-        <div className={`${BONE} h-9 w-3/4 max-w-md`} />
-        <div className={`${BONE} h-5 w-1/2 max-w-sm`} />
-      </div>
-      <div className={`${BONE} rounded-card h-20`} aria-hidden="true" />
-      <div className={`${BONE} rounded-card h-40`} aria-hidden="true" />
-      <div className={`${BONE} rounded-card h-56`} aria-hidden="true" />
+      <BandHeader overlap={<Skeleton className="rounded-card h-20" />}>
+        <div className="grid gap-3" aria-hidden="true">
+          <Skeleton className="h-11 w-48" />
+          <Skeleton className="h-6 w-32 rounded-full" />
+          <Skeleton className="h-11 w-3/4 max-w-md" />
+          <Skeleton className="h-5 w-1/2 max-w-sm" />
+        </div>
+      </BandHeader>
+      <Skeleton className="rounded-card h-40" />
+      <Skeleton className="rounded-card h-56" />
+    </div>
+  );
+}
+
+/** Attente d'un bloc chargé à la demande dans un détail (formulaire d'acceptation…). */
+export function InlineLoading() {
+  return (
+    <div role="status" className="grid gap-3">
+      <span className="sr-only">{cleaningTexts.space.loading}</span>
+      <Skeleton className="rounded-card h-24" />
+      <Skeleton className="rounded-card h-16" />
     </div>
   );
 }

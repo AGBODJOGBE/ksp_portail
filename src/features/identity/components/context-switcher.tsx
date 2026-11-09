@@ -140,9 +140,10 @@ export function ContextSwitcher({ className, hint = false }: { className?: strin
   return (
     <section
       aria-label={t.label}
-      className={cn('rounded-card border-line bg-surface grid gap-4 border p-4 sm:p-5', className)}
+      className={cn('rounded-card border-line bg-surface @container grid gap-4 border p-4 sm:p-5', className)}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {/* Côte à côte seulement si le cadre est assez large (bande héros étroite sur ordinateur). */}
+      <div className="flex flex-col gap-3 @lg:flex-row @lg:items-center @lg:justify-between">
         <div>
           <p className="text-ink">
             <span className="text-ink-muted">{t.label} : </span>

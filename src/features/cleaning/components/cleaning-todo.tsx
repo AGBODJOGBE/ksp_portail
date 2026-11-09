@@ -1,11 +1,17 @@
 'use client';
 
 import Link from 'next/link';
+import type { ReactNode } from 'react';
+import { ActionCardIcon } from '@/components/ui/action-card';
+import { Agenda, type AgendaEntry } from '@/components/ui/agenda';
 import { Badge } from '@/components/ui/badge';
-import { IconArrowRight, IconNettoyage } from '@/components/ui/icons';
+import { SignatureProgress } from '@/components/ui/brand/signature';
+import { EmptyState } from '@/components/ui/empty-state';
+import { IconAlert, IconArrowRight, IconCard, IconFileCheck, IconNettoyage } from '@/components/ui/icons';
 import { TodoItem, TodoNone, TodoPanel, TodoState } from '@/components/ui/todo-panel';
 import { listMissions, listRequests } from '@/features/cleaning/api';
 import { describeCleaningError } from '@/features/cleaning/errors';
+import { LIFECYCLE, missionStage, requestStage } from '@/features/cleaning/lifecycle';
 import { ownedBy } from '@/features/cleaning/owned';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import { paymentDue, paymentExpected } from '@/features/cleaning/payment-due';
@@ -96,20 +102,22 @@ function Todo({ organizationId }: { organizationId: string | null }) {
   const { resource, data } = useRecent(organizationId);
   const name = (request: { serviceCode: string; serviceName?: string | null }) =>
     request.serviceName ?? serviceName(services, request.serviceCode);
-
-  const body = () => {
+  // Contenu du panneau et nombre d'actions qui attendent le client (pastille du titre).
+  const body = (): { node: ReactNode; count?: number } => {
     if (!data) {
-      return (
-        <TodoState
-          loading={resource.state.status === 'loading'}
-          error={
-            resource.state.status === 'error' ? describeCleaningError(resource.state.error).message : null
-          }
-          loadingLabel={cleaningTexts.space.loading}
-          retryLabel={cleaningTexts.common.retry}
-          onRetry={resource.reload}
-        />
-      );
+      return {
+        node: (
+          <TodoState
+            loading={resource.state.status === 'loading'}
+            error={
+              resource.state.status === 'error' ? describeCleaningError(resource.state.error).message : null
+            }
+            loadingLabel={cleaningTexts.space.loading}
+            retryLabel={cleaningTexts.common.retry}
+            onRetry={resource.reload}
+          />
+        ),
+      };
     }
     const quotes = quoteItems(data.requests);
     const payments = data.missions.filter((mission) => !mission.suspension && paymentExpected(mission));
@@ -136,89 +144,123 @@ function Todo({ organizationId }: { organizationId: string | null }) {
       .filter((item) => item.next);
 
     if (!quotes.length && !payments.length && !suspended.length && !uniqueVisits.length && !passages.length) {
-      return <TodoNone>{t.nothing}</TodoNone>;
+      return { node: <TodoNone>{t.nothing}</TodoNone> };
     }
-    return (
-      <ul className="grid gap-3">
-        {quotes.map((item) => (
-          <TodoItem
-            key={item.key}
-            title={item.items.length > 1 ? s.quoteGroup(item.items.length) : name(item.items[0]!)}
-            badge={
-              <Badge tone="accent" dot>
-                {t.quoteBadge}
-              </Badge>
-            }
-            text={`${item.items.length > 1 ? `${item.items.map(name).join(', ')}. ` : ''}${s.quoteText(formatDateTime(item.validUntil))}`}
-            action={{ href: item.href, label: s.quoteAction }}
-          />
-        ))}
-        {payments.map((mission) => {
-          const due = paymentDue(mission)!;
-          return (
-            <TodoItem
-              key={mission.id}
-              title={name(mission)}
-              badge={
-                <Badge tone="warning" dot>
-                  {s.payTitle}
-                </Badge>
-              }
-              text={s.payText(
-                due.amount ? formatXof(due.amount) : null,
-                mission.status === 'completed' ? s.payAfter : s.payBefore,
-              )}
-              action={{ href: `${cleaningPaths.mission(mission.id)}#paiement`, label: s.payAction }}
-            />
-          );
-        })}
-        {suspended.map((mission) => (
-          <TodoItem
-            key={mission.id}
-            title={name(mission)}
-            badge={
-              <Badge tone="danger" dot>
-                {suspendedStatus(mission.suspension!).label}
-              </Badge>
-            }
-            text={t.suspendedText(formatShortDate(mission.suspension!.since))}
-            action={{ href: cleaningPaths.mission(mission.id), label: t.suspendedAction }}
-          />
-        ))}
-        {uniqueVisits.map((request) => (
-          <TodoItem
-            key={`visite-${request.id}`}
-            title={s.visitTitle}
-            text={s.visitText(formatDateTime(request.visit!.scheduledAt))}
-            action={{
-              href:
-                request.groupId && (request.groupSize ?? 1) > 1
-                  ? cleaningPaths.group(request.groupId)
-                  : cleaningPaths.request(request.id),
-              label: s.seeAction,
-            }}
-          />
-        ))}
-        {passages.map(({ mission, next }) => (
-          <TodoItem
-            key={`passage-${mission.id}`}
-            title={`${s.passageTitle} · ${name(mission)}`}
-            text={s.passageText(formatDateTime(next!.scheduledStart))}
-            action={{ href: cleaningPaths.mission(mission.id), label: s.seeAction }}
-          />
-        ))}
-      </ul>
-    );
+    // Rendez-vous datés (visites, prochains passages) : chronologie « Votre agenda », du plus proche au plus lointain.
+    const agenda: AgendaEntry[] = [
+      ...uniqueVisits.map((request) => ({
+        key: `visite-${request.id}`,
+        date: request.visit!.scheduledAt,
+        title: s.visitTitle,
+        text: s.visitText(formatDateTime(request.visit!.scheduledAt)),
+        link: {
+          href:
+            request.groupId && (request.groupSize ?? 1) > 1
+              ? cleaningPaths.group(request.groupId)
+              : cleaningPaths.request(request.id),
+          label: s.seeAction,
+        },
+      })),
+      ...passages.map(({ mission, next }) => ({
+        key: `passage-${mission.id}`,
+        date: next!.scheduledStart,
+        title: `${s.passageTitle} · ${name(mission)}`,
+        text: s.passageText(formatDateTime(next!.scheduledStart)),
+        link: { href: cleaningPaths.mission(mission.id), label: s.seeAction },
+      })),
+    ]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((entry, index) => ({ ...entry, state: index === 0 ? ('next' as const) : ('default' as const) }));
+    const actions = quotes.length + payments.length + suspended.length;
+    return {
+      count: actions,
+      node: (
+        <div className="grid gap-6">
+          {actions ? (
+            <ul className="grid gap-3">
+              {quotes.map((item) => (
+                <TodoItem
+                  key={item.key}
+                  media={
+                    <ActionCardIcon>
+                      <IconFileCheck />
+                    </ActionCardIcon>
+                  }
+                  title={item.items.length > 1 ? s.quoteGroup(item.items.length) : name(item.items[0]!)}
+                  badge={
+                    <Badge tone="accent" dot>
+                      {t.quoteBadge}
+                    </Badge>
+                  }
+                  text={`${item.items.length > 1 ? `${item.items.map(name).join(', ')}. ` : ''}${s.quoteText(formatDateTime(item.validUntil))}`}
+                  action={{ href: item.href, label: s.quoteAction }}
+                />
+              ))}
+              {payments.map((mission) => {
+                const due = paymentDue(mission)!;
+                return (
+                  <TodoItem
+                    key={mission.id}
+                    media={
+                      <ActionCardIcon>
+                        <IconCard />
+                      </ActionCardIcon>
+                    }
+                    title={name(mission)}
+                    badge={
+                      <Badge tone="warning" dot>
+                        {s.payTitle}
+                      </Badge>
+                    }
+                    text={s.payText(
+                      due.amount ? formatXof(due.amount) : null,
+                      mission.status === 'completed' ? s.payAfter : s.payBefore,
+                    )}
+                    action={{ href: `${cleaningPaths.mission(mission.id)}#paiement`, label: s.payAction }}
+                  />
+                );
+              })}
+              {suspended.map((mission) => (
+                <TodoItem
+                  key={mission.id}
+                  media={
+                    <ActionCardIcon>
+                      <IconAlert />
+                    </ActionCardIcon>
+                  }
+                  title={name(mission)}
+                  badge={
+                    <Badge tone="danger" dot>
+                      {suspendedStatus(mission.suspension!).label}
+                    </Badge>
+                  }
+                  text={t.suspendedText(formatShortDate(mission.suspension!.since))}
+                  action={{ href: cleaningPaths.mission(mission.id), label: t.suspendedAction }}
+                />
+              ))}
+            </ul>
+          ) : null}
+          {agenda.length ? (
+            <div className="grid gap-4">
+              <p className="text-ink font-display text-lg font-semibold">{s.agendaTitle}</p>
+              <Agenda entries={agenda} label={s.agendaTitle} />
+            </div>
+          ) : null}
+        </div>
+      ),
+    };
   };
 
+  const { node, count } = body();
   return (
     <TodoPanel
       id="todo-nettoyage"
       title={t.title}
       icon={<IconNettoyage className="size-5" />}
       link={{ href: cleaningPaths.space, label: t.seeAll }}
+      count={count}
     >
-      {body()}
+      {node}
     </TodoPanel>
   );
 }
@@ -267,6 +309,7 @@ function Ongoing({ organizationId }: { organizationId: string | null }) {
           : (request.serviceName ?? serviceName(services, request.serviceCode)),
         meta: cleaningTexts.space.requestedOn(formatShortDate(request.createdAt)),
         status,
+        stage: requestStage(request),
         href: grouped ? cleaningPaths.group(request.groupId!) : cleaningPaths.request(request.id),
       };
     }),
@@ -277,34 +320,57 @@ function Ongoing({ organizationId }: { organizationId: string | null }) {
       status: mission.suspension
         ? suspendedStatus(mission.suspension)
         : statusOf(missionStatuses, mission.status),
+      stage: missionStage(mission),
       href: cleaningPaths.mission(mission.id),
     })),
   ];
-  if (!rows.length) return <p className="text-ink-muted">{s.ongoingNone}</p>;
+  if (!rows.length) {
+    return <EmptyState compact>{s.ongoingNone}</EmptyState>;
+  }
   return (
-    <ul className="divide-line border-line divide-y border-y">
-      {rows.map((row) => (
-        <li
-          key={row.key}
-          className="has-[.stretched-link:focus-visible]:outline-focus relative flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3 has-[.stretched-link:focus-visible]:outline-2 has-[.stretched-link:focus-visible]:outline-offset-2"
-        >
-          <div className="grid min-w-0 gap-1">
-            <Link
-              href={row.href}
-              className="stretched-link text-ink font-semibold underline-offset-4 hover:underline focus-visible:outline-none"
-            >
-              {row.title}
-            </Link>
-            <p className="text-small text-ink-muted">{row.meta}</p>
-          </div>
-          <span className="flex items-center gap-2">
-            <Badge tone={row.status.tone} dot>
-              {row.status.label}
-            </Badge>
-            <IconArrowRight aria-hidden="true" className="text-ink-subtle size-4" />
-          </span>
-        </li>
-      ))}
+    <ul className="divide-line divide-y">
+      {rows.map((row) => {
+        const step = Math.min(row.stage.current, LIFECYCLE.length - 1);
+        return (
+          <li
+            key={row.key}
+            className="has-[.stretched-link:focus-visible]:outline-focus relative grid gap-3 py-4 first:pt-1 last:pb-1 has-[.stretched-link:focus-visible]:outline-2 has-[.stretched-link:focus-visible]:outline-offset-2"
+          >
+            <div className="grid gap-1.5">
+              <div className="flex items-start justify-between gap-3">
+                <Link
+                  href={row.href}
+                  className="stretched-link text-ink font-semibold underline-offset-4 hover:underline focus-visible:outline-none"
+                >
+                  {row.title}
+                </Link>
+                <IconArrowRight aria-hidden="true" className="text-ink-subtle mt-1 size-4 shrink-0" />
+              </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <Badge tone={row.status.tone} dot>
+                  {row.status.label}
+                </Badge>
+                <p className="text-small text-ink-muted">{row.meta}</p>
+              </div>
+            </div>
+            <div>
+              <SignatureProgress
+                steps={LIFECYCLE.map((label) => ({ label }))}
+                current={row.stage.current}
+                stopped={row.stage.stopped}
+                label={`${row.title} : avancement`}
+                showLabels={false}
+              />
+              <p aria-hidden="true" className="text-ink-muted mt-1.5 flex justify-between gap-3 text-xs">
+                <span className="tabular-nums">
+                  {Math.min(row.stage.current + 1, LIFECYCLE.length)} / {LIFECYCLE.length}
+                </span>
+                <span className="text-ink font-semibold">{LIFECYCLE[step]}</span>
+              </p>
+            </div>
+          </li>
+        );
+      })}
     </ul>
   );
 }

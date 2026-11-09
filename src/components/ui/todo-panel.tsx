@@ -2,13 +2,15 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
-import { Heading } from '@/components/ui/heading';
-import { IconArrowRight, IconCheck } from '@/components/ui/icons';
-import { cn } from '@/lib/cn';
+import { IconArrowRight } from '@/components/ui/icons';
+import { ActionCard } from './action-card';
+import { CountUp } from './figure-tile';
+import { EmptyState } from './empty-state';
+import { SkeletonCards } from './skeleton';
 
 /*
- * Tableau de bord d'un espace connecté : un panneau par service, ce qui attend une action du client en
- * premier (liseré vert), puis le résumé de ce qui est en cours chez KSP.
+ * Tableau de bord d'un espace connecté (direction « Signature ») : un groupe par service, ce qui attend
+ * une action du client en cartes d'action à liseré, puis le résumé de ce qui est en cours chez KSP.
  */
 
 export function TodoPanel({
@@ -16,6 +18,7 @@ export function TodoPanel({
   title,
   icon,
   link,
+  count,
   children,
 }: {
   id: string;
@@ -23,24 +26,32 @@ export function TodoPanel({
   icon: ReactNode;
   /** Lien « tout voir » vers l'écran du service. */
   link: { href: string; label: string };
+  /** Nombre d'éléments qui attendent le client (pastille du titre), quand il est connu. */
+  count?: number;
   children: ReactNode;
 }) {
   return (
-    <section
-      aria-labelledby={id}
-      className="rounded-card border-line bg-surface grid gap-4 border p-5 shadow-xs sm:p-6"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="rounded-control bg-accent-soft text-accent-ink ring-accent-muted grid size-10 place-items-center ring-1 ring-inset"
+    <section aria-labelledby={id} className="grid gap-4">
+      <div className="border-line flex flex-wrap items-center justify-between gap-x-3 border-b pb-1">
+        <div className="flex items-center gap-2.5">
+          <h3
+            id={id}
+            className="text-ink-muted flex items-center gap-2.5 text-[0.8125rem] font-bold tracking-[0.12em] uppercase"
           >
-            {icon}
-          </span>
-          <Heading as="h3" size="h3" id={id}>
+            <span aria-hidden="true" className="text-brand-ink">
+              {icon}
+            </span>
             {title}
-          </Heading>
+          </h3>
+          {/* Repère visuel seulement : la liste annonce déjà ses éléments. */}
+          {count ? (
+            <span
+              aria-hidden="true"
+              className="bg-brand text-on-brand inline-grid min-w-6 place-items-center rounded-full px-1.5 text-xs leading-6 font-bold"
+            >
+              <CountUp value={count} />
+            </span>
+          ) : null}
         </div>
         <Link
           href={link.href}
@@ -55,45 +66,37 @@ export function TodoPanel({
   );
 }
 
-/** Élément qui attend le client : ce qu'il faut faire, et le bouton pour le faire. */
+/** Élément qui attend le client : ce qu'il faut faire, et le bouton pour le faire (carte d'action). */
 export function TodoItem({
   title,
   text,
   badge,
   action,
+  media,
+  figure,
+  children,
 }: {
   title: string;
   text: string;
   badge?: ReactNode;
   action: { href: string; label: string };
+  media?: ReactNode;
+  figure?: { label: string; value: string };
+  children?: ReactNode;
 }) {
   return (
-    <li className="rounded-control border-line border-l-action grid gap-3 border border-l-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-      <div className="grid gap-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-ink font-semibold">{title}</p>
-          {badge}
-        </div>
-        <p className="text-small text-ink-muted">{text}</p>
-      </div>
-      <Link
-        href={action.href}
-        className="bg-action text-on-action rounded-control focus-visible:outline-focus inline-flex min-h-11 items-center justify-center gap-2 px-4 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2"
-      >
-        {action.label}
-        <IconArrowRight className="size-4" />
-      </Link>
-    </li>
+    <ActionCard title={title} text={text} badge={badge} action={action} media={media} figure={figure}>
+      {children}
+    </ActionCard>
   );
 }
 
-/** Rien n'attend le client pour ce service. */
+/** Rien n'attend le client pour ce service : état vide illustré, en ligne. */
 export function TodoNone({ children }: { children: ReactNode }) {
   return (
-    <p className="text-ink-muted flex items-center gap-2">
-      <IconCheck className="text-action-ink size-5" />
+    <EmptyState compact className="py-1">
       {children}
-    </p>
+    </EmptyState>
   );
 }
 
@@ -111,22 +114,7 @@ export function TodoState({
   retryLabel: string;
   onRetry: () => void;
 }) {
-  if (loading) {
-    return (
-      <div role="status" className="grid gap-2">
-        <span className="sr-only">{loadingLabel}</span>
-        {[0, 1].map((row) => (
-          <span
-            key={row}
-            aria-hidden="true"
-            className={cn(
-              'bg-surface-sunken rounded-control block h-16 animate-pulse motion-reduce:animate-none',
-            )}
-          />
-        ))}
-      </div>
-    );
-  }
+  if (loading) return <SkeletonCards label={loadingLabel} />;
   if (!error) return null;
   return (
     <div className="grid justify-items-start gap-3">

@@ -12,12 +12,16 @@ import {
 import {
   IconArrowRight,
   IconArrowUpRight,
+  IconCalendar,
+  IconCard,
   IconCheck,
   IconChevronDown,
   IconClock,
   IconClose,
+  IconFileCheck,
   IconImmobilier,
   IconImpression,
+  IconInvoice,
   IconLivraison,
   IconMarketplace,
   IconMenu,
@@ -33,7 +37,16 @@ import { Card } from '@/components/ui/card';
 import { Container } from '@/components/ui/container';
 import { Eyebrow } from '@/components/ui/eyebrow';
 import { Heading } from '@/components/ui/heading';
+import { ActionCard, ActionCardIcon } from '@/components/ui/action-card';
+import { Agenda } from '@/components/ui/agenda';
+import { DateBadge } from '@/components/ui/date-badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { CountUp, FigureTile } from '@/components/ui/figure-tile';
+import { Gauge } from '@/components/ui/gauge';
+import { HeroBand } from '@/components/ui/hero-band';
+import { LinkCard } from '@/components/ui/link-card';
 import { Placeholder } from '@/components/ui/placeholder';
+import { SkeletonCards } from '@/components/ui/skeleton';
 import { Section } from '@/components/ui/section';
 import { metiers } from '@/config/metiers';
 import { siteConfig } from '@/config/site';
@@ -57,6 +70,7 @@ const SECTIONS = [
   { id: 'logo', label: 'Logo' },
   { id: 'signature', label: 'Signature' },
   { id: 'composants', label: 'Composants' },
+  { id: 'systeme-v2', label: 'Système v2' },
 ] as const;
 
 /* Noms de jetons uniquement : les valeurs sont lues dans le navigateur (TokenValue). */
@@ -180,6 +194,7 @@ const SPACING_CLASS: Record<(typeof SPACING)[number], string> = {
 
 const RADII = [
   { token: '--radius-control', label: 'Contrôles', className: 'rounded-control' },
+  { token: '--radius-icon', label: 'Tuiles d’icône', className: 'rounded-icon' },
   { token: '--radius-card', label: 'Cartes', className: 'rounded-card' },
   { token: '--radius-panel', label: 'Panneaux', className: 'rounded-panel' },
   { token: '—', label: 'Pastilles', className: 'rounded-full' },
@@ -187,8 +202,11 @@ const RADII = [
 
 const SHADOWS = [
   { token: '--shadow-xs', label: 'Repos', className: 'shadow-xs' },
+  { token: '--shadow-sm', label: 'Survol d’une carte d’action', className: 'shadow-sm' },
   { token: '--shadow-card', label: 'Carte', className: 'shadow-card' },
   { token: '--shadow-raised', label: 'Élévation (survol, panneaux)', className: 'shadow-raised' },
+  { token: '--shadow-float', label: 'Feuille sur la bande héros', className: 'shadow-float' },
+  { token: '--shadow-action', label: 'Halo du bouton d’action', className: 'shadow-action' },
 ] as const;
 
 const MOTION = [
@@ -198,6 +216,10 @@ const MOTION = [
   { token: '--motion-reveal', usage: 'Apparitions (référence)' },
   { token: '--ease-soft', usage: 'Courbe d’arrivée (décélération douce)' },
   { token: '--ease-exit', usage: 'Courbe de sortie (plus rapide)' },
+  { token: '--ease-spring', usage: 'Léger rebond : pastille, coche (système v2)' },
+  { token: '--motion-stagger', usage: 'Décalage d’une cascade (.rise, rang --i)' },
+  { token: '--motion-count', usage: 'Compteur (.count-up, @property)' },
+  { token: '--motion-draw', usage: 'Tracé : fil, jauge, coche (.draw, .grow-x, .grow-y)' },
 ] as const;
 
 const ICONS: ReadonlyArray<{ name: string; Icon: (props: { className?: string }) => ReactNode }> = [
@@ -216,7 +238,14 @@ const ICONS: ReadonlyArray<{ name: string; Icon: (props: { className?: string })
   { name: 'Marketplace', Icon: IconMarketplace },
   { name: 'Livraison', Icon: IconLivraison },
   { name: 'WhatsApp', Icon: IconWhatsApp },
+  { name: 'Devis', Icon: IconFileCheck },
+  { name: 'Facture', Icon: IconInvoice },
+  { name: 'Paiement', Icon: IconCard },
+  { name: 'Date', Icon: IconCalendar },
 ];
+
+/* Données d'exemple de la charte (aucune donnée réelle). */
+const SAMPLE_DATES = ['2026-11-12T09:00:00Z', '2026-11-17T07:00:00Z', '2026-11-04T09:00:00Z'] as const;
 
 function SectionTitle({
   id,
@@ -724,6 +753,192 @@ export default function ChartePage() {
           L’en-tête et le pied de page de cette page sont les vrais. Le bouton WhatsApp n’apparaît que si
           <code> NEXT_PUBLIC_WHATSAPP_NUMBER</code> est renseigné ({siteConfig.domain}).
         </p>
+      </Section>
+
+      {/* Système v2 */}
+      <Section id="systeme-v2" labelledBy="systeme-v2-titre">
+        <SectionTitle id="systeme-v2-titre" eyebrow="8 · Système v2" title="Direction « Signature »">
+          Une bande bleu nuit, beaucoup d’air, les chiffres en vedette, la signature du logo comme fil
+          conducteur. Jetons ajoutés : toile des espaces, bande héros, ombres sm, float et action, rayon des
+          tuiles, échelle des chiffres, mouvement. Aucun jeton existant n’a changé de nom ni de rôle. Les
+          valeurs ci-dessous sont des exemples.
+        </SectionTitle>
+
+        <SubTitle>Bande héros</SubTitle>
+        <div className="rounded-panel mt-6 overflow-hidden">
+          <HeroBand as="div" containerClassName="py-10 sm:py-12">
+            <Eyebrow>Mon espace KSP</Eyebrow>
+            <p className="font-display text-h2 text-ink mt-4 font-semibold">Bonjour</p>
+            <p className="text-ink-muted mt-2">
+              Les jetons s’inversent d’eux-mêmes : textes, boutons et cartes.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button variant="action">Action principale</Button>
+              <Button variant="secondary">Action secondaire</Button>
+            </div>
+          </HeroBand>
+        </div>
+
+        <SubTitle>Tuiles de chiffre et jauge</SubTitle>
+        <p className="text-small text-ink-muted max-w-reading mt-3">
+          Seulement des chiffres fournis par la gateway, jamais calculés ni inventés. Compteur CSS, le nombre
+          réel reste lu par les lecteurs d’écran.
+        </p>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <FigureTile
+            label="Communes desservies"
+            value={<CountUp value={3} />}
+            sub="Abomey-Calavi, Cotonou, Porto-Novo"
+          />
+          <FigureTile
+            label="Reste à régler (exemple)"
+            value="80 000"
+            unit="F CFA"
+            icon={<IconInvoice className="size-5" />}
+          >
+            <Gauge
+              max={120000}
+              label="40 000 F CFA réglés sur 120 000 F CFA"
+              segments={[
+                { label: 'Réglé', value: 40000, tone: 'action', display: '40 000 F CFA' },
+                { label: 'Reste à régler', value: 80000, tone: 'brand', display: '80 000 F CFA' },
+              ]}
+            />
+          </FigureTile>
+          <FigureTile
+            label="Prochain rendez-vous (exemple)"
+            value="12 nov."
+            icon={<IconCalendar className="size-5" />}
+          >
+            <div className="flex items-center gap-3">
+              <DateBadge iso={SAMPLE_DATES[0]} tone="action" />
+              <p className="text-small text-ink-muted">Visite des lieux, 10:00</p>
+            </div>
+          </FigureTile>
+        </div>
+
+        <SubTitle>Cartes d’action à liseré</SubTitle>
+        <ul className="mt-6 grid max-w-3xl gap-3">
+          <ActionCard
+            media={
+              <ActionCardIcon>
+                <IconFileCheck />
+              </ActionCardIcon>
+            }
+            title="Nettoyage de vitres"
+            badge={
+              <Badge tone="accent" dot>
+                Devis à étudier
+              </Badge>
+            }
+            text="Acceptez avant le 15 novembre pour réserver votre créneau."
+            action={{ href: '#systeme-v2', label: 'Voir et accepter' }}
+          />
+          <ActionCard
+            media={<DateBadge iso={SAMPLE_DATES[2]} tone="danger" />}
+            title="Facture FAC-0000-000000"
+            badge={
+              <Badge tone="danger" dot>
+                Impayée
+              </Badge>
+            }
+            text="Reste à régler : 80 000 F CFA · échéance le 4 novembre."
+            action={{ href: '#systeme-v2', label: 'Voir la facture' }}
+          >
+            <Gauge
+              max={120000}
+              label="40 000 F CFA réglés sur 120 000 F CFA"
+              segments={[
+                { label: 'Réglé', value: 40000, tone: 'action', display: '40 000 F CFA' },
+                { label: 'Reste à régler', value: 80000, tone: 'danger', display: '80 000 F CFA' },
+              ]}
+            />
+          </ActionCard>
+        </ul>
+
+        <div className="mt-14 grid gap-10 lg:grid-cols-2">
+          <div>
+            <h3 className="font-display text-h3 text-ink font-semibold">Chronologie « Votre agenda »</h3>
+            <Agenda
+              className="mt-6"
+              label="Votre agenda (exemple)"
+              entries={[
+                {
+                  key: 'a',
+                  date: SAMPLE_DATES[0],
+                  title: 'Visite des lieux prévue',
+                  text: 'Un agent KSP passe le 12 novembre à 10:00.',
+                  link: { href: '#systeme-v2', label: 'Voir' },
+                  state: 'next',
+                },
+                {
+                  key: 'b',
+                  date: SAMPLE_DATES[1],
+                  title: 'Prochain passage · Ménage de bureaux',
+                  text: 'Nos agents interviennent le 17 novembre à 08:00.',
+                },
+              ]}
+            />
+          </div>
+          <div>
+            <h3 className="font-display text-h3 text-ink font-semibold">Fil d’étapes (signature)</h3>
+            <div className="rounded-card border-line bg-surface mt-6 border p-5">
+              <p className="text-ink font-semibold">Nettoyage de vitres</p>
+              <SignatureProgress
+                className="mt-3"
+                steps={[
+                  { label: 'Demandée' },
+                  { label: 'Visite' },
+                  { label: 'Devis' },
+                  { label: 'Réservation' },
+                ]}
+                current={2}
+                label="Avancement (exemple)"
+              />
+            </div>
+            <h3 className="font-display text-h3 text-ink mt-10 font-semibold">Date-calendrier</h3>
+            <div className="mt-6 flex gap-3">
+              <DateBadge iso={SAMPLE_DATES[0]} tone="action" />
+              <DateBadge iso={SAMPLE_DATES[1]} />
+              <DateBadge iso={SAMPLE_DATES[2]} tone="danger" />
+            </div>
+          </div>
+        </div>
+
+        <SubTitle>États : vide, chargement</SubTitle>
+        <div className="mt-6 grid gap-6 lg:grid-cols-3">
+          <div className="rounded-card border-line bg-surface border p-5">
+            <EmptyState compact>Rien à faire de votre côté pour le moment.</EmptyState>
+          </div>
+          <div className="rounded-card border-line bg-surface border p-5">
+            <EmptyState illustration="soon" title="D’autres services arrivent">
+              Un seul compte pour tous les sites du groupe.
+            </EmptyState>
+          </div>
+          <SkeletonCards label="Chargement (exemple)" />
+        </div>
+
+        <SubTitle>Cartes-liens</SubTitle>
+        <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <LinkCard
+            href="#systeme-v2"
+            title="Mes prestations de nettoyage"
+            text="Demandes de devis, visites, missions et passages."
+            icon={<IconNettoyage className="size-5" />}
+          />
+          <LinkCard
+            href="#systeme-v2"
+            title="Mes factures"
+            text="Échéances et règlements reçus."
+            icon={<IconInvoice className="size-5" />}
+          />
+          <LinkCard
+            href="#systeme-v2"
+            title="Factures et paiements"
+            text="Paiements Mobile Money et reçus."
+            icon={<IconCard className="size-5" />}
+          />
+        </ul>
       </Section>
     </>
   );

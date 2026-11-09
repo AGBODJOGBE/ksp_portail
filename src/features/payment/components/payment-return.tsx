@@ -2,10 +2,13 @@
 
 import { type ReactNode, useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { BandBack, BandHeader } from '@/components/ui/band-header';
 import { Button, ButtonLink, buttonClasses } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/cn';
 import { FormMessage } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
-import { IconArrowLeft } from '@/components/ui/icons';
+import { IconAlert, IconCheck, IconClock } from '@/components/ui/icons';
 import { contactHref } from '@/config/navigation';
 import { useSession } from '@/lib/api';
 import { formatDateTime, formatXof } from '@/lib/format';
@@ -79,12 +82,7 @@ function Receipt({ payment }: { payment: Payment }) {
 }
 
 function BackLink() {
-  return (
-    <ButtonLink href={paymentPaths.list} variant="ghost" className="-ml-3 justify-self-start">
-      <IconArrowLeft />
-      {t.back}
-    </ButtonLink>
-  );
+  return <BandBack href={paymentPaths.list} label={t.back} />;
 }
 
 /**
@@ -148,21 +146,31 @@ export function PaymentReturn({ id, topUpResult }: { id: string; topUpResult?: R
 
   if (view.status === 'loading') {
     return (
-      <p role="status" className="text-ink-muted">
-        {t.loading}
-      </p>
+      <div role="status" className="grid gap-8">
+        <span className="sr-only">{t.loading}</span>
+        <BandHeader overlap={<Skeleton className="rounded-card h-32" />}>
+          <div className="grid gap-3" aria-hidden="true">
+            <Skeleton className="h-11 w-48" />
+            <Skeleton className="h-11 w-2/3 max-w-md" />
+          </div>
+        </BandHeader>
+      </div>
     );
   }
   if (view.status === 'error') {
     return (
-      <div className="grid justify-items-start gap-4">
-        <BackLink />
-        <FormMessage>{view.message}</FormMessage>
-        {view.notFound ? null : (
-          <Button variant="secondary" onClick={restart}>
-            {t.retry}
-          </Button>
-        )}
+      <div className="grid gap-8">
+        <BandHeader>
+          <BackLink />
+        </BandHeader>
+        <div className="rounded-card border-line bg-surface grid justify-items-start gap-4 border p-5 shadow-xs sm:p-6">
+          <FormMessage>{view.message}</FormMessage>
+          {view.notFound ? null : (
+            <Button variant="secondary" onClick={restart}>
+              {t.retry}
+            </Button>
+          )}
+        </div>
       </div>
     );
   }
@@ -188,47 +196,73 @@ export function PaymentReturn({ id, topUpResult }: { id: string; topUpResult?: R
 
   return (
     <div className="grid gap-8">
-      <div className="grid gap-3">
-        <BackLink />
-        <div className="flex flex-wrap items-center gap-3">
-          <Heading as="h1" size="h2">
-            {subjectLabel(payment.subject)}
-          </Heading>
-          <Badge tone={status.tone}>{status.label}</Badge>
-        </div>
-      </div>
-
-      <section
-        aria-labelledby="paiement-statut"
-        className="rounded-card border-line bg-surface grid gap-4 border p-5 sm:p-6"
+      <BandHeader
+        overlap={
+          <section
+            aria-labelledby="paiement-statut"
+            className="rounded-card border-line bg-surface shadow-float grid gap-4 border p-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-x-5 sm:p-6"
+          >
+            <Heading as="h2" size="h3" id="paiement-statut" className="sr-only">
+              {status.label}
+            </Heading>
+            <span
+              aria-hidden="true"
+              className={cn(
+                'pop grid size-12 place-items-center rounded-full sm:row-span-2',
+                payment.status === 'succeeded'
+                  ? 'bg-action text-on-action'
+                  : pending
+                    ? 'bg-brand text-on-brand'
+                    : 'bg-danger-soft text-danger',
+              )}
+            >
+              {payment.status === 'succeeded' ? (
+                <IconCheck className="size-6" />
+              ) : pending ? (
+                <IconClock className="size-6" />
+              ) : (
+                <IconAlert className="size-6" />
+              )}
+            </span>
+            {/* Annoncé aux lecteurs d'écran à chaque changement de statut. */}
+            <div role="status" className="grid gap-2">
+              <p className="text-ink text-lg font-semibold">{status.message}</p>
+              {UNSUCCESSFUL.has(payment.status) ? (
+                <p className="text-ink-muted">{`${t.lateSuccess} ${isTopUp ? t.tryTopUpAgain : t.tryAgain}`}</p>
+              ) : null}
+              {pending && polling ? <p className="text-small text-ink-muted">{t.checking}</p> : null}
+              {pending && !polling ? <p className="text-ink-muted">{t.stillPending}</p> : null}
+              {payment.underReview ? <p className="text-ink-muted">{t.underReviewHint}</p> : null}
+            </div>
+            {/* Paiement réussi : le détail est dans le reçu, juste en dessous. */}
+            {payment.status === 'succeeded' ? null : (
+              <dl className="grid gap-x-6 gap-y-2 sm:col-start-2 sm:grid-cols-[11rem_1fr]">
+                {facts
+                  .filter(([, value]) => value)
+                  .map(([label, value]) => (
+                    <div key={label} className="contents">
+                      <dt className="text-small text-ink-muted">{label}</dt>
+                      <dd className="text-ink font-medium tabular-nums">{value}</dd>
+                    </div>
+                  ))}
+              </dl>
+            )}
+          </section>
+        }
       >
-        <Heading as="h2" size="h3" id="paiement-statut" className="sr-only">
-          {status.label}
-        </Heading>
-        {/* Annoncé aux lecteurs d'écran à chaque changement de statut. */}
-        <div role="status" className="grid gap-2">
-          <p className="text-ink text-lg font-semibold">{status.message}</p>
-          {UNSUCCESSFUL.has(payment.status) ? (
-            <p className="text-ink-muted">{`${t.lateSuccess} ${isTopUp ? t.tryTopUpAgain : t.tryAgain}`}</p>
-          ) : null}
-          {pending && polling ? <p className="text-small text-ink-muted">{t.checking}</p> : null}
-          {pending && !polling ? <p className="text-ink-muted">{t.stillPending}</p> : null}
-          {payment.underReview ? <p className="text-ink-muted">{t.underReviewHint}</p> : null}
+        <BackLink />
+        <div className="mt-3">
+          <Badge tone={status.tone} dot>
+            {status.label}
+          </Badge>
         </div>
-        {/* Paiement réussi : le détail est dans le reçu, juste en dessous. */}
-        {payment.status === 'succeeded' ? null : (
-          <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[11rem_1fr]">
-            {facts
-              .filter(([, value]) => value)
-              .map(([label, value]) => (
-                <div key={label} className="contents">
-                  <dt className="text-small text-ink-muted">{label}</dt>
-                  <dd className="text-ink font-medium tabular-nums">{value}</dd>
-                </div>
-              ))}
-          </dl>
-        )}
-      </section>
+        <Heading as="h1" size="h1" className="mt-3">
+          {subjectLabel(payment.subject)}
+        </Heading>
+        <p className="font-display text-figure text-ink mt-3 font-semibold tabular-nums">
+          {formatXof(payment.amount)}
+        </p>
+      </BandHeader>
 
       {toppedUp ? topUpResult : null}
       {payment.status === 'succeeded' ? <Receipt payment={payment} /> : null}
