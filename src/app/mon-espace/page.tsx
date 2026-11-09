@@ -10,6 +10,7 @@ import {
   IconClock,
   IconNettoyage,
   IconUser,
+  IconWallet,
 } from '@/components/ui/icons';
 import { Container } from '@/components/ui/container';
 import { Eyebrow } from '@/components/ui/eyebrow';
@@ -19,6 +20,7 @@ import { InvoiceTodo, billingPaths, billingTexts } from '@/features/billing';
 import { CleaningOngoing, CleaningTodo, cleaningPaths, cleaningTexts, spaceTexts } from '@/features/cleaning';
 import { NotificationBell, notificationPaths, notificationTexts } from '@/features/notification';
 import { paymentPaths, paymentTexts } from '@/features/payment';
+import { WalletBalanceLink, walletPaths, walletTexts } from '@/features/wallet';
 import {
   AccountOverview,
   ContextSwitcher,
@@ -80,8 +82,12 @@ export default function AccountPage() {
         <Eyebrow>{navigation.account.label}</Eyebrow>
         <div className="mt-5">
           <RequireSession>
-            {/* Pastille des notifications non lues (ADR-039), chargée à la demande. */}
-            <div className="mb-6 flex justify-end">
+            {/*
+              Solde du portefeuille prépayé (ADR-046) et pastille des notifications non lues (ADR-039),
+              chargés à la demande.
+            */}
+            <div className="mb-6 flex flex-wrap justify-end gap-3">
+              <WalletBalanceLink />
               <NotificationBell />
             </div>
             <AccountOverview />
@@ -126,6 +132,12 @@ export default function AccountPage() {
                   title={billingTexts.title}
                   text={billingTexts.lead}
                   icon={<IconClock className="size-6" />}
+                />
+                <ServiceCard
+                  href={walletPaths.home}
+                  title={walletTexts.title}
+                  text={walletTexts.homeLinkText}
+                  icon={<IconWallet className="size-6" />}
                 />
                 <ServiceCard
                   href={paymentPaths.list}

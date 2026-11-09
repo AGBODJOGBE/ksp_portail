@@ -119,6 +119,16 @@ export function IconBell(props: IconProps) {
   );
 }
 
+export function IconWallet(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3" />
+      <path d="M4 7.5v10A2.5 2.5 0 0 0 6.5 20H20v-12H6.5A2.5 2.5 0 0 1 4 7.5" />
+      <path d="M16 14h.01" />
+    </Icon>
+  );
+}
+
 export function IconClock(props: IconProps) {
   return (
     <Icon {...props}>
