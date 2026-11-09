@@ -10,6 +10,7 @@ const PATHS: ReadonlyArray<{
 }> = [
   { path: '/', priority: 1, changeFrequency: 'weekly' },
   ...metiers.map((metier) => ({ path: metier.href, priority: 0.8, changeFrequency: 'monthly' as const })),
+  { path: '/contact', priority: 0.6, changeFrequency: 'monthly' },
   ...siteConfig.legal.map((item) => ({ path: item.href, priority: 0.3, changeFrequency: 'yearly' as const })),
 ];
 

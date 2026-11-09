@@ -6,6 +6,7 @@ import {
   IconArrowRight,
   IconBriefcase,
   IconCheck,
+  IconBell,
   IconClock,
   IconNettoyage,
   IconUser,
@@ -16,6 +17,7 @@ import { Heading } from '@/components/ui/heading';
 import { navigation } from '@/config/navigation';
 import { InvoiceTodo, billingPaths, billingTexts } from '@/features/billing';
 import { CleaningOngoing, CleaningTodo, cleaningPaths, cleaningTexts, spaceTexts } from '@/features/cleaning';
+import { NotificationBell, notificationPaths, notificationTexts } from '@/features/notification';
 import { paymentPaths, paymentTexts } from '@/features/payment';
 import {
   AccountOverview,
@@ -78,6 +80,10 @@ export default function AccountPage() {
         <Eyebrow>{navigation.account.label}</Eyebrow>
         <div className="mt-5">
           <RequireSession>
+            {/* Pastille des notifications non lues (ADR-039), chargée à la demande. */}
+            <div className="mb-6 flex justify-end">
+              <NotificationBell />
+            </div>
             <AccountOverview />
             <ContextSwitcher hint className="mt-6" />
 
@@ -126,6 +132,12 @@ export default function AccountPage() {
                   title={paymentTexts.title}
                   text={paymentTexts.lead}
                   icon={<IconCheck className="size-6" />}
+                />
+                <ServiceCard
+                  href={notificationPaths.list}
+                  title={notificationTexts.title}
+                  text={notificationTexts.homeLinkText}
+                  icon={<IconBell className="size-6" />}
                 />
                 <ServiceCard
                   href={identityPaths.profile}

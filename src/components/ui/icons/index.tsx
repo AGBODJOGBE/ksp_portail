@@ -90,6 +90,35 @@ export function IconBriefcase(props: IconProps) {
   );
 }
 
+/** Combiné de téléphone. */
+export function IconPhone(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M5 4h3.5l1.5 4-2.2 1.4a11 11 0 0 0 6.8 6.8L16 14l4 1.5V19a1.5 1.5 0 0 1-1.6 1.5A16 16 0 0 1 3.5 5.6 1.5 1.5 0 0 1 5 4z" />
+    </Icon>
+  );
+}
+
+/** Enveloppe : e-mail. */
+export function IconMail(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
+      <path d="m4 7 8 6 8-6" />
+    </Icon>
+  );
+}
+
+/** Cloche : notifications. */
+export function IconBell(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </Icon>
+  );
+}
+
 export function IconClock(props: IconProps) {
   return (
     <Icon {...props}>
