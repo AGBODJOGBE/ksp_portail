@@ -164,6 +164,8 @@ Mesure du 5 novembre 2026, après « Mon espace orienté actions » (lot 2) : `/
 
 Mesure du 6 novembre 2026, après la suppression du compte (ADR-036), les refus de paiement (ADR-032) et les réponses lisibles (ADR-037), comparée à un build de `main` : socle inchangé (177,9 Ko) ; `/connexion`, `/mon-espace/profil`, `/mon-espace/entreprise` et `/mon-espace/compte` 208,3 Ko (+0,5 Ko) ; `/mon-espace` 209,8 Ko ; `/mon-espace/paiements` 209,6 Ko ; `/mon-espace/nettoyage/demandes` 209,0 Ko ; `/mon-espace/factures` 208,7 Ko. Piège mesuré : la connexion qui lisait `identityPaths` dans `texts.ts` faisait entrer tous les textes du compte dans le premier téléchargement de l'espace (+2,3 Ko) ; les adresses sont dans `identity/paths.ts`, les textes de la suppression dans `deletion-texts.ts`, la date gardée après la demande dans `deletion-notice.ts` (sans texte).
 
+Mesure du 9 novembre 2026, après le centre de notifications et la page Contact (ADR-039) : `/mon-espace` 210,6 Ko (+0,8 Ko : pastille des non lues et carte « Mes notifications », chargées à la demande) ; `/mon-espace/notifications` 209,3 Ko ; `/contact` 181,3 Ko (budget « page vitrine » : 190 Ko). Piège mesuré : la page Contact qui lisait la configuration dans son composant client faisait télécharger `zod/mini` et le dictionnaire (199,5 Ko) ; les coordonnées lui sont désormais passées par le serveur.
+
 Budgets par type de page (validés le 19 octobre 2026) :
 
 | Type de page                                             | Budget   |
