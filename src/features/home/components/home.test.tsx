@@ -1,7 +1,12 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import HomePage from '@/app/page';
 import { homeContent } from '@/features/home/content';
-import { KeyFiguresSection, TestimonialsSection } from './proof-sections';
+import { KeyFiguresSection } from './home-sections';
+import { NewsCarousel } from './news-carousel';
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
 
 describe('accueil', () => {
   it('affiche la promesse du groupe en titre principal', async () => {
@@ -11,19 +16,35 @@ describe('accueil', () => {
     );
   });
 
-  it('présente les six métiers, chacun avec son lien et son action', async () => {
+  it('propose la recherche des services et le mode guidé vers « Votre besoin »', async () => {
     render(await HomePage());
-    const section = screen.getByRole('region', { name: 'Six métiers, un seul groupe' });
-    const links = within(section).getAllByRole('link');
-    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+    // Recherche chargée à la demande (features/services/components/lazy.tsx).
+    expect(await screen.findByRole('combobox', { name: 'Trouver un service' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Être guidé' })).toHaveAttribute('href', '#votre-besoin');
+    expect(document.getElementById('votre-besoin')).not.toBeNull();
+  });
+
+  it('oriente chaque besoin vers le bon service', async () => {
+    render(await HomePage());
+    const section = screen.getByRole('region', { name: /Dites-nous ce qu’il vous faut/ });
+    const hrefs = within(section)
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('href'));
+    expect(hrefs).toEqual([
+      '/services',
+      '/nettoyage/demande',
       '/recouvrement',
-      '/nettoyage',
       '/immobilier',
       '/impression',
       '/marketplace',
       '/livraison',
     ]);
-    expect(within(section).getByText('Simuler ma prestation')).toBeInTheDocument();
+  });
+
+  it('referme le bandeau d’information', async () => {
+    render(await HomePage());
+    fireEvent.click(screen.getByRole('button', { name: homeContent.banner.close }));
+    expect(screen.queryByRole('button', { name: homeContent.banner.close })).toBeNull();
   });
 
   it('n’invente aucun contenu : sans données, il affiche des emplacements « à venir »', async () => {
@@ -43,17 +64,28 @@ describe('accueil', () => {
     expect(within(region).getByText('Dossiers suivis')).toBeInTheDocument();
     expect(region.textContent?.replace(/\s/g, '')).toContain('12500');
   });
+});
 
-  it('affiche les témoignages fournis avec leur auteur', () => {
-    render(
-      <TestimonialsSection
-        content={{
-          ...homeContent.testimonials,
-          items: [{ id: 't1', quote: 'Texte de test', author: 'Auteur de test', metierId: 'nettoyage' }],
-        }}
-      />,
-    );
-    expect(screen.getByText('« Texte de test »')).toBeInTheDocument();
-    expect(screen.getByText('Auteur de test')).toBeInTheDocument();
+describe('nouveautés', () => {
+  const { slides } = homeContent.news;
+  const labels = {
+    label: homeContent.news.label,
+    pause: homeContent.news.pause,
+    play: homeContent.news.play,
+    slideLabels: slides.map((_, index) => homeContent.news.goTo(index + 1, slides.length)),
+  };
+
+  it('passe d’une nouveauté à l’autre avec les points de navigation', () => {
+    render(<NewsCarousel slides={slides} labels={labels} />);
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(slides[0]!.title);
+    fireEvent.click(screen.getByRole('button', { name: 'Nouveauté 2 sur 3' }));
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(slides[1]!.title);
+    expect(screen.getByRole('button', { name: 'Nouveauté 2 sur 3' })).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('se met en pause à la demande', () => {
+    render(<NewsCarousel slides={slides} labels={labels} />);
+    fireEvent.click(screen.getByRole('button', { name: labels.pause }));
+    expect(screen.getByRole('button', { name: labels.play })).toBeInTheDocument();
   });
 });

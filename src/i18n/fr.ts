@@ -48,6 +48,11 @@ export const fr = {
   },
   login: {
     title: 'Se connecter ou créer un compte',
+    /** Carte de la page de connexion (F-020) : le même parcours crée le compte. */
+    cardTitle: 'Se connecter',
+    cardSubtitle: 'Veuillez vous identifier',
+    noAccount: 'Vous n’avez pas de compte ?',
+    createAccount: 'Créer un compte',
     intro:
       'Un seul compte pour tous les services KSP. Pas de mot de passe : vous recevez un code de connexion sur WhatsApp.',
     newAccount: 'Pas encore de compte ? Il est créé avec votre numéro.',

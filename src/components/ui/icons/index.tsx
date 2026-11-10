@@ -334,3 +334,59 @@ export function IconSwap(props: IconProps) {
     </Icon>
   );
 }
+
+export function IconHeadset(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 14v-2a8 8 0 0 1 16 0v2" />
+      <rect x="3.5" y="13" width="4" height="6" rx="1.5" />
+      <rect x="16.5" y="13" width="4" height="6" rx="1.5" />
+      <path d="M18.5 19v.5a2.5 2.5 0 0 1-2.5 2.5h-3" />
+    </Icon>
+  );
+}
+
+export function IconSearch(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m20 20-4.4-4.4" />
+    </Icon>
+  );
+}
+
+export function IconInfo(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5.5M12 7.5v.01" />
+    </Icon>
+  );
+}
+
+export function IconChevronLeft(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m15 6-6 6 6 6" />
+    </Icon>
+  );
+}
+
+export function IconChevronRight(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m9 6 6 6-6 6" />
+    </Icon>
+  );
+}
+
+export function IconGrid(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" />
+      <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" />
+      <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" />
+      <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" />
+    </Icon>
+  );
+}

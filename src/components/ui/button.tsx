@@ -7,8 +7,12 @@ import { cn } from '@/lib/cn';
  * `primary` (bleu nuit) : action de marque ou de navigation forte (se connecter, mon espace) ;
  * `secondary` : action complémentaire ; `ghost` : action discrète ; `danger` : action discrète qui clôt un
  * dossier (annuler) ; `inverse` : sur fond bleu nuit.
+ * v3 (F-020), boutons en pilule : `accent` (or, texte bleu nuit, 6,1:1) pour l'entrée principale de
+ * l'en-tête (« Se connecter ») et du premier écran ; `outline` (contour bleu nuit) pour l'entrée
+ * secondaire (« Créer un compte »). Le vert (`action`) reste la couleur des validations des parcours.
  */
-export type ButtonVariant = 'action' | 'primary' | 'secondary' | 'ghost' | 'danger' | 'inverse';
+export type ButtonVariant =
+  'action' | 'primary' | 'secondary' | 'ghost' | 'danger' | 'inverse' | 'accent' | 'outline';
 export type ButtonSize = 'md' | 'lg' | 'icon';
 
 /*
@@ -17,7 +21,7 @@ export type ButtonSize = 'md' | 'lg' | 'icon';
  */
 const BASE = cn(
   'group/button relative isolate inline-flex items-center justify-center gap-2 overflow-hidden',
-  'rounded-control font-semibold whitespace-nowrap select-none',
+  'rounded-full font-display font-semibold whitespace-nowrap select-none',
   'transition-transform duration-(--motion-fast) ease-soft active:scale-[0.98]',
   'before:absolute before:inset-0 before:-z-10 before:opacity-0 before:transition-opacity',
   'before:duration-(--motion-base) before:ease-soft hover:before:opacity-100',
@@ -31,6 +35,8 @@ const VARIANTS: Record<ButtonVariant, string> = {
   ghost: 'text-ink before:bg-surface-sunken',
   danger: 'text-danger before:bg-danger-soft',
   inverse: 'bg-white text-brand-900 before:bg-brand-100',
+  accent: 'bg-accent text-on-accent before:bg-accent-bright',
+  outline: 'border-[1.5px] border-brand bg-surface text-brand before:bg-brand-soft',
 };
 
 const SIZES: Record<ButtonSize, string> = {

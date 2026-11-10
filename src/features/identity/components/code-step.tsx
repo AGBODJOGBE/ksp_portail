@@ -1,17 +1,19 @@
 'use client';
 
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { IconArrowLeft } from '@/components/ui/icons';
-import { Button } from '@/components/ui/button';
+import { IconArrowLeft, IconChevronRight } from '@/components/ui/icons';
+import { Button, ButtonArrow } from '@/components/ui/button';
 import { FormMessage, TextField } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
 import { getDictionary } from '@/i18n';
+import { cn } from '@/lib/cn';
 import type { Session } from '@/lib/api';
 import { requestOtp, verifyOtp } from '@/features/identity/api';
 import { useCountdown } from '@/features/identity/countdown';
 import { describeError } from '@/features/identity/errors';
 import { cleanCode, isCodeComplete } from '@/features/identity/phone';
 import type { OtpChallenge } from '@/features/identity/schemas';
+import { LoginCardHeader } from './login-card-header';
 
 const CODE_ID = 'connexion-code';
 
@@ -25,8 +27,11 @@ export function CodeStep({
   onVerified,
   onChangeNumber,
   headingLevel = 'h1',
+  layout = 'inline',
 }: {
   headingLevel?: 'h1' | 'h2' | 'h3';
+  /** `card` : carte de la page de connexion ; `inline` : intégrée à une autre page. */
+  layout?: 'card' | 'inline';
   phone: string;
   challenge: OtpChallenge;
   /** Code accepté : session ouverte (le cookie de renouvellement est posé par la gateway). */
@@ -117,16 +122,31 @@ export function CodeStep({
   const sentId = `${CODE_ID}-envoi`;
   const canResend = resend.remaining === 0;
 
+  const card = layout === 'card';
+  const sent = (
+    <>
+      {t.login.codeSent(challenge.channel, challenge.maskedTarget)}{' '}
+      {t.login.codeValidity(Math.max(1, Math.round(challenge.expiresInSeconds / 60)))}
+    </>
+  );
+
   return (
     <section aria-labelledby="code-titre">
-      <Heading as={headingLevel} size="h2" id="code-titre">
-        {t.login.codeTitle}
-      </Heading>
-      <p id={sentId} className="text-ink-muted mt-3">
-        {t.login.codeSent(challenge.channel, challenge.maskedTarget)}{' '}
-        {t.login.codeValidity(Math.max(1, Math.round(challenge.expiresInSeconds / 60)))}
-      </p>
-      <form noValidate onSubmit={submit} className="mt-8 grid gap-5">
+      {card ? (
+        <LoginCardHeader id="code-titre" as={headingLevel} title={t.login.codeTitle}>
+          <p id={sentId}>{sent}</p>
+        </LoginCardHeader>
+      ) : (
+        <>
+          <Heading as={headingLevel} size="h2" id="code-titre">
+            {t.login.codeTitle}
+          </Heading>
+          <p id={sentId} className="text-ink-muted mt-3">
+            {sent}
+          </p>
+        </>
+      )}
+      <form noValidate onSubmit={submit} className={cn('grid gap-5', card ? 'mt-7' : 'mt-8')}>
         <TextField
           id={CODE_ID}
           inputRef={codeRef}
@@ -144,17 +164,24 @@ export function CodeStep({
         />
         <FormMessage>{error}</FormMessage>
         <FormMessage tone="info">{info}</FormMessage>
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <div className={cn('flex flex-col gap-3', !card && 'sm:flex-row sm:flex-wrap')}>
           <Button
             type="submit"
             size="lg"
+            variant={card ? 'accent' : 'primary'}
+            className={card ? 'w-full' : undefined}
             disabled={newCodeNeeded}
             aria-busy={pending === 'verify' || undefined}
           >
             {pending === 'verify' ? t.login.verifying : t.login.verify}
+            {card ? (
+              <ButtonArrow>
+                <IconChevronRight />
+              </ButtonArrow>
+            ) : null}
           </Button>
           <Button
-            variant={newCodeNeeded ? 'primary' : 'secondary'}
+            variant={newCodeNeeded ? 'primary' : card ? 'outline' : 'secondary'}
             size="lg"
             onClick={sendAgain}
             disabled={!canResend}

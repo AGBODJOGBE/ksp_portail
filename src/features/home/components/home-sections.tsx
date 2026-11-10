@@ -1,197 +1,157 @@
-import type { CSSProperties, JSX } from 'react';
-import { SignatureArrow, SignatureBackdrop } from '@/components/ui/brand/signature';
-import { ButtonArrow, ButtonLink } from '@/components/ui/button';
-import {
-  IconArrowRight,
-  IconCard,
-  IconClock,
-  IconFileCheck,
-  IconPin,
-  IconUser,
-  type IconProps,
-} from '@/components/ui/icons';
-import { Section } from '@/components/ui/section';
-import { SectionHeader } from '@/components/ui/section-header';
+import Link from 'next/link';
+import { MetierGlyph } from '@/components/sections/metier-glyph';
+import { Container } from '@/components/ui/container';
+import { Eyebrow } from '@/components/ui/eyebrow';
+import { IconChevronRight } from '@/components/ui/icons';
+import { ServiceCard, type ServiceEntry } from '@/features/services';
 import type { HomeContent } from '@/features/home/content';
-import { cn } from '@/lib/cn';
 import { frenchSpacing } from '@/lib/typography';
 
-/**
- * « Comment ça marche » : quatre étapes communes à tous les métiers, reliées par le fil de la signature
- * (bleu nuit, vert, flèche or) qui se trace au défilement. Horizontal sur ordinateur, vertical sur
- * téléphone.
- */
-export function HomeJourney({ content }: { content: HomeContent['journey'] }) {
-  const last = content.steps.length - 1;
-  return (
-    <Section id="comment-ca-marche" labelledBy="comment-titre">
-      <SectionHeader id="comment-titre" eyebrow={content.eyebrow} title={content.title} lead={content.lead} />
-      <ol className="reveal-stagger relative mt-14 grid gap-10 lg:grid-cols-4 lg:gap-8">
-        {/* Fil de la signature : vertical sur téléphone, horizontal sur ordinateur. */}
-        <span
-          aria-hidden="true"
-          className="reveal-grow-y from-signature-1 via-signature-2 to-signature-3 absolute top-6 bottom-6 left-[1.4375rem] w-0.5 rounded-full bg-linear-to-b lg:hidden"
-        />
-        <span
-          aria-hidden="true"
-          className="reveal-grow-x absolute top-[1.4375rem] right-[12%] left-6 hidden h-0.5 items-center lg:flex"
-        >
-          <span className="bg-signature-1 h-full basis-[38%] rounded-l-full" />
-          <span className="bg-signature-2 h-full flex-1" />
-          <SignatureArrow className="-ml-0.5 h-3.5 w-3" />
-        </span>
-        {content.steps.map((step, index) => (
-          <li key={step.title} className="relative grid grid-cols-[3rem_minmax(0,1fr)] gap-x-5 lg:block">
-            <span
-              aria-hidden="true"
-              className={cn(
-                'font-display relative grid size-12 place-items-center rounded-full text-lg font-semibold tabular-nums ring-8',
-                'ring-canvas shadow-sm',
-                index === last ? 'bg-action text-on-action' : 'bg-brand text-on-brand',
-              )}
-            >
-              {index + 1}
-            </span>
-            <div className="pt-2 lg:pt-7">
-              <h3 className="font-display text-h3 text-ink font-semibold">
-                <span className="sr-only">Étape {index + 1} : </span>
-                {frenchSpacing(step.title)}
-              </h3>
-              <p className="text-ink-muted mt-2 max-w-xs">{frenchSpacing(step.text)}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
-    </Section>
-  );
-}
+const numberFormat = new Intl.NumberFormat('fr-BJ');
 
-const TRUST_ICONS: Record<string, (props: IconProps) => JSX.Element> = {
-  user: IconUser,
-  file: IconFileCheck,
-  clock: IconClock,
-  card: IconCard,
-};
+/* Nombre d'emplacements « à venir » affichés tant que les chiffres ne sont pas fournis. */
+const PENDING_FIGURES = 4;
 
-/** Raisons de confiance : des engagements vérifiables, sans chiffre ni promesse invérifiable. */
-export function TrustSection({ content }: { content: HomeContent['trust'] }) {
-  return (
-    <Section id="pourquoi-ksp" labelledBy="confiance-titre" tone="muted">
-      <div className="grid gap-12 lg:grid-cols-12 lg:gap-10">
-        <div className="lg:col-span-4">
-          <SectionHeader
-            id="confiance-titre"
-            eyebrow={content.eyebrow}
-            title={content.title}
-            lead={content.lead}
-          />
-        </div>
-        <ul className="reveal-stagger grid gap-4 sm:grid-cols-2 lg:col-span-8 lg:gap-5">
-          {content.items.map((item) => {
-            const Icon = TRUST_ICONS[item.icon] ?? IconFileCheck;
-            return (
-              <li
-                key={item.title}
-                className="rounded-card border-line bg-surface shadow-card relative overflow-hidden border p-6 sm:p-7"
-              >
-                <span
-                  aria-hidden="true"
-                  className="rounded-icon bg-brand text-on-brand grid size-12 place-items-center"
-                >
-                  <Icon className="size-6" />
-                </span>
-                <h3 className="font-display text-ink mt-5 text-xl leading-snug font-semibold">
-                  {item.title}
-                </h3>
-                <p className="text-ink-muted mt-2">{frenchSpacing(item.text)}</p>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    </Section>
-  );
-}
-
-/** Anneaux concentriques et repères : illustration décorative (aucune position géographique réelle). */
-function ZonesRadar({ count }: { count: number }) {
-  const dots = Array.from({ length: Math.min(count, 6) }, (_, index) => {
-    const angle = (index / Math.max(count, 1)) * Math.PI * 2 - Math.PI / 3;
-    const radius = index % 2 === 0 ? 62 : 96;
-    return { x: 140 + Math.cos(angle) * radius, y: 140 + Math.sin(angle) * radius };
-  });
-  return (
-    <svg viewBox="0 0 280 280" aria-hidden="true" focusable="false" className="w-full max-w-72">
-      {[40, 80, 120].map((r) => (
-        <circle
-          key={r}
-          cx="140"
-          cy="140"
-          r={r}
-          className="stroke-line-strong fill-none"
-          strokeDasharray="3 6"
-        />
-      ))}
-      <circle cx="140" cy="140" r="22" className="fill-brand" />
-      <path d="M133 132L151 140L133 148Z" className="fill-signature-3" />
-      {dots.map((dot, index) => (
-        <g
-          key={index}
-          className="pop origin-center [transform-box:fill-box]"
-          style={{ '--i': index } as CSSProperties}
-        >
-          <circle cx={dot.x} cy={dot.y} r="13" className="fill-action-soft" />
-          <circle cx={dot.x} cy={dot.y} r="6" className="fill-action" />
-        </g>
-      ))}
-    </svg>
-  );
-}
-
-/**
- * Zones desservies du Nettoyage, lues auprès de la gateway (`GET /api/v1/cleaning/zones`) au build puis
- * revalidées : rien n'est affiché si la liste n'a pas pu être lue.
- */
-export function ZonesSection({
-  content,
-  communes,
+/** En-tête de section : surtitre, titre et sous-titre à gauche, lien « Voir tous » à droite. */
+function SectionTop({
+  id,
+  eyebrow,
+  title,
+  lead,
+  link,
 }: {
-  content: HomeContent['zones'];
-  communes: ReadonlyArray<string>;
+  id: string;
+  eyebrow: string;
+  title: string;
+  lead?: string;
+  link?: { label: string; href: string };
 }) {
   return (
-    <Section id="zones" labelledBy="zones-titre" spacing="small">
-      <div className="rounded-panel border-line bg-surface shadow-card grid items-center gap-10 overflow-hidden border p-6 sm:p-10 lg:grid-cols-12">
-        <div className="lg:col-span-7">
-          <SectionHeader
-            id="zones-titre"
-            eyebrow={content.eyebrow}
-            title={content.title}
-            lead={content.lead}
-          />
-          <ul className="reveal-stagger mt-8 flex flex-wrap gap-2.5">
-            {communes.map((commune) => (
-              <li
-                key={commune}
-                className="border-line bg-surface-muted text-ink inline-flex min-h-11 items-center gap-2 rounded-full border py-2 pr-4 pl-3 font-semibold"
-              >
-                <IconPin className="text-action-ink size-4" />
-                {commune}
-              </li>
-            ))}
-          </ul>
-          <ButtonLink href={content.action.href} variant="action" className="mt-8">
-            {content.action.label}
-            <ButtonArrow>
-              <IconArrowRight />
-            </ButtonArrow>
-          </ButtonLink>
-        </div>
-        <div className="relative hidden justify-items-center lg:col-span-5 lg:grid">
-          <SignatureBackdrop className="absolute inset-0 -z-0 size-full [mask-image:radial-gradient(circle,black,transparent_70%)] opacity-[0.06]" />
-          <ZonesRadar count={communes.length} />
-        </div>
+    <div className="reveal flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-10">
+      <div className="max-w-4xl md:flex-1">
+        <Eyebrow>{eyebrow}</Eyebrow>
+        <h2 id={id} className="font-display text-h2 text-ink mt-3 font-bold">
+          {frenchSpacing(title)}
+        </h2>
+        {lead ? <p className="text-lead text-ink-muted mt-3">{frenchSpacing(lead)}</p> : null}
       </div>
-    </Section>
+      {link ? (
+        <Link
+          href={link.href}
+          className="text-brand-ink font-display inline-flex min-h-11 shrink-0 items-center gap-1.5 text-lg font-semibold underline-offset-4 hover:underline"
+        >
+          {link.label}
+          <IconChevronRight className="size-5" />
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
+/** Chiffres clés : un bloc blanc ; rendus seulement s'ils sont fournis, sinon emplacements « à venir ». */
+export function KeyFiguresSection({ content }: { content: HomeContent['keyFigures'] }) {
+  const hasFigures = content.items.length > 0;
+  return (
+    <section id="chiffres" aria-labelledby="chiffres-titre" className="pt-8 sm:pt-12">
+      <Container size="wide">
+        <div className="rounded-panel border-line bg-surface border px-6 py-8 shadow-xs sm:px-10 lg:px-14">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+            <h2 id="chiffres-titre" className="font-display text-ink text-lg font-bold">
+              {content.title}
+            </h2>
+            {hasFigures ? null : <p className="text-small text-ink-muted">{content.pending}</p>}
+          </div>
+          {hasFigures ? (
+            <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-4">
+              {content.items.map((figure) => (
+                <div key={figure.label} className="flex flex-col">
+                  <dt className="text-ink-muted mt-1">{figure.label}</dt>
+                  <dd className="font-display text-brand-700 order-first text-4xl font-bold tabular-nums">
+                    {numberFormat.format(figure.value)}
+                    {figure.unit ? <span className="ml-1 text-2xl">{figure.unit}</span> : null}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <ul className="mt-6 grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-4">
+              {Array.from({ length: PENDING_FIGURES }, (_, index) => (
+                <li key={index} data-placeholder="" className="flex flex-col gap-2">
+                  {/* Silhouette d'un chiffre, sans valeur : la place du futur chiffre clé. */}
+                  <span aria-hidden="true" className="flex items-end gap-1.5">
+                    <span className="bg-brand-100 h-10 w-20 rounded-lg" />
+                    <span className="bg-brand-100 h-5 w-6 rounded" />
+                  </span>
+                  <span className="text-ink-muted">Chiffre clé à venir</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </Container>
+    </section>
+  );
+}
+
+/** « Votre besoin » : une carte par situation, icône illustrée, titre et texte, vers le bon service. */
+export function NeedsSection({ content }: { content: HomeContent['needs'] }) {
+  return (
+    <section id="votre-besoin" aria-labelledby="besoin-titre" className="py-section scroll-mt-(--header-h)">
+      <Container size="wide">
+        <SectionTop
+          id="besoin-titre"
+          eyebrow={content.eyebrow}
+          title={content.title}
+          lead={content.lead}
+          link={content.all}
+        />
+        <ul className="reveal-stagger mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {content.items.map((need) => (
+            <li key={need.title}>
+              <article className="group/card rounded-card border-line bg-surface ease-soft hover:shadow-card has-[a:focus-visible]:outline-focus relative flex h-full flex-col border p-6 shadow-xs transition-[translate,box-shadow] duration-(--motion-slow) hover:-translate-y-1 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-3">
+                <MetierGlyph id={need.metierId} className="size-16" />
+                <h3 className="font-display text-h3 text-ink mt-5 font-bold">
+                  <Link href={need.href} className="stretched-link focus-visible:outline-none">
+                    {need.title}
+                  </Link>
+                </h3>
+                <p className="text-ink-muted mt-2">{need.text}</p>
+              </article>
+            </li>
+          ))}
+        </ul>
+      </Container>
+    </section>
+  );
+}
+
+/** « Les services à la une » : quelques cartes de l'annuaire, au style de la page « Tous nos services ». */
+export function FeaturedServices({
+  content,
+  services,
+}: {
+  content: HomeContent['featured'];
+  services: ReadonlyArray<ServiceEntry>;
+}) {
+  if (!services.length) return null;
+  return (
+    <section aria-labelledby="une-titre" className="bg-surface-muted py-section">
+      <Container size="wide">
+        <SectionTop
+          id="une-titre"
+          eyebrow={content.eyebrow}
+          title={content.title}
+          lead={content.lead}
+          link={content.all}
+        />
+        <ul className="reveal-stagger mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {services.map((entry) => (
+            <li key={entry.id}>
+              <ServiceCard entry={entry} headingLevel="h3" />
+            </li>
+          ))}
+        </ul>
+      </Container>
+    </section>
   );
 }

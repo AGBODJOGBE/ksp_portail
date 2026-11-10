@@ -3,6 +3,7 @@ import { cn } from '@/lib/cn';
 
 const SIZES = {
   page: 'max-w-page',
+  wide: 'max-w-wide',
   reading: 'max-w-reading',
 } as const;
 

@@ -17,35 +17,54 @@ import { useSession } from '@/lib/api/session';
 export function AccountLink({
   login,
   account,
+  signup,
   variant = 'bar',
 }: {
   login: NavItem;
   account: NavItem;
-  /** `bar` : bouton de l'en-tête (icône seule sur téléphone) ; `menu` : grand bouton du menu mobile. */
+  /** « Créer un compte » (pilule à contour), proposé tant qu'aucune session n'est ouverte. */
+  signup?: NavItem;
+  /** `bar` : boutons de l'en-tête (icône seule sur téléphone) ; `menu` : grands boutons du menu mobile. */
   variant?: 'bar' | 'menu';
 }) {
-  const link = useSession() ? account : login;
+  const connected = useSession() !== null;
+  const link = connected ? account : login;
+  const create = connected ? null : signup;
 
   if (variant === 'menu') {
     return (
-      <ButtonLink href={link.href} size="lg" className="mt-10 w-full">
-        <IconUser />
-        {link.label}
-      </ButtonLink>
+      <div className="mt-10 grid gap-3">
+        <ButtonLink href={link.href} variant="accent" size="lg" className="w-full">
+          <IconUser />
+          {link.label}
+        </ButtonLink>
+        {create ? (
+          <ButtonLink href={create.href} variant="outline" size="lg" className="w-full">
+            {create.label}
+          </ButtonLink>
+        ) : null}
+      </div>
     );
   }
   return (
     <>
-      <div className="hidden sm:block">
-        <ButtonLink href={link.href}>
-          <IconUser />
+      {create ? (
+        <div className="header-signup hidden xl:block">
+          <ButtonLink href={create.href} variant="outline">
+            {create.label}
+          </ButtonLink>
+        </div>
+      ) : null}
+      <div className="header-full hidden sm:block">
+        <ButtonLink href={link.href} variant="accent">
+          {connected ? <IconUser /> : null}
           {link.label}
         </ButtonLink>
       </div>
       <Link
         href={link.href}
         aria-label={link.label}
-        className={buttonClasses({ variant: 'secondary', size: 'icon', className: 'sm:hidden' })}
+        className={buttonClasses({ variant: 'accent', size: 'icon', className: 'header-full sm:hidden' })}
       >
         <IconUser />
       </Link>

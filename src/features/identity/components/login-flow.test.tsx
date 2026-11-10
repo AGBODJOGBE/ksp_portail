@@ -72,9 +72,7 @@ describe('parcours de connexion', () => {
     // Indicatif +229 par défaut.
     expect(await screen.findByRole('textbox', { name: 'Indicatif' })).toHaveValue('+229');
     // Connexion et création de compte : un seul parcours, annoncé comme tel.
-    expect(
-      screen.getByRole('heading', { level: 1, name: 'Se connecter ou créer un compte' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Se connecter' })).toBeInTheDocument();
     expect(screen.getByText('Pas encore de compte ? Il est créé avec votre numéro.')).toBeInTheDocument();
     await submitPhone();
 

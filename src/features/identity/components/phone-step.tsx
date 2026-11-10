@@ -1,16 +1,18 @@
 'use client';
 
 import { type FormEvent, type RefObject, useState } from 'react';
-import { IconArrowRight } from '@/components/ui/icons';
+import { IconAlert, IconArrowRight, IconChevronRight } from '@/components/ui/icons';
 import { Button, ButtonArrow } from '@/components/ui/button';
 import { fieldIds, FieldError, FormMessage, inputClasses } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
+import { cn } from '@/lib/cn';
 import { getDictionary } from '@/i18n';
 import { requestOtp } from '@/features/identity/api';
 import { useCountdown } from '@/features/identity/countdown';
 import { describeError } from '@/features/identity/errors';
 import { DEFAULT_COUNTRY_CODE, toE164 } from '@/features/identity/phone';
 import type { OtpChallenge } from '@/features/identity/schemas';
+import { LoginCardHeader } from './login-card-header';
 
 const PHONE_ID = 'connexion-numero';
 
@@ -20,9 +22,12 @@ export function PhoneStep({
   numberRef,
   onSent,
   headingLevel = 'h1',
+  layout = 'inline',
 }: {
   /** `h2` quand l'étape est intégrée à une autre page (demande de devis du Nettoyage). */
   headingLevel?: 'h1' | 'h2' | 'h3';
+  /** `card` : carte de la page de connexion (avatar, titre centré, grand bouton or) ; `inline` : intégrée. */
+  layout?: 'card' | 'inline';
   /** Numéro déjà saisi (retour depuis l'écran du code) : on repart de l'indicatif par défaut. */
   initialPhone?: string;
   numberRef: RefObject<HTMLInputElement | null>;
@@ -67,17 +72,26 @@ export function PhoneStep({
   }
 
   const describedBy = [ids.hint, phoneError ? ids.error : null].filter(Boolean).join(' ');
+  const card = layout === 'card';
 
   return (
     <section aria-labelledby="connexion-titre">
-      <Heading as={headingLevel} size="h2" id="connexion-titre">
-        {t.login.title}
-      </Heading>
-      <p className="text-ink-muted mt-3">{t.login.intro}</p>
-      <p className="text-ink mt-2 font-medium">{t.login.newAccount}</p>
-      <form noValidate onSubmit={submit} className="mt-8 grid gap-5">
+      {card ? (
+        <LoginCardHeader id="connexion-titre" as={headingLevel} title={t.login.cardTitle}>
+          {t.login.cardSubtitle}
+        </LoginCardHeader>
+      ) : (
+        <Heading as={headingLevel} size="h2" id="connexion-titre">
+          {t.login.title}
+        </Heading>
+      )}
+      <p className={cn('text-ink-muted', card ? 'text-small mt-6' : 'mt-3')}>{t.login.intro}</p>
+      <p className={cn('text-ink mt-2 font-medium', card && 'text-small')}>{t.login.newAccount}</p>
+      <form noValidate onSubmit={submit} className={cn('grid gap-5', card ? 'mt-6' : 'mt-8')}>
         <fieldset>
-          <legend className="text-ink font-semibold">{t.login.phoneLegend}</legend>
+          <legend className={cn('text-ink', card ? 'font-display text-lg font-bold' : 'font-semibold')}>
+            {t.login.phoneLegend}
+          </legend>
           <p id={ids.hint} className="text-small text-ink-muted mt-1">
             {t.login.phoneHint}
           </p>
@@ -99,7 +113,7 @@ export function PhoneStep({
                 className={inputClasses({ invalid: !!phoneError, className: 'text-center tabular-nums' })}
               />
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="relative min-w-0 flex-1">
               <label htmlFor={PHONE_ID} className="sr-only">
                 {t.login.phoneNumber}
               </label>
@@ -116,6 +130,9 @@ export function PhoneStep({
                 aria-describedby={describedBy}
                 className={inputClasses({ invalid: !!phoneError, className: 'tabular-nums' })}
               />
+              {phoneError ? (
+                <IconAlert className="text-danger pointer-events-none absolute top-1/2 right-4 size-5 -translate-y-1/2" />
+              ) : null}
             </div>
           </div>
           {phoneError ? <FieldError id={ids.error}>{phoneError}</FieldError> : null}
@@ -128,14 +145,13 @@ export function PhoneStep({
         <Button
           type="submit"
           size="lg"
-          className="w-full sm:w-auto"
+          variant={card ? 'accent' : 'primary'}
+          className={card ? 'w-full' : 'w-full sm:w-auto'}
           disabled={blocked}
           aria-busy={pending || undefined}
         >
           {pending ? t.login.sending : t.login.sendCode}
-          <ButtonArrow>
-            <IconArrowRight />
-          </ButtonArrow>
+          <ButtonArrow>{card ? <IconChevronRight /> : <IconArrowRight />}</ButtonArrow>
         </Button>
       </form>
     </section>

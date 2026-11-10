@@ -1,13 +1,11 @@
-import type { Realisation } from '@/components/sections/types';
 import type { MetierId } from '@/config/metiers';
-import { getDictionary } from '@/i18n';
-
-const { account, common } = getDictionary();
+import { siteConfig } from '@/config/site';
 
 /*
- * Contenus de l'accueil. Textes provisoires (à valider), prêts à être remplacés par Payload CMS.
- * Règle de confiance : aucun chiffre, aucune réalisation ni aucun témoignage n'est inventé.
- * Tant que les listes ci-dessous sont vides, l'accueil affiche des emplacements « à venir ».
+ * Contenus de l'accueil (v3, F-020 : présentation des portails d'e-services). Textes provisoires (à
+ * valider), prêts à être remplacés par Payload CMS. Règle de confiance : aucun chiffre, aucune
+ * réalisation ni aucun témoignage n'est inventé ; tant que `keyFigures.items` est vide, l'accueil
+ * affiche des emplacements « à venir ».
  */
 
 export type KeyFigure = {
@@ -18,100 +16,76 @@ export type KeyFigure = {
   label: string;
 };
 
-export type Testimonial = {
+/** Diapositive du carrousel « Nouveautés » : un fait réel du portail, avec son lien. */
+export type NewsSlide = {
   id: string;
-  quote: string;
-  author: string;
-  /** Fonction ou ville, avec l'accord de la personne. */
-  context?: string;
-  metierId: MetierId;
+  title: string;
+  text: string;
+  action: { label: string; href: string };
+  illustration: 'cleaning' | 'mobile-money' | 'wallet';
 };
 
+/** Carte « Votre besoin » : une situation, le métier qui y répond. */
+export type Need = { metierId: MetierId; title: string; text: string; href: string };
+
 export const homeContent = {
+  banner: {
+    /** Phrase du bandeau d'information, complétée par les communes lues à la gateway. */
+    cleaningOnline: (communes: string) => `Le Nettoyage est disponible en ligne à ${communes}.`,
+    cleaningOnlineFallback:
+      'Le Nettoyage est disponible en ligne : demandez votre devis en quelques minutes.',
+    action: { label: 'Demander un devis', href: '/nettoyage/demande' },
+    close: 'Fermer le message d’information',
+  },
   hero: {
-    eyebrow: 'Groupe KSP',
-    title: 'Vos services du quotidien,',
-    titleAccent: 'réunis par un seul groupe',
-    lead: 'Recouvrement, immobilier clés en main, nettoyage, impression, marketplace et livraison : le Groupe KSP vous accompagne, avec un seul compte pour tous ses services.',
-    primaryAction: { label: 'Découvrir nos métiers', href: '#metiers' },
-    secondaryAction: { label: common.contactUs, href: '/contact' },
-    panelTitle: account.promiseTitle,
-    panelText: account.promiseText,
-    /* Atouts vérifiables du portail (aucun chiffre) : affichés sous les boutons. */
-    highlights: account.promiseHighlights,
-    /*
-     * Aperçu illustré de Mon espace KSP : libellés réels de l'espace, aucune donnée (ni montant, ni date).
-     * Purement décoratif : masqué aux lecteurs d'écran, qui lisent `panelTitle` et `panelText`.
-     */
-    preview: {
-      caption: 'Aperçu de Mon espace KSP',
-      items: [
-        { label: 'Devis à accepter', service: 'Nettoyage', tone: 'action' },
-        { label: 'Facture à régler', service: 'Mobile Money', tone: 'accent' },
-        { label: 'Dossier en cours', service: 'Recouvrement', tone: 'brand' },
-      ],
+    title: siteConfig.tagline,
+    modesLabel: 'Comment souhaitez-vous trouver votre service ?',
+    searchMode: 'Rechercher',
+    guidedMode: 'Être guidé',
+    guidedHref: '#votre-besoin',
+    searchLabel: 'Trouver un service',
+    searchPlaceholder: 'Trouver un service',
+    searchSubmit: 'Rechercher',
+    suggestionsLabel: 'Suggestions',
+    noSuggestion: 'Aucun service ne correspond. Essayez un autre mot.',
+    allResults: 'Voir les {total} services correspondants',
+    allResultsOne: 'Voir le service correspondant',
+    /** Photo libre de droits (licence Unsplash) : voir docs/credits.md. */
+    image: {
+      src: '/images/accueil-porto-novo.webp',
+      alt: '',
+      width: 1920,
+      height: 1000,
     },
   },
-  metiers: {
-    eyebrow: 'Nos métiers',
-    title: 'Six métiers, un seul groupe',
-    lead: 'Choisissez un service : chaque métier a son équipe, et un seul compte vous suit partout.',
-  },
-  journey: {
-    eyebrow: 'Comment ça marche',
-    title: 'Du besoin au service rendu, en quatre étapes',
-    lead: 'Le même fil pour tous les métiers : vous faites la demande, KSP s’occupe du reste et vous suivez chaque étape.',
-    steps: [
+  news: {
+    label: 'Nouveautés sur KSP',
+    goTo: (index: number, total: number) => `Nouveauté ${index} sur ${total}`,
+    pause: 'Mettre en pause le défilement',
+    play: 'Reprendre le défilement',
+    slides: [
       {
-        title: 'Choisissez un service',
-        text: 'Nettoyage, recouvrement, immobilier, impression, marketplace ou livraison.',
+        id: 'nettoyage',
+        title: 'Le Nettoyage se commande en ligne',
+        text: 'Choisissez le lieu et vos prestations : une estimation s’affiche aussitôt, puis vous recevez votre devis dans Mon espace KSP.',
+        action: { label: 'Demander un devis', href: '/nettoyage/demande' },
+        illustration: 'cleaning',
       },
       {
-        title: 'Faites votre demande en ligne',
-        text: 'Décrivez votre besoin : devis, dossier ou commande, sans vous déplacer.',
+        id: 'mobile-money',
+        title: 'Payez par Mobile Money',
+        text: 'Réglez vos prestations et vos factures en ligne, et retrouvez chaque reçu dans votre espace.',
+        action: { label: 'Mes factures et paiements', href: '/mon-espace/paiements' },
+        illustration: 'mobile-money',
       },
       {
-        title: 'Suivez chaque étape',
-        text: 'Devis, rendez-vous, passages et factures se retrouvent dans Mon espace KSP.',
+        id: 'portefeuille',
+        title: 'Un portefeuille prépayé',
+        text: 'Rechargez votre portefeuille KSP par Mobile Money, puis réglez vos services en un geste.',
+        action: { label: 'Mon portefeuille', href: '/mon-espace/portefeuille' },
+        illustration: 'wallet',
       },
-      {
-        title: 'Réglez en toute simplicité',
-        text: 'Paiement par Mobile Money, reçu disponible dans votre espace.',
-      },
-    ],
-  },
-  trust: {
-    eyebrow: 'Pourquoi KSP',
-    title: 'Un groupe, des engagements clairs',
-    lead: 'Ce que vous trouvez sur chaque service du groupe, dès aujourd’hui.',
-    items: [
-      {
-        icon: 'user',
-        title: 'Un seul compte',
-        text: 'Le même numéro de téléphone vous connecte à tous les services KSP, sans mot de passe.',
-      },
-      {
-        icon: 'file',
-        title: 'Des conditions claires',
-        text: 'Devis, mandat ou contrat : vous validez avant que KSP n’intervienne.',
-      },
-      {
-        icon: 'clock',
-        title: 'Un suivi en direct',
-        text: 'Chaque demande avance étape par étape, visible depuis votre espace.',
-      },
-      {
-        icon: 'card',
-        title: 'Un paiement en ligne',
-        text: 'Mobile Money, factures et reçus réunis au même endroit.',
-      },
-    ],
-  },
-  zones: {
-    eyebrow: 'Zones desservies',
-    title: 'Où intervient KSP Nettoyage',
-    lead: 'Les communes où nos équipes interviennent aujourd’hui, tenues à jour par le service Nettoyage.',
-    action: { label: 'Demander un devis de nettoyage', href: '/nettoyage/demande' },
+    ] satisfies ReadonlyArray<NewsSlide>,
   },
   keyFigures: {
     eyebrow: 'Le groupe en chiffres',
@@ -119,25 +93,55 @@ export const homeContent = {
     pending: 'Les chiffres clés du groupe seront publiés ici dès qu’ils seront validés.',
     items: [] as ReadonlyArray<KeyFigure>,
   },
-  realisations: {
-    eyebrow: 'Réalisations',
-    title: 'Nos réalisations récentes',
-    pending: 'Nos chantiers et prestations récents seront présentés ici, photos à l’appui.',
-    allLabel: 'Toutes nos réalisations',
-    allHref: '/realisations',
-    items: [] as ReadonlyArray<Realisation>,
+  needs: {
+    eyebrow: 'Votre besoin',
+    title: 'Dites-nous ce qu’il vous faut, nous vous orientons.',
+    lead: 'Partez de votre situation : chaque carte mène au bon service.',
+    all: { label: 'Voir tous nos services', href: '/services' },
+    items: [
+      {
+        metierId: 'nettoyage',
+        title: 'Je veux faire nettoyer mes locaux',
+        text: 'Bureaux, maison, appartement ou fin de chantier : estimation immédiate et devis en ligne.',
+        href: '/nettoyage/demande',
+      },
+      {
+        metierId: 'recouvrement',
+        title: 'J’ai une créance impayée',
+        text: 'Factures, sommes prêtées ou loyers en retard : KSP relance votre débiteur et vous suivez tout.',
+        href: '/recouvrement',
+      },
+      {
+        metierId: 'immobilier',
+        title: 'Je construis depuis la diaspora',
+        text: 'Votre projet au pays, suivi en photos chaque semaine et payé étape par étape.',
+        href: '/immobilier',
+      },
+      {
+        metierId: 'impression',
+        title: 'Je dois imprimer des supports',
+        text: 'Cartes de visite, affiches, bâches, textile ou objets publicitaires.',
+        href: '/impression',
+      },
+      {
+        metierId: 'marketplace',
+        title: 'Je veux acheter ou vendre en ligne',
+        text: 'Achetez auprès de plusieurs vendeurs, ou ouvrez votre boutique sur KSP Shop.',
+        href: '/marketplace',
+      },
+      {
+        metierId: 'livraison',
+        title: 'Je fais livrer un colis',
+        text: 'Un livreur enlève votre colis et le remet à son destinataire, avec une preuve de livraison.',
+        href: '/livraison',
+      },
+    ] satisfies ReadonlyArray<Need>,
   },
-  testimonials: {
-    eyebrow: 'Témoignages',
-    title: 'La parole à nos clients',
-    pending: 'Les témoignages de nos clients seront publiés ici, avec leur accord.',
-    items: [] as ReadonlyArray<Testimonial>,
-  },
-  closing: {
-    eyebrow: 'Un projet, une question ?',
-    title: 'Parlons de votre besoin',
-    lead: 'Décrivez-nous votre situation : nous vous orientons vers le bon service.',
-    primaryAction: { label: common.contactUs, href: '/contact' },
+  featured: {
+    eyebrow: 'E-services',
+    title: 'Les services à la une',
+    lead: 'Des démarches à faire en ligne, sans vous déplacer.',
+    all: { label: 'Voir tous nos services', href: '/services' },
   },
 };
 
