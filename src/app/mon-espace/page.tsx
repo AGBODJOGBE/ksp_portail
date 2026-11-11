@@ -3,7 +3,6 @@ import { Container } from '@/components/ui/container';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Eyebrow } from '@/components/ui/eyebrow';
 import { Heading } from '@/components/ui/heading';
-import { HeroBand } from '@/components/ui/hero-band';
 import {
   IconBell,
   IconBriefcase,
@@ -17,7 +16,13 @@ import {
 import { LinkCard } from '@/components/ui/link-card';
 import { navigation } from '@/config/navigation';
 import { InvoiceTodo, billingPaths, billingTexts } from '@/features/billing';
-import { CleaningOngoing, CleaningTodo, cleaningPaths, cleaningTexts, spaceTexts } from '@/features/cleaning';
+import {
+  CleaningTodo,
+  CleaningTrackingSummary,
+  cleaningPaths,
+  cleaningTexts,
+  trackingTexts,
+} from '@/features/cleaning';
 import { NotificationBell, notificationPaths, notificationTexts } from '@/features/notification';
 import { paymentPaths, paymentTexts } from '@/features/payment';
 import { WalletBalanceLink, walletPaths, walletTexts } from '@/features/wallet';
@@ -33,11 +38,10 @@ import { getDictionary } from '@/i18n';
 import { pageMetadata } from '@/lib/seo/metadata';
 
 /**
- * « Mon espace KSP » (direction « Signature ») : coque statique ; la garde reprend la session dans le
- * navigateur (F-005, option A) avant d'afficher l'espace. Bande bleu nuit : salutation, compte actif
- * (particulier ou entreprise) et notifications. Une feuille blanche la chevauche : ce qui attend une
- * action du client, service par service (panneaux chargés à la demande), avec, à côté, ce qui est en
- * cours chez KSP. Puis l'accès aux services.
+ * « Mon espace KSP », tableau de bord du compte (F-020) : coque statique ; la garde reprend la session
+ * dans le navigateur (F-005, option A). Dans l'ordre : le compte (salutation, compte actif, portefeuille,
+ * notifications), « À faire maintenant » (seulement ce qui attend le client), un résumé du suivi vers
+ * « Suivre ma demande » (sans la liste détaillée), les raccourcis des services, puis « Bientôt ».
  */
 
 export const metadata: Metadata = {
@@ -93,33 +97,34 @@ export default function AccountPage() {
   ];
 
   return (
-    <div className="bg-canvas-space">
+    <div className="bg-canvas">
       <RequireSession fallbackClassName="px-gutter max-w-page mx-auto w-full py-10 sm:py-14">
-        <HeroBand as="div" overlap>
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <Eyebrow>{navigation.account.label}</Eyebrow>
-            {/*
-              Solde du portefeuille prépayé (ADR-046) et pastille des notifications non lues (ADR-039),
-              chargés à la demande.
-            */}
-            <div className="flex flex-wrap items-center gap-3">
-              <WalletBalanceLink />
-              <NotificationBell />
+        <Container className="grid gap-8 pt-8 pb-16 sm:gap-10 sm:pt-12 sm:pb-24">
+          {/* 1. Le compte : salutation, compte actif, solde du portefeuille (ADR-046), notifications (ADR-039). */}
+          <section
+            aria-label={navigation.account.label}
+            className="rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-8"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <Eyebrow>{navigation.account.label}</Eyebrow>
+              <div className="flex flex-wrap items-center gap-3">
+                <WalletBalanceLink />
+                <NotificationBell />
+              </div>
             </div>
-          </div>
-          <div className="mt-6 grid gap-8 lg:grid-cols-12 lg:items-center lg:gap-10">
-            <div className="lg:col-span-7">
-              <AccountOverview />
+            <div className="mt-6 grid gap-8 lg:grid-cols-12 lg:items-center lg:gap-10">
+              <div className="lg:col-span-7">
+                <AccountOverview />
+              </div>
+              <ContextSwitcher hint className="lg:col-span-5" />
             </div>
-            <ContextSwitcher hint className="lg:col-span-5" />
-          </div>
-        </HeroBand>
+          </section>
 
-        <Container className="relative -mt-14 pb-16 sm:-mt-16 sm:pb-24">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:items-start lg:gap-8">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
+            {/* 2. Seulement ce qui attend une action du client. */}
             <section
               aria-labelledby="a-faire-titre"
-              className="rounded-panel border-line bg-surface shadow-float border p-5 sm:p-8"
+              className="rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-8"
             >
               <Heading as="h2" size="h2" id="a-faire-titre">
                 {t.account.todoTitle}
@@ -132,42 +137,22 @@ export default function AccountPage() {
               </div>
             </section>
 
-            <div className="grid gap-6">
-              <section
-                aria-labelledby="en-cours-titre"
-                className="rounded-panel border-line bg-surface shadow-card border p-5 sm:p-6"
-              >
-                <Heading as="h2" size="h3" id="en-cours-titre">
-                  {spaceTexts.todo.ongoingTitle}
-                </Heading>
-                <div className="mt-4">
-                  <CleaningOngoing />
-                </div>
-              </section>
-
-              <section
-                aria-labelledby="services-titre"
-                className="rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-6"
-              >
-                <EmptyState
-                  illustration="soon"
-                  title={t.account.soonTitle}
-                  titleAs="h2"
-                  titleId="services-titre"
-                  action={
-                    <span className="text-small text-ink-muted inline-flex items-center gap-2 font-semibold">
-                      <IconClock className="size-4" />
-                      {t.common.comingSoon}
-                    </span>
-                  }
-                >
-                  {t.account.soonText}
-                </EmptyState>
-              </section>
-            </div>
+            {/* 3. Résumé du suivi : le détail vit dans « Suivre ma demande ». */}
+            <section
+              aria-labelledby="suivi-titre"
+              className="rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-6"
+            >
+              <Heading as="h2" size="h3" id="suivi-titre">
+                {trackingTexts.summaryTitle}
+              </Heading>
+              <div className="mt-4">
+                <CleaningTrackingSummary />
+              </div>
+            </section>
           </div>
 
-          <section aria-labelledby="prestations-titre" className="mt-14 sm:mt-16">
+          {/* 4. Raccourcis vers les services de l'espace. */}
+          <section aria-labelledby="prestations-titre">
             <Heading as="h2" size="h2" id="prestations-titre">
               {t.account.servicesTitle}
             </Heading>
@@ -176,6 +161,28 @@ export default function AccountPage() {
                 <LinkCard key={service.href} index={index} {...service} />
               ))}
             </ul>
+          </section>
+
+          {/* 5. Bientôt. */}
+          <section
+            aria-labelledby="bientot-titre"
+            className="rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-6"
+          >
+            <EmptyState
+              compact
+              illustration="soon"
+              title={t.account.soonTitle}
+              titleAs="h2"
+              titleId="bientot-titre"
+              action={
+                <span className="text-small text-ink-muted inline-flex items-center gap-2 font-semibold">
+                  <IconClock className="size-4" />
+                  {t.common.comingSoon}
+                </span>
+              }
+            >
+              {t.account.soonText}
+            </EmptyState>
           </section>
         </Container>
       </RequireSession>

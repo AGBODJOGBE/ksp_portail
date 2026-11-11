@@ -3,4 +3,5 @@ export { HomeHero } from './components/home-hero';
 export { FeaturedServices, KeyFiguresSection, NeedsSection } from './components/home-sections';
 export { InfoBanner } from './components/info-banner';
 export { NewsCarousel } from './components/news-carousel';
+export { NewsIllustration } from './components/news-illustrations';
 export { homeContent, type HomeContent, type KeyFigure } from './content';

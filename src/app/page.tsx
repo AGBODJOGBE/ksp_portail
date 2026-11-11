@@ -9,6 +9,7 @@ import {
   KeyFiguresSection,
   NeedsSection,
   NewsCarousel,
+  NewsIllustration,
 } from '@/features/home';
 import { buildServiceDirectory } from '@/features/services';
 
@@ -41,6 +42,9 @@ export default async function HomePage() {
       <Container size="wide" className="pt-8 sm:pt-12">
         <NewsCarousel
           slides={news.slides}
+          illustrations={news.slides.map((slide) => (
+            <NewsIllustration key={slide.id} name={slide.illustration} />
+          ))}
           labels={{
             label: news.label,
             pause: news.pause,

@@ -41,7 +41,7 @@ describe('en-tête du site', () => {
     services.forEach((link) => expect(link).toHaveAttribute('href', '/services'));
     screen
       .getAllByRole('link', { name: 'Suivre ma demande', hidden: true })
-      .forEach((link) => expect(link).toHaveAttribute('href', '/mon-espace'));
+      .forEach((link) => expect(link).toHaveAttribute('href', '/mon-espace/suivi'));
     // Les six métiers sont les catégories de « Nos services » : plus de menu dédié dans l'en-tête.
     expect(screen.queryByRole('button', { name: /Nos métiers/, hidden: true })).toBeNull();
     expect(container.querySelector('#menu-metiers')).toBeNull();

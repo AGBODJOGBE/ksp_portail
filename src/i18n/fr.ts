@@ -32,7 +32,7 @@ export const fr = {
       'Paiement par Mobile Money',
     ],
     servicesTitle: 'Vos services',
-    todoTitle: 'À faire',
+    todoTitle: 'À faire maintenant',
     todoLead: 'Ce qui attend une action de votre part, le plus urgent d’abord.',
     soonTitle: 'D’autres services arrivent bientôt',
     soonText:

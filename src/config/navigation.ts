@@ -30,7 +30,7 @@ export function contactHref(subject?: ContactSubject): string {
 export const navigation = {
   /** Liens principaux de l'en-tête (v3) : tous les services, puis le suivi des demandes dans Mon espace. */
   services: { label: 'Nos services', href: '/services' } satisfies NavItem,
-  track: { label: 'Suivre ma demande', href: '/mon-espace' } satisfies NavItem,
+  track: { label: 'Suivre ma demande', href: '/mon-espace/suivi' } satisfies NavItem,
   metiers: metiers.map(({ label, href, id, summary }) => ({ id, label, href, summary })),
   group: [
     { label: 'À propos', href: '/a-propos' },

@@ -76,7 +76,7 @@ describe('nouveautés', () => {
   };
 
   it('passe d’une nouveauté à l’autre avec les points de navigation', () => {
-    render(<NewsCarousel slides={slides} labels={labels} />);
+    render(<NewsCarousel slides={slides} labels={labels} illustrations={[]} />);
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(slides[0]!.title);
     fireEvent.click(screen.getByRole('button', { name: 'Nouveauté 2 sur 3' }));
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(slides[1]!.title);
@@ -84,7 +84,7 @@ describe('nouveautés', () => {
   });
 
   it('se met en pause à la demande', () => {
-    render(<NewsCarousel slides={slides} labels={labels} />);
+    render(<NewsCarousel slides={slides} labels={labels} illustrations={[]} />);
     fireEvent.click(screen.getByRole('button', { name: labels.pause }));
     expect(screen.getByRole('button', { name: labels.play })).toBeInTheDocument();
   });
