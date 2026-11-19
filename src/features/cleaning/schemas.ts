@@ -32,6 +32,47 @@ export const recurrenceSchema = z.object({
   durationMonths: z.int(),
 });
 
+/**
+ * `CleaningSchedule` : plan de passages enregistré (ADR-052), tel qu'envoyé. Jours civils `AAAA-MM-JJ`,
+ * heure du Bénin. Les champs d'un autre mode sont vides ; période null en mode `dates`. `weeksOfMonth`
+ * mêle des rangs (1 à 4) et `last`.
+ */
+export const scheduleSchema = z.object({
+  mode: z.string(),
+  dates: z.array(z.string()),
+  startDate: z.nullable(z.string()),
+  endDate: z.nullable(z.string()),
+  weekdays: z.array(z.string()),
+  everyWeeks: z.int(),
+  monthDays: z.array(z.int()),
+  weeksOfMonth: z.array(z.union([z.int(), z.string()])),
+  startTime: z.string(),
+  excludedDates: z.array(z.string()),
+  extraDates: z.array(z.string()),
+});
+
+/** `CleaningScheduleWarning` : jour ramené à la fin du mois, jour exclu, jour ajouté déjà prévu. */
+export const scheduleWarningSchema = z.object({ code: z.string(), date: z.string(), message: z.string() });
+
+/** `CleaningSchedulePreview` (`POST /cleaning/schedules/preview`) : dates exactes d'un plan. */
+export const schedulePreviewSchema = z.object({
+  dates: z.array(z.string()),
+  count: z.int(),
+  firstDate: z.string(),
+  lastDate: z.string(),
+  warnings: z.array(scheduleWarningSchema),
+});
+
+/*
+ * Plan et dates des passages (ADR-052), sur la demande, le devis et la mission. Obligatoires au contrat
+ * actuel, facultatifs ici : absents d'une gateway antérieure. Sans plan : `schedule` null, dates vides,
+ * et `recurrence` sert de repli.
+ */
+const scheduleFields = {
+  schedule: z.optional(z.nullable(scheduleSchema)),
+  scheduledDates: z.optional(z.array(z.string())),
+};
+
 /** `CleaningFormField` : champ du formulaire d'une prestation (`number`, `choice` ou `boolean`). */
 export const formFieldSchema = z.object({
   code: z.string(),
@@ -180,6 +221,8 @@ export const quoteSchema = z.object({
   teamSize: z.int(),
   durationMinutes: z.int(),
   sentAt: z.string(),
+  /** Avec un plan, `proposedSlots` est le premier passage et `interventionCount` le nombre de dates. */
+  ...scheduleFields,
 });
 
 /** `CleaningAnswerSummaryField` : une réponse lisible (« Superficie » : « 120 m² »), sans prix. */
@@ -264,6 +307,7 @@ export const quoteRequestSchema = z.object({
    * antérieure : l'affichage retombe alors sur les libellés du formulaire publié.
    */
   answerSummary: z.optional(z.nullable(answerSummarySchema)),
+  ...scheduleFields,
 });
 
 export const quoteRequestListSchema = z.object({
@@ -316,14 +360,39 @@ export const interventionSchema = z.object({
   agents: z.array(z.object({ agentId: z.string(), displayName: z.string() })),
   checklist: z.array(checklistItemSchema),
   incidentNote: z.nullable(z.string()),
-  /** Références du service file (photos avant et après), pas encore lisibles par le portail. */
+  /** Références du service file (photos avant et après), lues par `GET /cleaning/interventions/{id}/photos`. */
   beforePhotoFileIds: z.array(z.string()),
   afterPhotoFileIds: z.array(z.string()),
   startedAt: z.nullable(z.string()),
   completedAt: z.nullable(z.string()),
   /** Passage annulé : `suspension` (impayés, reprogrammé au déblocage) ou `manual` ; null sinon. */
   cancellationCause: z.nullable(z.string()),
+  /**
+   * Passage annulé pour être replanifié (ADR-053, `cancellationCause: manual`) : la mission a de nouveau
+   * un passage à planifier. Présent (true) seulement dans ce cas.
+   */
+  toReschedule: z.optional(z.boolean()),
+  /** Motif du dernier report, ou de l'annulation pour replanifier (ADR-053). Absent d'une gateway antérieure. */
+  changeReason: z.optional(z.nullable(z.string())),
 });
+
+/**
+ * `CleaningInterventionPhoto` (ADR-053) : photo d'un passage. `downloadUrl` est une adresse de courte
+ * durée (jusqu'à `downloadExpiresAt`) : jamais gardée ni journalisée, redemandée à chaque ouverture.
+ */
+export const interventionPhotoSchema = z.object({
+  fileId: z.string(),
+  /** `before` ou `after`. */
+  kind: z.string(),
+  fileName: z.string(),
+  contentType: z.string(),
+  sizeBytes: z.int(),
+  uploadedAt: z.string(),
+  downloadUrl: z.nullable(z.string()),
+  downloadExpiresAt: z.nullable(z.string()),
+});
+
+export const interventionPhotoListSchema = z.object({ data: z.array(interventionPhotoSchema) });
 
 export const paymentPlanSchema = z.object({ option: z.string(), timing: z.string(), method: z.string() });
 
@@ -408,6 +477,8 @@ export const missionSchema = z.object({
   suspension: z.nullable(suspensionSchema),
   createdAt: z.string(),
   updatedAt: z.string(),
+  /** Plan du devis accepté : `plannedInterventions` = nombre de dates ; passages planifiés un à un. */
+  ...scheduleFields,
 });
 
 export const missionListSchema = z.object({
@@ -415,12 +486,19 @@ export const missionListSchema = z.object({
   nextCursor: z.nullable(z.string()),
 });
 
+/** `OrganizationMembership` d'identity, réduit au rôle : un `org_viewer` n'agit pas au nom de l'entreprise. */
+export const membershipRoleSchema = z.object({ role: z.string() });
+
 export const acceptResponseSchema = z.object({ request: quoteRequestSchema, mission: missionSchema });
 
 export type Money = z.infer<typeof moneySchema>;
 export type TimeSlot = z.infer<typeof timeSlotSchema>;
 export type PriceLine = z.infer<typeof priceLineSchema>;
 export type Recurrence = z.infer<typeof recurrenceSchema>;
+export type Schedule = z.infer<typeof scheduleSchema>;
+export type ScheduleWarning = z.infer<typeof scheduleWarningSchema>;
+export type SchedulePreview = z.infer<typeof schedulePreviewSchema>;
+export type InterventionPhoto = z.infer<typeof interventionPhotoSchema>;
 export type ServiceOffer = z.infer<typeof serviceOfferSchema>;
 export type ServedZone = z.infer<typeof servedZoneSchema>;
 export type Quote = z.infer<typeof quoteSchema>;

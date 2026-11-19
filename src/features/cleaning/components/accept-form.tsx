@@ -127,6 +127,7 @@ export function AcceptForm({
           : `${label} (${formatXof(quote.total)})`,
     }));
   const chosen = quote.proposedSlots.find((proposed) => proposed.start === slot);
+  const withPlan = !!quote.schedule && !!quote.scheduledDates?.length;
   const firstPayment = plan.option === 'deposit' ? quote.depositAmount : quote.total;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -149,7 +150,13 @@ export function AcceptForm({
       onAccepted(response);
     } catch (caught) {
       const view = describeCleaningError(caught);
-      if (view.kind === 'expired' || view.kind === 'stale' || view.kind === 'notFound') onFailure(view);
+      if (
+        view.kind === 'expired' ||
+        view.kind === 'stale' ||
+        view.kind === 'notFound' ||
+        view.kind === 'forbidden'
+      )
+        onFailure(view);
       else if (view.kind === 'slots' || (view.kind === 'field' && view.field === 'slotStart')) {
         setSlotError(view.message);
         slotsRef.current?.querySelector('input')?.focus();
@@ -183,7 +190,8 @@ export function AcceptForm({
         aria-describedby={slotError ? `${id}-creneau-erreur` : undefined}
         className="grid gap-2"
       >
-        <StepLegend index={1}>{t.chooseSlot}</StepLegend>
+        <StepLegend index={1}>{withPlan ? t.firstPassage : t.chooseSlot}</StepLegend>
+        {withPlan ? <p className="text-small text-ink-muted -mt-1">{t.firstPassageHint}</p> : null}
         {quote.proposedSlots.map((proposed) => (
           <label key={proposed.start} className={OPTION}>
             <input
@@ -257,6 +265,10 @@ export function AcceptForm({
           </p>
         )}
       </div>
+      {/* Paiement « avant » (ADR-049 §6) : le passage ne démarre pas tant que ce montant n'est pas payé. */}
+      {!business && plan.timing === 'before' ? (
+        <FormMessage tone="info">{t.upfrontNotice(formatXof(firstPayment))}</FormMessage>
+      ) : null}
 
       <FormMessage>{error}</FormMessage>
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">

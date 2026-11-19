@@ -50,6 +50,8 @@ export const spaceTexts = {
     businessPayment:
       'Pour une entreprise, les prestations se règlent par facture mensuelle, dans « Mes factures » : aucun choix de paiement n’est demandé.',
     submit: 'Confirmer et réserver',
+    upfrontNotice:
+      'Paiement avant la prestation : aucun passage ne commence tant que l’acompte (ou la totalité) de chaque prestation n’est pas payé. Les montants sont affichés sur chaque mission après la réservation.',
     sending: 'Réservation…',
     cancel: 'Annuler',
   },

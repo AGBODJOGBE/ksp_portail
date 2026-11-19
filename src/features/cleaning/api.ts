@@ -11,7 +11,10 @@ import {
   estimateSchema,
   type GroupOutcome,
   groupOutcomeSchema,
+  type InterventionPhoto,
+  interventionPhotoListSchema,
   type LocationResolution,
+  membershipRoleSchema,
   locationResolutionSchema,
   type PlaceCatalog,
   placeCatalogSchema,
@@ -21,6 +24,8 @@ import {
   quoteRequestSchema,
   type RequestGroup,
   requestGroupSchema,
+  type SchedulePreview,
+  schedulePreviewSchema,
   type ServedZone,
   servedZoneListSchema,
   type ServiceOffer,
@@ -81,6 +86,37 @@ export interface QuoteGroupInput {
   preferredSlots: TimeSlot[];
   comment?: string;
 }
+
+/** `CleaningWeekday`. */
+export type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+
+/**
+ * `CleaningScheduleInput` (ADR-052) : plan de passages envoyé à l'aperçu, à la simulation et à la demande
+ * de devis. Seuls les champs du mode choisi sont envoyés (un champ d'un autre mode est refusé).
+ */
+export type ScheduleInput =
+  | { mode: 'dates'; dates: string[]; startTime: string; excludedDates?: string[]; extraDates?: string[] }
+  | {
+      mode: 'weekly';
+      startDate: string;
+      endDate: string;
+      weekdays: Weekday[];
+      everyWeeks?: number;
+      startTime: string;
+      excludedDates?: string[];
+      extraDates?: string[];
+    }
+  | {
+      mode: 'monthly';
+      startDate: string;
+      endDate: string;
+      monthDays?: number[];
+      weekdays?: Weekday[];
+      weeksOfMonth?: Array<number | 'last'>;
+      startTime: string;
+      excludedDates?: string[];
+      extraDates?: string[];
+    };
 
 /** `AcceptCleaningQuoteRequest` : `paymentPlan` obligatoire pour un particulier, absent pour une entreprise. */
 export interface AcceptInput {
@@ -147,6 +183,17 @@ export async function estimatePlace(input: EstimateInput, signal?: AbortSignal):
   return parseResponse(
     estimateSchema,
     await api.post(`${CLEANING_API}/estimates`, input, { auth: false, signal }),
+  );
+}
+
+/**
+ * Dates exactes d'un plan de passages (`POST /cleaning/schedules/preview`, public, rien n'est enregistré) :
+ * calendrier affiché avant la demande de devis. `signal` annule un aperçu dépassé.
+ */
+export async function previewSchedule(input: ScheduleInput, signal?: AbortSignal): Promise<SchedulePreview> {
+  return parseResponse(
+    schedulePreviewSchema,
+    await api.post(`${CLEANING_API}/schedules/preview`, input, { auth: false, signal }),
   );
 }
 
@@ -261,6 +308,26 @@ export async function payMission(
     missionSchema,
     await api.post(`${MISSIONS}/${encodeURIComponent(id)}/pay`, { part }, { idempotencyKey }),
   );
+}
+
+/**
+ * Photos avant et après d'un passage d'une de mes missions (ADR-053). Les adresses de lecture sont de
+ * courte durée : jamais gardées, redemandées à chaque ouverture de la galerie.
+ */
+export async function listInterventionPhotos(id: string): Promise<InterventionPhoto[]> {
+  return parseResponse(
+    interventionPhotoListSchema,
+    await api.get(`${CLEANING_API}/interventions/${encodeURIComponent(id)}/photos`),
+  ).data;
+}
+
+/**
+ * Rôle du membre dans l'organisation active (`GET /identity/organizations/{id}`, rôle seul), comme le
+ * portefeuille : lu ici plutôt que par l'index d'identity, dont l'import ferait télécharger ses écrans.
+ */
+export async function getOrganizationRole(organizationId: string): Promise<string> {
+  const path = `/api/v1/identity/organizations/${encodeURIComponent(organizationId)}`;
+  return parseResponse(membershipRoleSchema, await api.get(path)).role;
 }
 
 export async function cancelMission(id: string, reason: string): Promise<Mission> {

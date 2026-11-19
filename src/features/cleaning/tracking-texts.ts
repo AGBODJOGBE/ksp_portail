@@ -31,6 +31,7 @@ export const trackingTexts = {
   nextStep: 'Prochaine étape',
   payNext: 'Un paiement est attendu : réglez-le depuis la mission.',
   details: 'Voir le détail',
+  newRequest: 'Faire une nouvelle demande',
   agendaTitle: 'Vos prochains rendez-vous',
   visitTitle: 'Visite des lieux',
   passageTitle: 'Passage',

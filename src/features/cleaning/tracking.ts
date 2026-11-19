@@ -44,6 +44,8 @@ export interface TrackItem {
   next: string | null;
   actor: Actor | null;
   href: string;
+  /** Action de repli d'une carte close (devis expiré : « Faire une nouvelle demande »). */
+  link?: { href: string; label: string };
 }
 
 /** Huit étapes du cycle de vie → cinq étapes du suivi : demande, visite, devis, réservation, passages. */
@@ -65,7 +67,18 @@ function quoteWaiting(request: QuoteRequest): boolean {
   return request.status === 'quote_sent' && !!request.quote && !isPast(request.quote.validUntil);
 }
 
-function requestItem(requests: ReadonlyArray<QuoteRequest>, name: (code: string) => string): TrackItem {
+/**
+ * Devis dont la validité est passée : la gateway enregistre l'état `expired` (ADR-053, tâche toutes les
+ * 10 minutes) ; en attendant, un devis envoyé dont la date de validité est passée s'affiche déjà expiré,
+ * comme sur le détail de la demande.
+ */
+function shownStatus(request: QuoteRequest): QuoteRequest {
+  const lapsed = request.status === 'quote_sent' && !!request.quote && isPast(request.quote.validUntil);
+  return lapsed ? { ...request, status: 'expired' } : request;
+}
+
+function requestItem(source: ReadonlyArray<QuoteRequest>, name: (code: string) => string): TrackItem {
+  const requests = source.map(shownStatus);
   const first = requests[0]!;
   const grouped = requests.length > 1 && !!first.groupId;
   const open = requests.filter((request) => !STOPPED_REQUESTS.has(request.status));
@@ -93,6 +106,10 @@ function requestItem(requests: ReadonlyArray<QuoteRequest>, name: (code: string)
     next: status.hint ?? null,
     actor: status.actor ?? null,
     href: grouped ? cleaningPaths.group(first.groupId!) : cleaningPaths.request(first.id),
+    link:
+      state === 'cancelled' && requests.some((request) => request.status === 'expired')
+        ? { href: cleaningPaths.journey, label: t.newRequest }
+        : undefined,
   };
 }
 

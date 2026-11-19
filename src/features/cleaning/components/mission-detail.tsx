@@ -33,7 +33,6 @@ import {
   planMethods,
   paymentStatuses,
   paymentTimings,
-  recurrenceLabel,
   statusOf,
   suspendedStatus,
 } from '@/features/cleaning/texts';
@@ -42,8 +41,12 @@ import { LIFECYCLE, missionStage } from '@/features/cleaning/lifecycle';
 import { paymentDue, paymentExpected } from '@/features/cleaning/payment-due';
 import { spaceTexts } from '@/features/cleaning/space-texts';
 import { StepTimeline } from '@/components/ui/step-timeline';
+import { planLabel } from '@/features/cleaning/schedule';
 import { DetailHeader, Facts, LoadError, Loading, NextStep, Panel } from './detail-parts';
+import { InterventionPhotos } from './intervention-photos';
 import { ReasonAction } from './reason-action';
+import { SchedulePlan } from './schedule-plan';
+import { useReadOnly } from './use-read-only';
 
 const t = cleaningTexts.missionDetail;
 const j = cleaningTexts.journey;
@@ -101,6 +104,19 @@ function onlinePayment(mission: Mission) {
   return { part: due.part, label, amount: due.amount };
 }
 
+/**
+ * Paiement « avant » encore dû (ADR-049 §6) : aucun passage ne démarre tant que l'acompte (ou la totalité)
+ * n'est pas payé. Montant lu sur la mission (`depositDue`, `remainingDue`), jamais calculé ; null s'il
+ * n'est pas connu. `undefined` : rien n'empêche le démarrage.
+ */
+function upfrontDue(mission: Mission): { amount: string | null } | undefined {
+  if (mission.payment.plan.timing !== 'before' || TERMINAL.has(mission.status)) return undefined;
+  const due = paymentDue(mission);
+  if (!due) return undefined;
+  if (mission.payment.plan.option === 'deposit' && due.part !== 'deposit') return undefined;
+  return { amount: due.amount ? formatXof(due.amount) : null };
+}
+
 function PaymentView({
   mission,
   kind,
@@ -130,6 +146,7 @@ function PaymentView({
   const status = statusOf(paymentStatuses, payment.status);
   const { plan } = payment;
   const online = onlinePayment(mission);
+  const upfront = upfrontDue(mission);
   return (
     <div className="grid gap-4">
       <div>
@@ -137,7 +154,8 @@ function PaymentView({
           {status.label}
         </Badge>
       </div>
-      <dl className="rounded-control bg-surface-muted grid grid-cols-2 gap-3 p-4">
+      {/* Deux colonnes seulement si la place suffit : un grand montant ne chevauche pas l'autre. */}
+      <dl className="rounded-control bg-surface-muted grid grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))] gap-3 p-4">
         <div>
           <dt className="text-small text-ink-muted">{t.total}</dt>
           <dd className="font-display text-ink text-lg font-semibold tabular-nums sm:text-xl">
@@ -168,6 +186,7 @@ function PaymentView({
           ],
         ]}
       />
+      {upfront ? <FormMessage tone="info">{t.upfront(upfront.amount)}</FormMessage> : null}
       <FormMessage tone="success">{notice}</FormMessage>
       {online ? (
         <WalletPay
@@ -208,13 +227,19 @@ const MARKERS: Record<string, string> = {
   on_hold: 'bg-warning-soft text-warning border-warning',
   cancelled: 'bg-surface-sunken text-ink-subtle border-line-strong',
   planned: 'bg-surface text-ink-muted border-line-control',
+  toReschedule: 'bg-accent-soft text-ink border-accent-strong border-dashed',
 };
 
 function InterventionItem({ intervention, index }: { intervention: Intervention; index: number }) {
   const bySuspension = intervention.status === 'cancelled' && intervention.cancellationCause === 'suspension';
-  const status: StatusLabel = bySuspension
-    ? { label: t.cancelledBySuspension, tone: 'warning' }
-    : statusOf(interventionStatuses, intervention.status);
+  // Annulé pour être replanifié (ADR-053) : pas un passage perdu, la mission en a de nouveau un à planifier.
+  const toReschedule = intervention.status === 'cancelled' && intervention.toReschedule === true;
+  const status: StatusLabel = toReschedule
+    ? { label: t.toReschedule, tone: 'warning' }
+    : bySuspension
+      ? { label: t.cancelledBySuspension, tone: 'warning' }
+      : statusOf(interventionStatuses, intervention.status);
+  const photoCount = intervention.beforePhotoFileIds.length + intervention.afterPhotoFileIds.length;
   const details = [
     formatDuration(intervention.durationMinutes),
     intervention.agents.length
@@ -239,7 +264,7 @@ function InterventionItem({ intervention, index }: { intervention: Intervention;
         aria-hidden="true"
         className={cn(
           'relative grid size-8 place-items-center rounded-full border text-xs font-semibold tabular-nums',
-          MARKERS[intervention.status] ?? MARKERS.planned,
+          (toReschedule ? MARKERS.toReschedule : MARKERS[intervention.status]) ?? MARKERS.planned,
         )}
       >
         {intervention.status === 'completed' ? <IconCheck className="size-4" /> : index + 1}
@@ -254,6 +279,12 @@ function InterventionItem({ intervention, index }: { intervention: Intervention;
           </Badge>
         </div>
         <p className="text-small text-ink-muted">{details.join(' · ')}</p>
+        {toReschedule ? <p className="text-small text-ink">{t.toRescheduleHint}</p> : null}
+        {intervention.changeReason ? (
+          <p className="text-small text-ink">
+            {toReschedule ? t.rescheduledReason : t.changeReason} : {intervention.changeReason}
+          </p>
+        ) : null}
         {intervention.incidentNote ? (
           <p className="text-small text-warning">
             {t.incident} : {intervention.incidentNote}
@@ -283,10 +314,12 @@ function InterventionItem({ intervention, index }: { intervention: Intervention;
             </ul>
           </details>
         ) : null}
-        {intervention.beforePhotoFileIds.length + intervention.afterPhotoFileIds.length ? (
-          <p className="text-small text-ink-muted">
-            {t.photos(intervention.beforePhotoFileIds.length, intervention.afterPhotoFileIds.length)}
-          </p>
+        {photoCount ? (
+          <InterventionPhotos
+            interventionId={intervention.id}
+            count={photoCount}
+            date={formatShortDate(intervention.scheduledStart)}
+          />
         ) : null}
       </div>
     </li>
@@ -308,6 +341,7 @@ export function MissionDetail({ id }: { id: string }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [paid, setPaid] = useState<string | null>(null);
+  const readOnly = useReadOnly();
 
   if (state.status === 'loading') return <Loading />;
   if (state.status === 'error') {
@@ -318,11 +352,17 @@ export function MissionDetail({ id }: { id: string }) {
   const mission = state.data;
   const kind: Kind = mission.customerKind === 'business' ? 'business' : 'individual';
   const causes = mission.suspension ? suspensionCauses(mission.suspension) : [];
+  /**
+   * Mission récurrente déjà commencée (ADR-049 §7) : l'annulation arrête la suite ; les passages faits
+   * restent dus et le trop-payé est crédité au portefeuille (montants calculés par cleaning).
+   */
+  const started =
+    mission.completedInterventions > 0 && (mission.plannedInterventions > 1 || mission.recurrence !== null);
   async function cancel(reason: string): Promise<string | null> {
     try {
       set(await cancelMission(mission.id, reason));
       setNotice(null);
-      setDone(j.missionCancelled);
+      setDone(started ? (kind === 'business' ? t.stoppedBusiness : t.stopped) : j.missionCancelled);
       return null;
     } catch (caught) {
       const view = describeCleaningError(caught);
@@ -344,14 +384,17 @@ export function MissionDetail({ id }: { id: string }) {
     : statusOf(missionStatuses, mission.status);
   const next = nextPlanned(mission);
   const stage = missionStage(mission);
-  const payNow = paymentExpected(mission) ? onlinePayment(mission) : null;
-  const nextText = mission.suspension
+  const payNow = paymentExpected(mission) && !readOnly ? onlinePayment(mission) : null;
+  const upfront = kind === 'individual' && !mission.suspension ? upfrontDue(mission) : undefined;
+  const nextBase = mission.suspension
     ? t.suspended(mission.suspension, formatShortDate(mission.suspension.since))
     : mission.status === 'on_hold'
       ? t.onHold
       : next && !TERMINAL.has(mission.status)
         ? `${status.hint ?? ''} ${j.nextVisit(formatDateTime(next.scheduledStart))}`.trim()
         : (status.hint ?? status.label);
+  const nextText = upfront ? `${nextBase} ${t.upfront(upfront.amount)}` : nextBase;
+  const plan = mission.schedule && mission.scheduledDates?.length ? mission.schedule : null;
 
   return (
     <div className="grid gap-8">
@@ -383,7 +426,8 @@ export function MissionDetail({ id }: { id: string }) {
       {mission.suspension ? <FormMessage>{nextText}</FormMessage> : null}
 
       <NextStep
-        actor={TERMINAL.has(mission.status) ? undefined : status.actor}
+        // Paiement « avant » attendu : c'est au client d'agir pour que les passages commencent.
+        actor={TERMINAL.has(mission.status) ? undefined : upfront && payNow ? 'client' : status.actor}
         text={
           mission.suspension ? (status.actor === 'client' ? j.suspendedAction : j.suspendedByKsp) : nextText
         }
@@ -400,26 +444,42 @@ export function MissionDetail({ id }: { id: string }) {
       </NextStep>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
-        <Panel id="passages-titre" title={t.interventionsTitle}>
-          {mission.interventions.length ? (
-            <ol className="grid">
-              {mission.interventions.map((intervention, index) => (
-                <InterventionItem key={intervention.id} intervention={intervention} index={index} />
-              ))}
-            </ol>
-          ) : (
-            <p className="text-ink-muted">{t.noInterventions}</p>
-          )}
-        </Panel>
+        <div className="grid gap-8">
+          {plan ? (
+            <Panel id="plan-titre" title={cleaningTexts.schedule.title}>
+              <SchedulePlan
+                schedule={plan}
+                dates={mission.scheduledDates ?? []}
+                lead={cleaningTexts.schedule.missionLead}
+                mission={{
+                  interventions: mission.interventions,
+                  completed: mission.completedInterventions,
+                  planned: mission.plannedInterventions,
+                }}
+              />
+            </Panel>
+          ) : null}
+          <Panel id="passages-titre" title={t.interventionsTitle}>
+            {mission.interventions.length ? (
+              <ol className="grid">
+                {mission.interventions.map((intervention, index) => (
+                  <InterventionItem key={intervention.id} intervention={intervention} index={index} />
+                ))}
+              </ol>
+            ) : (
+              <p className="text-ink-muted">{t.noInterventions}</p>
+            )}
+          </Panel>
+        </div>
 
         <aside className="grid gap-8">
           <Panel id="mission-titre" title={t.bookingTitle}>
             <Facts
               stacked
               rows={[
-                [t.slot, formatSlot(mission.chosenSlot)],
+                [mission.schedule ? t.firstPassage : t.slot, formatSlot(mission.chosenSlot)],
                 [t.address, `${mission.address}, ${mission.commune}`],
-                [t.recurrence, recurrenceLabel(mission.recurrence)],
+                [t.recurrence, planLabel(mission)],
                 [
                   cleaningTexts.requestDetail.daysPerWeek,
                   mission.daysPerWeek ? t.daysPerWeek(mission.daysPerWeek) : null,
@@ -453,16 +513,26 @@ export function MissionDetail({ id }: { id: string }) {
           </div>
 
           {CANCELLABLE.has(mission.status) ? (
-            <div className="grid justify-items-start">
-              <ReasonAction
-                label={t.cancel}
-                title={t.cancelTitle}
-                hint={t.cancelHint}
-                confirmLabel={t.confirmCancel}
-                tone="danger"
-                onConfirm={cancel}
-              />
-            </div>
+            readOnly ? (
+              <FormMessage tone="info">{t.readOnly}</FormMessage>
+            ) : (
+              <div className="grid justify-items-start">
+                <ReasonAction
+                  label={started ? t.stop : t.cancel}
+                  title={started ? t.stopTitle : t.cancelTitle}
+                  hint={
+                    started
+                      ? kind === 'business'
+                        ? t.stopHintBusiness(mission.completedInterventions)
+                        : t.stopHint(mission.completedInterventions)
+                      : t.cancelHint
+                  }
+                  confirmLabel={started ? t.confirmStop : t.confirmCancel}
+                  tone="danger"
+                  onConfirm={cancel}
+                />
+              </div>
+            )
           ) : null}
         </aside>
       </div>

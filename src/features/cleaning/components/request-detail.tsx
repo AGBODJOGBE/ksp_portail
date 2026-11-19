@@ -20,19 +20,16 @@ import {
 import { useResource } from '@/lib/use-resource';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import type { Quote, QuoteRequest } from '@/features/cleaning/schemas';
-import {
-  cleaningTexts,
-  recurrenceLabel,
-  requestStatuses,
-  statusOf,
-  visitStatuses,
-} from '@/features/cleaning/texts';
+import { cleaningTexts, requestStatuses, statusOf, visitStatuses } from '@/features/cleaning/texts';
+import { planLabel } from '@/features/cleaning/schedule';
 import { serviceName, useServices } from '@/features/cleaning/use-services';
 import { needLines } from '@/features/cleaning/answers-text';
 import { LIFECYCLE, requestStage } from '@/features/cleaning/lifecycle';
 import { spaceTexts } from '@/features/cleaning/space-texts';
 import { DetailHeader, Facts, InlineLoading, LoadError, Loading, NextStep, Panel } from './detail-parts';
 import { ReasonAction } from './reason-action';
+import { SchedulePlan } from './schedule-plan';
+import { useReadOnly } from './use-read-only';
 
 // Le formulaire d'acceptation n'est téléchargé que si le client choisit d'accepter.
 const AcceptForm = lazy(() => import('./accept-form').then((module_) => ({ default: module_.AcceptForm })));
@@ -78,6 +75,8 @@ function QuoteSummary({ quote, expired, business }: { quote: Quote; expired: boo
 }
 
 function QuoteView({ quote, expired, business }: { quote: Quote; expired: boolean; business: boolean }) {
+  // Avec un plan (ADR-052), le créneau proposé est le premier passage et le calendrier donne les autres.
+  const plan = quote.schedule && quote.scheduledDates?.length ? quote.schedule : null;
   return (
     <div className="grid gap-5">
       <QuoteSummary quote={quote} expired={expired} business={business} />
@@ -130,10 +129,10 @@ function QuoteView({ quote, expired, business }: { quote: Quote; expired: boolea
       </div>
       <Facts
         rows={[
-          [t.recurrence, recurrenceLabel(quote.recurrence)],
+          [t.recurrence, plan ? null : planLabel(quote)],
           [t.teamLabel, t.team(quote.teamSize, formatDuration(quote.durationMinutes))],
           [
-            t.proposedSlots,
+            plan ? t.firstPassage : t.proposedSlots,
             <ul key="slots" className="grid gap-1">
               {quote.proposedSlots.map((slot) => (
                 <li key={slot.start}>{formatSlot(slot)}</li>
@@ -142,6 +141,21 @@ function QuoteView({ quote, expired, business }: { quote: Quote; expired: boolea
           ],
         ]}
       />
+      {plan ? (
+        <>
+          <p className="text-small text-ink-muted -mt-2">{t.firstPassageHint}</p>
+          <section aria-labelledby="devis-plan" className="border-line grid gap-4 border-t pt-5">
+            <h3 id="devis-plan" className="font-display text-ink text-lg font-semibold">
+              {cleaningTexts.schedule.title}
+            </h3>
+            <SchedulePlan
+              schedule={plan}
+              dates={quote.scheduledDates ?? []}
+              lead={cleaningTexts.schedule.quoteLead}
+            />
+          </section>
+        </>
+      ) : null}
       {business ? <p className="text-small text-ink-muted">{t.businessPayment}</p> : null}
       {expired ? <FormMessage tone="info">{t.expired}</FormMessage> : null}
     </div>
@@ -198,6 +212,7 @@ export function RequestDetail({ id }: { id: string }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [accepting, setAccepting] = useState(false);
+  const readOnly = useReadOnly();
 
   /** Erreur d'une action : la demande est relue pour montrer son état réel. */
   const afterFailure = useCallback(
@@ -220,7 +235,7 @@ export function RequestDetail({ id }: { id: string }) {
         return null;
       } catch (caught) {
         const view = describeCleaningError(caught);
-        if (view.kind === 'stale' || view.kind === 'expired') {
+        if (view.kind === 'stale' || view.kind === 'expired' || view.kind === 'forbidden') {
           afterFailure(view);
           return null;
         }
@@ -239,7 +254,10 @@ export function RequestDetail({ id }: { id: string }) {
   const business = request.customerKind === 'business';
   const expired =
     request.status === 'expired' || (!!quote && request.status === 'quote_sent' && isPast(quote.validUntil));
-  const canAnswer = request.status === 'quote_sent' && !!quote && !expired;
+  const canAnswer = request.status === 'quote_sent' && !!quote && !expired && !readOnly;
+  // Plan de la demande : affiché tant qu'aucun devis n'en donne un (le devis peut l'ajuster).
+  const requestPlan =
+    request.schedule && request.scheduledDates?.length && !quote?.schedule ? request.schedule : null;
   const form = services.find((service) => service.code === request.serviceCode)?.form;
   const need = needLines(form, request);
   const status = statusOf(requestStatuses, request.status);
@@ -348,6 +366,16 @@ export function RequestDetail({ id }: { id: string }) {
             </Panel>
           </div>
 
+          {requestPlan ? (
+            <Panel id="plan-titre" title={cleaningTexts.schedule.title}>
+              <SchedulePlan
+                schedule={requestPlan}
+                dates={request.scheduledDates ?? []}
+                lead={cleaningTexts.schedule.requestLead}
+              />
+            </Panel>
+          ) : null}
+
           {quote ? (
             <Panel id="visite-titre" title={t.visitTitle}>
               <VisitView visit={request.visit} />
@@ -391,7 +419,7 @@ export function RequestDetail({ id }: { id: string }) {
                 ],
                 [t.frequency, need.frequency],
                 [t.address, `${request.address}, ${request.commune}`],
-                [t.recurrence, recurrenceLabel(request.recurrence)],
+                [t.recurrence, planLabel(request)],
                 [
                   t.daysPerWeek,
                   request.daysPerWeek ? cleaningTexts.missionDetail.daysPerWeek(request.daysPerWeek) : null,
@@ -406,11 +434,13 @@ export function RequestDetail({ id }: { id: string }) {
                 ],
                 [
                   t.preferredSlots,
-                  <ul key="slots" className="grid gap-1">
-                    {request.preferredSlots.map((slot) => (
-                      <li key={slot.start}>{formatSlot(slot)}</li>
-                    ))}
-                  </ul>,
+                  request.preferredSlots.length ? (
+                    <ul key="slots" className="grid gap-1">
+                      {request.preferredSlots.map((slot) => (
+                        <li key={slot.start}>{formatSlot(slot)}</li>
+                      ))}
+                    </ul>
+                  ) : null,
                 ],
                 [t.comment, request.comment],
                 [t.closingReason, request.closingReason],
@@ -418,7 +448,10 @@ export function RequestDetail({ id }: { id: string }) {
             />
           </Panel>
 
-          {OPEN.has(request.status) ? (
+          {readOnly && (OPEN.has(request.status) || request.status === 'quote_sent') ? (
+            <FormMessage tone="info">{cleaningTexts.missionDetail.readOnly}</FormMessage>
+          ) : null}
+          {OPEN.has(request.status) && !readOnly ? (
             <div className="grid justify-items-start gap-2">
               <ReasonAction
                 label={t.cancelRequest}

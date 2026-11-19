@@ -166,6 +166,10 @@ export const cleaningTexts = {
     declineHint: 'Le devis ne sera plus valable. Votre motif aide notre équipe à mieux vous proposer.',
     cancelHint: 'La demande est close : pour un autre besoin, faites une nouvelle demande.',
     proposedSlots: 'Créneaux proposés',
+    firstPassage: 'Premier passage',
+    firstPassageHint:
+      'Le créneau proposé est votre premier passage ; les suivants suivent le plan des passages du devis.',
+    plan: 'Passages',
     closingReason: 'Motif',
     seeMission: 'Voir la mission',
     accept: 'Accepter le devis',
@@ -181,6 +185,8 @@ export const cleaningTexts = {
     paymentTiming: 'Moment',
     paymentMethod: 'Moyen',
     confirmAccept: 'Confirmer et réserver',
+    upfrontNotice: (amount: string) =>
+      `Paiement avant la prestation : aucun passage ne commence tant que ${amount} n’est pas payé. Les passages peuvent être planifiés avant ce règlement.`,
     slotRequired: 'Choisissez un créneau.',
     decline: 'Refuser le devis',
     declineTitle: 'Refuser le devis',
@@ -190,10 +196,43 @@ export const cleaningTexts = {
     confirmCancel: 'Confirmer l’annulation',
     conflict: 'La demande vient d’être modifiée. Voici sa dernière version : vérifiez-la avant de continuer.',
   },
+  schedule: {
+    title: 'Plan des passages',
+    summary: 'Passages',
+    calendar: 'Calendrier des passages',
+    previousMonth: 'Mois précédent',
+    nextMonth: 'Mois suivant',
+    monthCount: (count: number) =>
+      count > 1
+        ? `${count} passages ce mois-ci`
+        : count === 1
+          ? '1 passage ce mois-ci'
+          : 'Aucun passage ce mois-ci',
+    first: 'Première date',
+    last: 'Dernière date',
+    time: 'Heure de début',
+    excluded: (count: number) =>
+      count > 1 ? `${count} jours retirés (fériés, absences)` : '1 jour retiré (férié, absence)',
+    extra: (count: number) => (count > 1 ? `${count} jours ajoutés` : '1 jour ajouté'),
+    planDay: 'passage prévu',
+    planLegend: 'Passage prévu',
+    requestLead:
+      'Les dates de votre demande. Le devis peut les ajuster après la visite des lieux : ce sont alors les siennes qui comptent.',
+    quoteLead: 'Les dates exactes de ce devis : le prix compte un passage par date.',
+    missionLead:
+      'Notre équipe planifie les passages au fil du plan et y affecte les agents : chaque date planifiée apparaît dans « Passages ».',
+    done: 'Fait',
+    planned: 'Planifié',
+    toPlan: 'À planifier',
+    missed: 'Sans passage',
+    progress: (done: number, planned: number) => `${done} sur ${planned}`,
+    progressLabel: 'Passages faits',
+  },
   missionDetail: {
     title: 'Mission de nettoyage',
     bookingTitle: 'Réservation',
     slot: 'Créneau réservé',
+    firstPassage: 'Premier passage',
     address: 'Adresse',
     recurrence: 'Régularité',
     progress: (done: number, planned: number) =>
@@ -210,8 +249,27 @@ export const cleaningTexts = {
     agents: 'Équipe',
     incident: 'Incident',
     checklist: (done: number, total: number) => `Liste de contrôle : ${done} sur ${total}`,
-    photos: (before: number, after: number) =>
-      `Photos enregistrées : ${before} avant, ${after} après (consultation bientôt disponible).`,
+    photosShow: (count: number) => `Voir les photos avant et après (${count})`,
+    photosHide: 'Masquer les photos',
+    photosTitle: 'Photos du passage',
+    photosLoading: 'Chargement des photos…',
+    photosEmpty: 'Aucune photo pour ce passage.',
+    photosError: 'Les photos n’ont pas pu être chargées.',
+    photoBefore: 'Avant',
+    photoAfter: 'Après',
+    photoAlt: (kind: string, date: string) =>
+      `Photo ${kind === 'after' ? 'après' : 'avant'} le passage du ${date}`,
+    photoUnavailable: 'Photo indisponible pour le moment',
+    photoOpen: 'Ouvrir en grand',
+    toReschedule: 'À replanifier',
+    toRescheduleHint:
+      'Ce passage est annulé pour être replanifié : notre équipe fixe une nouvelle date, sans changement sur le prix.',
+    changeReason: 'Motif du report',
+    rescheduledReason: 'Motif',
+    upfront: (amount: string | null) =>
+      amount
+        ? `Paiement avant la prestation : aucun passage ne commence tant que ${amount} n’est pas payé.`
+        : 'Paiement avant la prestation : aucun passage ne commence tant que le montant dû avant n’est pas payé.',
     cancelledBySuspension: 'Annulé pendant la suspension du service',
     completedOn: (date: string) => `terminé le ${date}`,
     startedOn: (date: string) => `commencé le ${date}`,
@@ -230,7 +288,21 @@ export const cleaningTexts = {
     cancellationReason: 'Motif de l’annulation',
     cancel: 'Annuler la mission',
     cancelTitle: 'Annuler la mission',
-    cancelHint: 'Sans frais jusqu’à 24 heures avant le premier passage ; au-delà, contactez le support.',
+    cancelHint:
+      'Sans frais tant qu’aucun passage n’est planifié. Dès qu’un passage est planifié, l’annulation reste sans frais jusqu’à 24 heures avant ce premier passage ; au-delà, contactez le support.',
+    stopTitle: 'Arrêter la suite de la mission',
+    stop: 'Arrêter la suite',
+    stopHint: (done: number) =>
+      `${done > 1 ? `Les ${done} passages déjà faits restent dus` : 'Le passage déjà fait reste dû'} : le montant de la mission est ramené à ${done > 1 ? 'ces passages' : 'ce passage'}, et les passages suivants sont annulés. Si vous avez déjà payé plus, la différence est créditée dans votre portefeuille KSP, quel que soit votre moyen de paiement. Sans frais jusqu’à 24 heures avant le prochain passage planifié ; au-delà, contactez le support.`,
+    stopHintBusiness: (done: number) =>
+      `${done > 1 ? `Les ${done} passages déjà faits restent dus` : 'Le passage déjà fait reste dû'} et les passages suivants sont annulés. Le contrat de facturation s’arrête au jour de l’annulation : le mois en cours est facturé au prorata, dans « Mes factures ». Sans frais jusqu’à 24 heures avant le prochain passage planifié ; au-delà, contactez le support.`,
+    confirmStop: 'Confirmer l’arrêt',
+    stopped:
+      'La suite de la mission est annulée. Les passages faits restent dus ; si vous aviez payé plus, la différence est créditée dans votre portefeuille KSP.',
+    stoppedBusiness:
+      'La suite de la mission est annulée. Les passages faits restent dus et seront facturés jusqu’à ce jour.',
+    readOnly:
+      'Vous êtes en lecture seule dans cette entreprise : seuls ses administrateurs et ses membres peuvent accepter, refuser, annuler ou payer.',
     confirmCancel: 'Confirmer l’annulation',
     seeRequest: 'Voir la demande de devis',
   },
