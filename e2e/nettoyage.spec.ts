@@ -88,7 +88,11 @@ test('demande de devis par lieu : estimation, position, connexion à l’envoi, 
       },
     ],
   });
-  await page.getByRole('link', { name: /Suivre ma demande/ }).click();
+  // « Suivre ma demande » de la confirmation (l'en-tête a aussi un lien de ce nom, vers /mon-espace/suivi).
+  await page
+    .getByRole('main')
+    .getByRole('link', { name: /Suivre ma demande/ })
+    .click();
   await expect(page.getByRole('heading', { level: 1, name: 'Demande de devis groupée' })).toBeVisible();
   await expect(page.getByText('Demande reçue')).toBeVisible();
 
