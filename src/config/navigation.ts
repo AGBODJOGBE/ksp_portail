@@ -28,6 +28,9 @@ export function contactHref(subject?: ContactSubject): string {
 
 /** Navigation publique du portail. Les pages arrivent section par section ; les adresses sont fixées ici. */
 export const navigation = {
+  /** Liens principaux de l'en-tête (v3) : tous les services, puis le suivi des demandes dans Mon espace. */
+  services: { label: 'Nos services', href: '/services' } satisfies NavItem,
+  track: { label: 'Suivre ma demande', href: '/mon-espace/suivi' } satisfies NavItem,
   metiers: metiers.map(({ label, href, id, summary }) => ({ id, label, href, summary })),
   group: [
     { label: 'À propos', href: '/a-propos' },
@@ -39,4 +42,6 @@ export const navigation = {
   account: { label: 'Mon espace KSP', href: '/mon-espace' } satisfies NavItem,
   /** Connexion par téléphone ; `?retour=` ramène à la page demandée (chemin interne uniquement). */
   login: { label: 'Se connecter', href: '/connexion' } satisfies NavItem,
+  /** Le compte se crée par téléphone sur la même page que la connexion (un code suffit). */
+  signup: { label: 'Créer un compte', href: '/connexion' } satisfies NavItem,
 } as const;

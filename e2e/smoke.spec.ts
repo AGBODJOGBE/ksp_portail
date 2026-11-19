@@ -25,17 +25,39 @@ test('la sonde de santé répond', async ({ request }) => {
   expect(await response.json()).toMatchObject({ status: 'ok', site: 'portail' });
 });
 
-test('l’en-tête donne accès aux six métiers', async ({ page }, testInfo) => {
+test('l’en-tête donne accès aux six métiers par « Nos services »', async ({ page }, testInfo) => {
   await page.goto('/');
-  const isMobile = testInfo.project.name === 'mobile';
-  await page.getByRole('button', { name: isMobile ? 'Ouvrir le menu' : 'Nos métiers' }).click();
-  const panel = page.locator(isMobile ? '#menu-mobile' : '#menu-metiers');
-  await expect(panel).toBeVisible();
-  for (const label of ['Recouvrement', 'Immobilier clés en main', 'Nettoyage et assainissement']) {
-    await expect(panel.getByRole('link', { name: new RegExp(label) })).toBeVisible();
+  const banner = page.getByRole('banner');
+  if (testInfo.project.name === 'mobile') {
+    // Téléphone : « Nos services » est dans le menu plein écran, qui se ferme avec Échap.
+    const openMenu = banner.getByRole('button', { name: 'Ouvrir le menu' });
+    const panel = page.locator('#menu-mobile');
+    await openMenu.click();
+    await expect(panel).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(panel).toBeHidden();
+    await openMenu.click();
+    await panel.getByRole('link', { name: 'Nos services' }).click();
+  } else {
+    await banner.getByRole('link', { name: 'Nos services' }).click();
   }
-  await page.keyboard.press('Escape');
-  await expect(panel).toBeHidden();
+  await expect(page).toHaveURL(/\/services$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Tous nos services' })).toBeVisible();
+  // Les six métiers sont les catégories de « Tous nos services ».
+  const categories = page.getByRole('navigation', { name: 'Catégories de services' });
+  for (const [label, id] of [
+    ['Recouvrement', 'recouvrement'],
+    ['Nettoyage', 'nettoyage'],
+    ['Immobilier', 'immobilier'],
+    ['Impression', 'impression'],
+    ['Marketplace', 'marketplace'],
+    ['Livraison', 'livraison'],
+  ]) {
+    await expect(categories.getByRole('link', { name: label, exact: true })).toHaveAttribute(
+      'href',
+      `/services?categorie=${id}`,
+    );
+  }
 });
 
 test('« Se connecter » mène à la connexion par téléphone', async ({ page }) => {
@@ -43,9 +65,8 @@ test('« Se connecter » mène à la connexion par téléphone', async ({ page }
   await page.goto('/');
   await page.getByRole('banner').getByRole('link', { name: 'Se connecter' }).first().click();
   await expect(page).toHaveURL(/\/connexion$/);
-  await expect(
-    page.getByRole('heading', { level: 1, name: 'Se connecter ou créer un compte' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Se connecter', exact: true })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Numéro' })).toBeVisible();
 });
 
 test('la page de charte n’existe pas en production', async ({ request }) => {
@@ -53,12 +74,24 @@ test('la page de charte n’existe pas en production', async ({ request }) => {
   expect(response.status()).toBe(404);
 });
 
-test('l’accueil présente les six métiers et y conduit depuis la promesse', async ({ page }) => {
+test('l’accueil présente les six métiers et y conduit depuis « Être guidé »', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('link', { name: 'Découvrir nos métiers' }).click();
-  const metiers = page.getByRole('region', { name: 'Six métiers, un seul groupe' });
-  await expect(metiers).toBeInViewport();
-  await expect(metiers.getByRole('link')).toHaveCount(6);
+  await page.getByRole('link', { name: 'Être guidé' }).click();
+  const besoins = page.getByRole('region', { name: /Dites-nous ce qu’il vous faut/ });
+  await expect(besoins).toBeInViewport();
+  // Une carte par métier, chacune vers son service.
+  const cartes = besoins.getByRole('listitem').getByRole('link');
+  await expect(cartes).toHaveCount(6);
+  for (const href of [
+    '/nettoyage/demande',
+    '/recouvrement',
+    '/immobilier',
+    '/impression',
+    '/marketplace',
+    '/livraison',
+  ]) {
+    await expect(besoins.locator(`a[href="${href}"]`)).toHaveCount(1);
+  }
 });
 
 /* ——— Pages métiers ——— */
@@ -112,9 +145,7 @@ test('« Déposer un dossier » mène à Mon espace KSP, qui demande la connexio
     .first()
     .click();
   await expect(page).toHaveURL(/\/connexion\?retour=%2Fmon-espace$/);
-  await expect(
-    page.getByRole('heading', { level: 1, name: 'Se connecter ou créer un compte' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Se connecter', exact: true })).toBeVisible();
 });
 
 test('« Commander une course » est affiché mais pas encore actif', async ({ page }) => {

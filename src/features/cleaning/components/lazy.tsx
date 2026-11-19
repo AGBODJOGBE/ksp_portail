@@ -35,8 +35,14 @@ export const CleaningTodo = dynamic(() => import('./cleaning-todo').then((module
   loading: Loading,
 });
 
-export const CleaningOngoing = dynamic(
-  () => import('./cleaning-todo').then((module_) => module_.CleaningOngoing),
+/** « Suivre ma demande » (`/mon-espace/suivi`) et son résumé dans « Mon espace KSP ». */
+export const CleaningTracking = dynamic(
+  () => import('./tracking-board').then((module_) => module_.CleaningTracking),
+  { loading: Loading },
+);
+
+export const CleaningTrackingSummary = dynamic(
+  () => import('./tracking-board').then((module_) => module_.CleaningTrackingSummary),
   { loading: Loading },
 );
 

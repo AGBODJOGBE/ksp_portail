@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { session, type Session } from '@/lib/api/session';
 import { SiteHeader } from './site-header';
 
@@ -27,34 +27,32 @@ const SESSION: Session = {
 afterEach(() => session.clear());
 
 describe('en-tête du site', () => {
-  it('ouvre le menu mobile et le panneau des métiers avec l’API popover native', () => {
+  it('ouvre le menu mobile avec l’API popover native', () => {
     const { container } = render(<SiteHeader />);
     const menuButton = screen.getByRole('button', { name: 'Ouvrir le menu' });
     expect(menuButton).toHaveAttribute('popovertarget', 'menu-mobile');
     expect(container.querySelector('#menu-mobile')).toHaveAttribute('popover', 'auto');
-    expect(screen.getByRole('button', { name: /Nos métiers/ })).toHaveAttribute(
-      'popovertarget',
-      'menu-metiers',
-    );
   });
 
-  it('liste les six métiers dans le menu mobile (fermé par défaut)', () => {
+  it('mène à « Nos services » et à « Suivre ma demande », sans menu « Nos métiers » en double', () => {
     const { container } = render(<SiteHeader />);
-    const mobileMenu = container.querySelector<HTMLElement>('#menu-mobile');
-    expect(mobileMenu).not.toBeNull();
-    const links = within(mobileMenu!)
-      .getAllByRole('link', { hidden: true })
-      .map((link) => link.getAttribute('href'));
-    expect(links).toEqual(
-      expect.arrayContaining([
-        '/recouvrement',
-        '/immobilier',
-        '/nettoyage',
-        '/impression',
-        '/marketplace',
-        '/livraison',
-      ]),
-    );
+    const services = screen.getAllByRole('link', { name: 'Nos services', hidden: true });
+    expect(services.length).toBe(2);
+    services.forEach((link) => expect(link).toHaveAttribute('href', '/services'));
+    screen
+      .getAllByRole('link', { name: 'Suivre ma demande', hidden: true })
+      .forEach((link) => expect(link).toHaveAttribute('href', '/mon-espace/suivi'));
+    // Les six métiers sont les catégories de « Nos services » : plus de menu dédié dans l'en-tête.
+    expect(screen.queryByRole('button', { name: /Nos métiers/, hidden: true })).toBeNull();
+    expect(container.querySelector('#menu-metiers')).toBeNull();
+  });
+
+  it('propose « Créer un compte » tant qu’aucune session n’est ouverte', () => {
+    render(<SiteHeader />);
+    const signup = screen.getAllByRole('link', { name: 'Créer un compte', hidden: true });
+    expect(signup.length).toBeGreaterThanOrEqual(2);
+    act(() => session.set(SESSION));
+    expect(screen.queryByRole('link', { name: 'Créer un compte', hidden: true })).toBeNull();
   });
 
   it('propose « Se connecter » sans session, y compris sur téléphone (icône nommée)', () => {
@@ -75,7 +73,7 @@ describe('en-tête du site', () => {
 
   it('signale la page courante', () => {
     render(<SiteHeader />);
-    const current = screen.getAllByRole('link', { name: 'À propos' });
+    const current = screen.getAllByRole('link', { name: 'À propos', hidden: true });
     current.forEach((link) => expect(link).toHaveAttribute('aria-current', 'page'));
   });
 });

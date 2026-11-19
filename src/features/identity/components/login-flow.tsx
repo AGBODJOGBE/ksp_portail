@@ -72,6 +72,7 @@ export function LoginFlow() {
     case 'phone':
       return (
         <PhoneStep
+          layout="card"
           initialPhone={step.phone}
           numberRef={numberRef}
           onSent={(phone, challenge) => setStep({ name: 'code', phone, challenge })}
@@ -80,6 +81,7 @@ export function LoginFlow() {
     case 'code':
       return (
         <CodeStep
+          layout="card"
           phone={step.phone}
           challenge={step.challenge}
           onVerified={verified}

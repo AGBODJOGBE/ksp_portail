@@ -4,9 +4,10 @@ export { JourneyEntrySection } from './components/journey-entry';
 // Écrans client chargés à la demande (voir components/lazy.tsx).
 export {
   CleaningJourney,
-  CleaningOngoing,
   CleaningSpace,
   CleaningTodo,
+  CleaningTracking,
+  CleaningTrackingSummary,
   MissionDetail,
   RequestDetail,
   RequestGroupDetail,
@@ -14,6 +15,7 @@ export {
 export { JOURNEY_SECTION_ID, nettoyageContent, nettoyageFaq } from './content';
 export { journeyTexts } from './journey-texts';
 export { spaceTexts } from './space-texts';
+export { trackingTexts } from './tracking-texts';
 export { cleaningPaths } from './paths';
 export { cleaningTexts, serviceJourney } from './texts';
 export { zonesSentence } from './zones';

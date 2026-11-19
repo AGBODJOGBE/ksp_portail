@@ -20,8 +20,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  // Valeur littérale exigée par la balise meta : jeton --color-canvas (neutral-25).
-  themeColor: '#fafcff',
+  // Valeur littérale exigée par la balise meta : fond blanc de l'en-tête (v3, F-020).
+  themeColor: '#ffffff',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

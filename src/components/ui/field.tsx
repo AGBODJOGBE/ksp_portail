@@ -10,10 +10,10 @@ export function fieldIds(id: string) {
 /** Zone de saisie de la charte : 48 px de haut, bordure contrastée, anneau de focus, rouge si invalide. */
 export function inputClasses({ invalid = false, className }: { invalid?: boolean; className?: string } = {}) {
   return cn(
-    'rounded-control bg-surface text-ink min-h-12 w-full min-w-0 border px-4 text-base',
+    'rounded-control text-ink min-h-12 w-full min-w-0 border px-4 text-base',
     'placeholder:text-ink-subtle focus-visible:outline-focus focus-visible:outline-2 focus-visible:outline-offset-2',
     'read-only:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60',
-    invalid ? 'border-danger' : 'border-line-control',
+    invalid ? 'border-danger bg-danger-soft' : 'border-line-control bg-surface',
     className,
   );
 }

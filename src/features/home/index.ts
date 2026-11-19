@@ -1,7 +1,7 @@
-/** Accueil du portail : promesse du groupe, six métiers, preuves et contact. */
-export { ClosingCta } from './components/closing-cta';
+/** Accueil du portail (v3, F-020) : bandeau, recherche des services, nouveautés, chiffres, besoins. */
 export { HomeHero } from './components/home-hero';
-export { HomeJourney, TrustSection, ZonesSection } from './components/home-sections';
-export { MetiersBento, type MetierStatus } from './components/metiers-bento';
-export { KeyFiguresSection, RealisationsSection, TestimonialsSection } from './components/proof-sections';
-export { homeContent, type HomeContent, type KeyFigure, type Testimonial } from './content';
+export { FeaturedServices, KeyFiguresSection, NeedsSection } from './components/home-sections';
+export { InfoBanner } from './components/info-banner';
+export { NewsCarousel } from './components/news-carousel';
+export { NewsIllustration } from './components/news-illustrations';
+export { homeContent, type HomeContent, type KeyFigure } from './content';

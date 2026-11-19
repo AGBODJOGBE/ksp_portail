@@ -22,7 +22,7 @@
     "prepare": "husky || true"
   },
   "dependencies": {
-    "@fontsource-variable/bricolage-grotesque": "5.3.0",
+    "@fontsource-variable/plus-jakarta-sans": "5.3.0",
     "leaflet": "1.9.4",
     "next": "16.3.6",
     "react": "19.3.0",

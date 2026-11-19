@@ -10,7 +10,7 @@ import {
   quoteRequest,
   stubGateway,
 } from '@/features/cleaning/fake-gateway.test-utils';
-import { CleaningOngoing, CleaningTodo } from './cleaning-todo';
+import { CleaningTodo } from './cleaning-todo';
 
 function signIn() {
   session.set({
@@ -44,7 +44,7 @@ afterEach(() => {
 });
 
 describe('Nettoyage dans le tableau de bord de Mon espace', () => {
-  it('met en avant le devis à étudier et la mission suspendue pour impayés, puis ce que KSP a en cours', async () => {
+  it('met en avant le devis à étudier et la mission suspendue pour impayés, et rien de ce que KSP a en cours', async () => {
     stubGateway({
       'GET /api/v1/cleaning/services': { status: 200, body: SERVICES },
       'GET /api/v1/cleaning/quote-requests': {
@@ -74,23 +74,18 @@ describe('Nettoyage dans le tableau de bord de Mon espace', () => {
         },
       },
     });
-    render(
-      <>
-        <CleaningTodo />
-        <CleaningOngoing />
-      </>,
-    );
+    render(<CleaningTodo />);
     const quote = await screen.findByRole('link', { name: 'Voir et accepter' });
     expect(quote).toHaveAttribute('href', `/mon-espace/nettoyage/demandes/${REQUEST_ID}`);
     const suspended = screen.getByRole('link', { name: 'Voir la mission' });
     expect(suspended).toHaveAttribute('href', `/mon-espace/nettoyage/missions/${MISSION_ID}`);
     // Une mission suspendue n'est pas annoncée comme paiement à régler : la suspension l'explique.
     expect(screen.queryByText('Paiement à régler')).not.toBeInTheDocument();
-    // « Prestations en cours » : la demande reçue et la mission, avec leur état.
-    expect(await screen.findAllByText('Demande reçue')).not.toHaveLength(0);
+    // La demande reçue attend KSP, pas le client : elle se suit dans « Suivre ma demande » (tracking-board).
+    expect(screen.queryByText('Demande reçue')).not.toBeInTheDocument();
   });
 
-  it('annonce un paiement attendu avec son montant, et le prochain passage', async () => {
+  it('annonce un paiement attendu avec son montant, sans l’agenda (déplacé dans le suivi)', async () => {
     stubGateway({
       'GET /api/v1/cleaning/services': { status: 200, body: SERVICES },
       'GET /api/v1/cleaning/quote-requests': { status: 200, body: { data: [], nextCursor: null } },
@@ -121,7 +116,8 @@ describe('Nettoyage dans le tableau de bord de Mon espace', () => {
       'href',
       `/mon-espace/nettoyage/missions/${MISSION_ID}#paiement`,
     );
-    expect(screen.getByText(/Nos agents interviennent le/)).toBeInTheDocument();
+    // Le prochain passage est annoncé dans « Suivre ma demande » (tracking-board.test.tsx).
+    expect(screen.queryByText(/Nos agents interviennent le/)).not.toBeInTheDocument();
   });
 
   it('dit quand rien n’attend le client', async () => {

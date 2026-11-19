@@ -31,6 +31,8 @@
 
   /* Bleu nuit du logo (900) — couleur de marque. Contraste avec le blanc : 14,6:1. */
   --color-brand-50: #f3f7fd;
+  /* Fond des zones secondaires (v3 : portails d'e-services, fond bleu-gris très clair). */
+  --color-brand-75: #eaf0f9;
   --color-brand-100: #e5ecf6;
   --color-brand-200: #cad5e7;
   --color-brand-300: #a4b5d1;
@@ -90,10 +92,10 @@
 
   /* ——— Jetons sémantiques ——— */
 
-  /* Fonds */
-  --color-canvas: var(--color-neutral-25);
+  /* Fonds (v3, F-020) : toile bleu-gris très clair, cartes blanches. */
+  --color-canvas: var(--color-brand-50);
   --color-surface: var(--color-white);
-  --color-surface-muted: var(--color-neutral-50);
+  --color-surface-muted: var(--color-brand-75);
   --color-surface-sunken: var(--color-neutral-100);
   --color-surface-inverse: var(--color-brand-900);
 
@@ -103,7 +105,7 @@
   --color-ink-subtle: var(--color-neutral-600);
   --color-ink-inverse: var(--color-white);
 
-  /* Traits */
+  /* Traits (bordure fine gris-bleu des cartes) */
   --color-line: var(--color-neutral-200);
   --color-line-strong: var(--color-neutral-300);
   --color-line-control: var(--color-neutral-500);
@@ -174,28 +176,31 @@
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
   --font-display: var(--font-ksp-display, ui-sans-serif), system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  /* Échelle fluide : 375 px → 1440 px. */
-  --text-display: clamp(2.5rem, 1.55rem + 4.1vw, 5.25rem);
-  --text-display--line-height: 1.02;
-  --text-display--letter-spacing: -0.035em;
-  --text-h1: clamp(2.125rem, 1.6rem + 2.3vw, 3.75rem);
-  --text-h1--line-height: 1.06;
-  --text-h1--letter-spacing: -0.03em;
-  --text-h2: clamp(1.75rem, 1.4rem + 1.5vw, 2.75rem);
-  --text-h2--line-height: 1.1;
-  --text-h2--letter-spacing: -0.025em;
-  --text-h3: clamp(1.25rem, 1.15rem + 0.45vw, 1.5rem);
-  --text-h3--line-height: 1.25;
-  --text-h3--letter-spacing: -0.015em;
-  --text-lead: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
+  /*
+   * Échelle fluide, 375 px → 1440 px. v3 (F-020) : tailles mesurées, à la manière des portails
+   * d'e-services : héros 44 px, titres de section 36 px, titres de carte 22 px.
+   */
+  --text-display: clamp(2.25rem, 1.75rem + 2.1vw, 3.25rem);
+  --text-display--line-height: 1.08;
+  --text-display--letter-spacing: -0.025em;
+  --text-h1: clamp(2rem, 1.7rem + 1.3vw, 2.75rem);
+  --text-h1--line-height: 1.14;
+  --text-h1--letter-spacing: -0.02em;
+  --text-h2: clamp(1.625rem, 1.38rem + 1.05vw, 2.25rem);
+  --text-h2--line-height: 1.18;
+  --text-h2--letter-spacing: -0.018em;
+  --text-h3: clamp(1.1875rem, 1.12rem + 0.28vw, 1.375rem);
+  --text-h3--line-height: 1.3;
+  --text-h3--letter-spacing: -0.01em;
+  --text-lead: clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
   --text-lead--line-height: 1.6;
   --text-body: 1rem;
   --text-body--line-height: 1.6;
   --text-small: 0.875rem;
   --text-small--line-height: 1.5;
-  --text-eyebrow: 0.8125rem;
+  --text-eyebrow: 0.875rem;
   --text-eyebrow--line-height: 1.2;
-  --text-eyebrow--letter-spacing: 0.14em;
+  --text-eyebrow--letter-spacing: 0.12em;
   /* Chiffres (tuiles, montants) : police des titres, chiffres tabulaires (`tabular-nums`). */
   --text-figure-lg: clamp(2.5rem, 2rem + 2vw, 3.5rem);
   --text-figure-lg--line-height: 1.05;
@@ -208,26 +213,29 @@
   --text-figure-sm--letter-spacing: -0.015em;
 
   /* Espacements : grille de 4 px de Tailwind, plus le rythme vertical des sections. */
-  --spacing-section: clamp(4rem, 2.6rem + 6vw, 8rem);
+  --spacing-section: clamp(3.5rem, 2.5rem + 4.3vw, 6.5rem);
   --spacing-section-sm: clamp(3rem, 2.2rem + 3.4vw, 5rem);
   --spacing-gutter: clamp(1rem, 0.6rem + 1.7vw, 2rem);
 
   /* Largeurs */
   --container-page: 76rem;
+  /* Annuaire des services (v3) : colonne des catégories et grille de trois cartes. */
+  --container-wide: 88rem;
   --container-reading: 42rem;
   --container-measure: 36rem;
 
   /* Rayons */
   --radius-control: 0.625rem;
-  --radius-card: 1rem;
+  /* v3 (F-020) : cartes très arrondies (20 px), boutons en pilule (`rounded-full`). */
+  --radius-card: 1.25rem;
   --radius-panel: 1.5rem;
   /* Tuiles d'icône (12 px), entre le contrôle et la carte (16 px). */
-  --radius-icon: 0.75rem;
+  --radius-icon: 0.875rem;
 
   /* Ombres teintées bleu nuit, toujours discrètes. Échelle : xs → sm → card → raised → float. */
   --shadow-xs: 0 1px 2px rgb(15 40 80 / 0.06);
   --shadow-sm: 0 1px 2px rgb(15 40 80 / 0.05), 0 6px 16px -10px rgb(15 40 80 / 0.24);
-  --shadow-card: 0 1px 2px rgb(15 40 80 / 0.05), 0 12px 32px -16px rgb(15 40 80 / 0.22);
+  --shadow-card: 0 1px 2px rgb(15 40 80 / 0.04), 0 10px 28px -18px rgb(15 40 80 / 0.2);
   --shadow-raised: 0 2px 4px rgb(15 40 80 / 0.06), 0 24px 48px -20px rgb(15 40 80 / 0.32);
   /* Feuille posée sur la bande héros (chevauchement). */
   --shadow-float: 0 2px 4px rgb(15 40 80 / 0.06), 0 28px 56px -24px rgb(15 40 80 / 0.4);
@@ -258,7 +266,7 @@
 
 @media (min-width: 64rem) {
   :root {
-    --header-h: 4.5rem;
+    --header-h: 5rem;
   }
 }
 
@@ -306,9 +314,9 @@
  * valeur par défaut. Mêmes déclarations que les jetons sémantiques de `@theme`, sans le fond.
  */
 [data-tone='light'] {
-  --color-canvas: var(--color-neutral-25);
+  --color-canvas: var(--color-brand-50);
   --color-surface: var(--color-white);
-  --color-surface-muted: var(--color-neutral-50);
+  --color-surface-muted: var(--color-brand-75);
   --color-surface-sunken: var(--color-neutral-100);
   --color-ink: var(--color-brand-900);
   --color-ink-muted: var(--color-neutral-700);
@@ -728,20 +736,16 @@
 }
 
 /*
- * En-tête au défilement (sans JavaScript) : en haut de page, il se fond dans la page ; dès qu'on défile,
- * un verre léger (fond translucide et flou), un trait et une ombre douce le détachent du contenu.
- * Navigateurs sans animation liée au défilement : l'état « détaché » est l'état de base.
+ * En-tête blanc (v3, F-020) : fond blanc plein ; dès qu'on défile, un trait et une ombre douce le
+ * détachent du contenu. Navigateurs sans animation liée au défilement : l'état « détaché » est l'état de base.
  */
 .site-header {
-  background-color: rgb(250 252 255 / 0.86);
+  background-color: var(--color-white);
   border-bottom: 1px solid var(--color-line);
-  box-shadow: 0 8px 24px -18px rgb(15 40 80 / 0.35);
-  -webkit-backdrop-filter: saturate(1.6) blur(14px);
-  backdrop-filter: saturate(1.6) blur(14px);
+  box-shadow: 0 8px 24px -18px rgb(15 40 80 / 0.3);
 }
 @keyframes ksp-header-scrolled {
   from {
-    background-color: var(--color-canvas);
     border-bottom-color: transparent;
     box-shadow: 0 0 0 transparent;
   }
@@ -751,6 +755,58 @@
     animation: ksp-header-scrolled linear both;
     animation-timeline: scroll(root block);
     animation-range: 0 96px;
+  }
+}
+
+/* Page de connexion (`data-header='light'`) : en-tête allégé, logo et « Créer un compte » seulement. */
+body:has([data-header='light']) .header-full {
+  display: none;
+}
+body:has([data-header='light']) .header-signup {
+  display: block;
+}
+body:has([data-header='light']) .header-actions {
+  margin-left: auto;
+}
+
+/*
+ * ——— v3 (F-020) : présentation des portails d'e-services ———
+ * Héros photo : voile bleu nuit sur la photo (texte blanc ≥ 5:1 même sur la zone la plus claire de
+ * l'image), recherche en pilule translucide, pied de page bleu nuit dégradé.
+ */
+@utility hero-veil {
+  background-image: linear-gradient(
+    180deg,
+    rgb(3 20 52 / 0.58) 0%,
+    rgb(3 20 52 / 0.62) 55%,
+    rgb(3 20 52 / 0.78) 100%
+  );
+}
+@utility glass-pill {
+  background-color: rgb(255 255 255 / 0.12);
+  border: 1px solid rgb(255 255 255 / 0.45);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+@utility footer-band {
+  background-color: var(--color-brand-900);
+  background-image: linear-gradient(
+    135deg,
+    var(--color-brand-850) 0%,
+    var(--color-brand-900) 45%,
+    var(--color-brand-950) 100%
+  );
+}
+
+/* Carrousel : la diapositive active apparaît en fondu (opacité seulement). */
+@keyframes ksp-slide-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .slide-in {
+    animation: ksp-slide-in var(--motion-reveal) var(--ease-soft) both;
   }
 }
 

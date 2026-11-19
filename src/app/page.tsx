@@ -1,64 +1,61 @@
-import { metiers } from '@/config/metiers';
-import { cleaningTexts } from '@/features/cleaning';
-import { getServedZones } from '@/features/cleaning/server';
-import { impressionContent } from '@/features/print';
-import { marketplaceContent } from '@/features/catalog';
-import { immobilierContent } from '@/features/realestate';
-import { livraisonContent } from '@/features/delivery';
+import { Container } from '@/components/ui/container';
+import { zonesSentence } from '@/features/cleaning';
+import { getPlaceCatalogForPage, getServedZones } from '@/features/cleaning/server';
 import {
-  ClosingCta,
+  FeaturedServices,
   HomeHero,
-  HomeJourney,
+  homeContent as content,
+  InfoBanner,
   KeyFiguresSection,
-  MetiersBento,
-  type MetierStatus,
-  RealisationsSection,
-  TestimonialsSection,
-  TrustSection,
-  ZonesSection,
-  homeContent,
+  NeedsSection,
+  NewsCarousel,
+  NewsIllustration,
 } from '@/features/home';
-import type { MetierId } from '@/config/metiers';
-import type { PageAction } from '@/components/sections/types';
+import { buildServiceDirectory } from '@/features/services';
 
-/** Note d'une action « bientôt » (commande en ligne pas encore ouverte), si la page en a une. */
-function soonNote(actions: ReadonlyArray<PageAction>): string | undefined {
-  const soon = actions.find((action) => action.kind === 'soon');
-  return soon?.kind === 'soon' ? soon.note : undefined;
-}
+/** Nombre de cartes de « Les services à la une » : le premier service ouvert de chaque métier. */
+const FEATURED_COUNT = 3;
 
 /**
- * Accueil du portail (direction « Signature ») : promesse sur la bande bleu nuit, six métiers sur une
- * feuille qui la chevauche, démarche commune, raisons de confiance, zones desservies (lues auprès de la
- * gateway, revalidées comme la page Nettoyage), preuves « à venir » puis contact. Les contenus viennent de
- * `src/features/home` (remplacés plus tard par Payload CMS) ; l'état de chaque métier vient de sa page.
+ * Accueil du portail (v3, F-020 : présentation des portails d'e-services) : bandeau d'information,
+ * grande photo et recherche des services, nouveautés, chiffres clés « à venir », « Votre besoin », puis
+ * les services à la une. Page statique : zones et catalogue du Nettoyage lus au build, puis revalidés.
  */
 export default async function HomePage() {
-  const zones = await getServedZones();
-  const statuses: Partial<Record<MetierId, MetierStatus>> = {
-    nettoyage: { label: cleaningTexts.hero.online, live: true },
-  };
-  const pending: Array<[MetierId, string | undefined]> = [
-    ['immobilier', immobilierContent.hero.status],
-    ['impression', impressionContent.hero.status],
-    ['marketplace', marketplaceContent.hero.status],
-    ['livraison', soonNote(livraisonContent.hero.actions)],
-  ];
-  for (const [id, label] of pending) if (label) statuses[id] = { label };
+  const [zones, catalog] = await Promise.all([getServedZones(), getPlaceCatalogForPage()]);
+  const services = buildServiceDirectory(catalog?.services ?? null);
+  const communes = zones ? zonesSentence(zones) : null;
+  const { banner, news } = content;
+  const featured = services
+    .filter((entry) => !entry.status)
+    .filter((entry, index, open) => open.findIndex((other) => other.category === entry.category) === index)
+    .slice(0, FEATURED_COUNT);
 
   return (
     <>
-      <HomeHero content={homeContent.hero} />
-      <MetiersBento content={homeContent.metiers} metiers={metiers} statuses={statuses} />
-      <HomeJourney content={homeContent.journey} />
-      <TrustSection content={homeContent.trust} />
-      <KeyFiguresSection content={homeContent.keyFigures} />
-      {zones?.length ? (
-        <ZonesSection content={homeContent.zones} communes={zones.map((zone) => zone.commune)} />
-      ) : null}
-      <TestimonialsSection content={homeContent.testimonials} />
-      <RealisationsSection content={homeContent.realisations} />
-      <ClosingCta content={homeContent.closing} />
+      <InfoBanner
+        text={communes ? banner.cleaningOnline(communes) : banner.cleaningOnlineFallback}
+        action={banner.action}
+        closeLabel={banner.close}
+      />
+      <HomeHero content={content.hero} services={services} />
+      <Container size="wide" className="pt-8 sm:pt-12">
+        <NewsCarousel
+          slides={news.slides}
+          illustrations={news.slides.map((slide) => (
+            <NewsIllustration key={slide.id} name={slide.illustration} />
+          ))}
+          labels={{
+            label: news.label,
+            pause: news.pause,
+            play: news.play,
+            slideLabels: news.slides.map((_, index) => news.goTo(index + 1, news.slides.length)),
+          }}
+        />
+      </Container>
+      <KeyFiguresSection content={content.keyFigures} />
+      <NeedsSection content={content.needs} />
+      <FeaturedServices content={content.featured} services={featured} />
     </>
   );
 }
