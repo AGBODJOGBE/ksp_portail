@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { ApiError, session } from '@/lib/api';
 import { describeDeletionError } from '@/features/identity/deletion';
+import { deletionObstacle } from '@/features/identity/deletion-texts';
 import {
   errorBody,
   PERSONAL,
@@ -148,6 +149,61 @@ describe('Supprimer mon compte (ADR-036)', () => {
     );
     // Toujours connecté : rien n'a changé.
     expect(session.get()).not.toBeNull();
+  });
+
+  it('refus du portefeuille (ADR-048) : quatre blocages libellés, lien vers le portefeuille', async () => {
+    const wallet = (kind: string, reference: string, description: string) => ({
+      service: 'wallet',
+      kind,
+      reference,
+      description,
+    });
+    stubGateway({
+      [`POST ${DELETION}`]: {
+        status: 422,
+        body: errorBody(
+          'IDENTITY_DELETION_BLOCKED',
+          'Votre compte ne peut pas être supprimé tant que des opérations sont en cours.',
+          {
+            obligations: [
+              wallet(
+                'prepaid_balance',
+                'prepaid',
+                'Votre portefeuille contient encore 2 500 FCFA : utilisez-le ou demandez son remboursement.',
+              ),
+              wallet('funds_owed', 'collections', '12 000 FCFA vous sont dus : demandez leur reversement.'),
+              wallet('negative_balance', 'collections', 'Un solde de 3 000 FCFA reste dû à KSP.'),
+              wallet('payout_in_progress', 'payouts', 'Un reversement de 9 000 FCFA est en cours.'),
+            ],
+          },
+        ),
+      },
+    });
+    signInActive();
+    renderGuarded(<AccountDeletion />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer mon compte' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Oui, supprimer mon compte' }));
+
+    expect(await screen.findByText('Solde du portefeuille à utiliser')).toBeInTheDocument();
+    expect(screen.getByText(/encore 2 500 FCFA/)).toBeInTheDocument();
+    for (const label of [
+      'solde du portefeuille à utiliser',
+      'fonds à vous reverser',
+      'somme due à KSP',
+      'reversement en cours',
+    ]) {
+      expect(screen.getByRole('link', { name: `Voir : ${label}` })).toHaveAttribute(
+        'href',
+        '/mon-espace/portefeuille',
+      );
+    }
+  });
+
+  it('nature encore inconnue du portefeuille : repli sur le service', () => {
+    expect(deletionObstacle({ service: 'wallet', kind: 'nouvelle_nature' })).toEqual({
+      label: 'Portefeuille',
+      href: '/mon-espace/portefeuille',
+    });
   });
 
   it('service injoignable (503) : « réessayez plus tard »', async () => {

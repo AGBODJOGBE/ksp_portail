@@ -111,6 +111,12 @@ export const membershipSchema = z.object({
 
 export const membershipListSchema = z.object({ data: z.array(membershipSchema) });
 
+/**
+ * `OrganizationMembership` réduit au rôle, pour les droits des autres écrans (portefeuille, Nettoyage) :
+ * le reste de la réponse n'est pas relu, un champ changé ne prive donc pas l'écran de son contrôle.
+ */
+export const membershipRoleSchema = z.object({ role: z.string() });
+
 export type OtpChallenge = z.infer<typeof otpChallengeSchema>;
 export type VerifyOtpResponse = z.infer<typeof verifyOtpResponseSchema>;
 export type Profile = z.infer<typeof profileSchema>;

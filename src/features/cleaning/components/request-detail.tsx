@@ -6,6 +6,7 @@ import { StepTimeline } from '@/components/ui/step-timeline';
 import { Badge } from '@/components/ui/badge';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
+import { useReadOnly } from '@/features/identity';
 import { cancelRequest, declineQuote, getRequest } from '@/features/cleaning/api';
 import { type CleaningErrorView, describeCleaningError } from '@/features/cleaning/errors';
 import {
@@ -29,7 +30,6 @@ import { spaceTexts } from '@/features/cleaning/space-texts';
 import { DetailHeader, Facts, InlineLoading, LoadError, Loading, NextStep, Panel } from './detail-parts';
 import { ReasonAction } from './reason-action';
 import { SchedulePlan } from './schedule-plan';
-import { useReadOnly } from './use-read-only';
 
 // Le formulaire d'acceptation n'est téléchargé que si le client choisit d'accepter.
 const AcceptForm = lazy(() => import('./accept-form').then((module_) => ({ default: module_.AcceptForm })));

@@ -35,6 +35,8 @@ export const statementLineSchema = z.object({
   direction: z.string(),
   amount: moneySchema,
   balanceAfter: moneySchema,
+  /** Référence de l'écriture chez wallet ; `mission-credit:<creditId>` pour le crédit d'une mission arrêtée. */
+  reference: z.string(),
   description: z.string(),
   object: z.nullable(objectReferenceSchema),
   createdAt: z.string(),
@@ -52,9 +54,6 @@ export const topUpSchema = z.object({
   status: z.string(),
   checkoutUrl: z.nullable(z.string()),
 });
-
-/** `OrganizationMembership` d'identity, réduit au rôle : un `org_viewer` ne recharge ni ne paie. */
-export const membershipRoleSchema = z.object({ role: z.string() });
 
 export type Money = z.infer<typeof moneySchema>;
 export type Wallet = z.infer<typeof walletSchema>;

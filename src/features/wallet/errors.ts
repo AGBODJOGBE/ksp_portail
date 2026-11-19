@@ -1,4 +1,5 @@
 import { ApiError } from '@/lib/api';
+import { describeCheckoutOpen } from '@/features/payment';
 import { walletTexts } from './texts';
 
 /** Conséquence d'un refus pour l'écran, en plus du message. */
@@ -81,6 +82,9 @@ export function describeWalletError(error: unknown): WalletErrorView {
       balance: amountOf(error.details.balance),
     };
   }
+  // Recharge : une page de paiement déjà ouverte (ADR-048 §1 ; les recharges en sont exclues aujourd'hui).
+  const checkoutOpen = describeCheckoutOpen(error);
+  if (checkoutOpen) return { message: checkoutOpen, kind: 'other' };
   const known = MESSAGES[error.code];
   if (known) return known;
   if (error.status === 403) return { message: walletTexts.readOnly, kind: 'forbidden' };

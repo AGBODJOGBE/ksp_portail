@@ -7,6 +7,7 @@ import {
   emailChallengeSchema,
   type Membership,
   membershipListSchema,
+  membershipRoleSchema,
   membershipSchema,
   type OtpChallenge,
   otpChallengeSchema,
@@ -103,6 +104,11 @@ export async function createOrganization(input: OrganizationInput): Promise<Memb
 
 export async function getMyOrganization(id: string): Promise<Membership> {
   return parseResponse(membershipSchema, await api.get(organizationPath(id)));
+}
+
+/** Mon rôle dans une organisation (`org_admin`, `org_member`, `org_viewer`), seul champ relu. */
+export async function getOrganizationRole(id: string): Promise<string> {
+  return parseResponse(membershipRoleSchema, await api.get(organizationPath(id))).role;
 }
 
 /** Déclare ou change l'e-mail de facturation : un code est envoyé à cette adresse (ADR-027, 028). */

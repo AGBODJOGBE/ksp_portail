@@ -5,13 +5,13 @@ import { Button, ButtonLink } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { formatXof } from '@/lib/format';
 import { useResource } from '@/lib/use-resource';
+import { useReadOnly } from '@/features/identity';
 import { getWallet } from '@/features/wallet/api';
 import { type WalletErrorView, describeWalletError } from '@/features/wallet/errors';
 import { walletPaths } from '@/features/wallet/paths';
 import type { Money } from '@/features/wallet/schemas';
 import { walletTexts as t } from '@/features/wallet/texts';
 import { topUpFor } from '@/features/wallet/top-up';
-import { useReadOnly } from './use-read-only';
 import { useTopUp } from './use-top-up';
 
 export interface WalletPayProps<T> {

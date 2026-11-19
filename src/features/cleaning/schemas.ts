@@ -486,9 +486,6 @@ export const missionListSchema = z.object({
   nextCursor: z.nullable(z.string()),
 });
 
-/** `OrganizationMembership` d'identity, réduit au rôle : un `org_viewer` n'agit pas au nom de l'entreprise. */
-export const membershipRoleSchema = z.object({ role: z.string() });
-
 export const acceptResponseSchema = z.object({ request: quoteRequestSchema, mission: missionSchema });
 
 export type Money = z.infer<typeof moneySchema>;

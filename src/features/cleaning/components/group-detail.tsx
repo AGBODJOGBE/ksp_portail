@@ -9,6 +9,7 @@ import { BandHeader } from '@/components/ui/band-header';
 import { Heading } from '@/components/ui/heading';
 import { IconArrowRight } from '@/components/ui/icons';
 import { StepTimeline } from '@/components/ui/step-timeline';
+import { useReadOnly } from '@/features/identity';
 import { WalletPay, walletTexts } from '@/features/wallet';
 import { formatDateTime, formatShortDate, formatXof, isPast } from '@/lib/format';
 import { useResource } from '@/lib/use-resource';
@@ -23,7 +24,6 @@ import type { GroupOutcome, PlaceCatalog, QuoteRequest, RequestGroup } from '@/f
 import { spaceTexts } from '@/features/cleaning/space-texts';
 import { cleaningTexts, requestStatuses, statusOf } from '@/features/cleaning/texts';
 import { BackLink, InlineLoading, LoadError, Loading, NextStep, Panel } from './detail-parts';
-import { useReadOnly } from './use-read-only';
 import { ReasonAction } from './reason-action';
 import { placeLabel, usePlaceCatalog } from './request-group';
 

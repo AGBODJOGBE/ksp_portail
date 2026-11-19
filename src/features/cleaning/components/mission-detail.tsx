@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ButtonLink } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { IconCheck } from '@/components/ui/icons';
+import { useReadOnly } from '@/features/identity';
 import { cancelMission, getMission, payMission } from '@/features/cleaning/api';
 import { describeCleaningError } from '@/features/cleaning/errors';
 import { cn } from '@/lib/cn';
@@ -46,7 +47,6 @@ import { DetailHeader, Facts, LoadError, Loading, NextStep, Panel } from './deta
 import { InterventionPhotos } from './intervention-photos';
 import { ReasonAction } from './reason-action';
 import { SchedulePlan } from './schedule-plan';
-import { useReadOnly } from './use-read-only';
 
 const t = cleaningTexts.missionDetail;
 const j = cleaningTexts.journey;

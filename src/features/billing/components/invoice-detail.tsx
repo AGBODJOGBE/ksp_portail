@@ -10,7 +10,7 @@ import { FormMessage } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/cn';
-import { formatNumber, formatShortDate, formatXof } from '@/lib/format';
+import { formatExclusiveEndDate, formatNumber, formatShortDate, formatXof } from '@/lib/format';
 import { useResource } from '@/lib/use-resource';
 import { WalletPay } from '@/features/wallet';
 import { getInvoice, payInvoice } from '@/features/billing/api';
@@ -153,7 +153,7 @@ export function InvoiceDetail({ id }: { id: string }) {
           {t.invoice(invoice.number)}
         </Heading>
         <p className="text-lead text-ink-muted mt-3">
-          {t.period(formatShortDate(invoice.periodStart), formatShortDate(invoice.periodEnd))}
+          {t.period(formatShortDate(invoice.periodStart), formatExclusiveEndDate(invoice.periodEnd))}
         </p>
       </BandHeader>
 

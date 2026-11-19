@@ -14,7 +14,6 @@ import {
   type InterventionPhoto,
   interventionPhotoListSchema,
   type LocationResolution,
-  membershipRoleSchema,
   locationResolutionSchema,
   type PlaceCatalog,
   placeCatalogSchema,
@@ -322,15 +321,6 @@ export async function listInterventionPhotos(id: string): Promise<InterventionPh
     interventionPhotoListSchema,
     await api.get(`${CLEANING_API}/interventions/${encodeURIComponent(id)}/photos`),
   ).data;
-}
-
-/**
- * Rôle du membre dans l'organisation active (`GET /identity/organizations/{id}`, rôle seul), comme le
- * portefeuille : lu ici plutôt que par l'index d'identity, dont l'import ferait télécharger ses écrans.
- */
-export async function getOrganizationRole(organizationId: string): Promise<string> {
-  const path = `/api/v1/identity/organizations/${encodeURIComponent(organizationId)}`;
-  return parseResponse(membershipRoleSchema, await api.get(path)).role;
 }
 
 export async function cancelMission(id: string, reason: string): Promise<Mission> {
