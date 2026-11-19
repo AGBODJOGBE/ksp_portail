@@ -137,6 +137,113 @@ afterEach(() => {
   session.clear();
 });
 
+function payout(overrides: Record<string, unknown> = {}) {
+  return {
+    id: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d8001',
+    holder: { type: 'user', id: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d9e11' },
+    amount: xof(36000),
+    status: 'completed',
+    paymentPayoutId: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d8501',
+    beneficiaryOperator: 'mtn',
+    beneficiaryPhoneMasked: '+229 •• •• 45',
+    createdAt: '2026-11-17T09:00:00Z',
+    updatedAt: '2026-11-17T09:05:00Z',
+    completedAt: '2026-11-17T10:30:00Z',
+    failedAt: null,
+    ...overrides,
+  };
+}
+
+describe('Reversements', () => {
+  const creditor = {
+    ...wallet(0),
+    totalCollected: xof(180000),
+    payoutsInProgress: xof(15000),
+    totalPaidOut: xof(36000),
+  };
+  const empty = { status: 200, body: { data: [], nextCursor: null } };
+
+  it('créancier : cumuls de la gateway, reversements avec numéro masqué, page suivante', async () => {
+    const calls = stubGateway({
+      [`GET ${WALLET}`]: { status: 200, body: creditor },
+      [`GET ${WALLET}/statement`]: empty,
+      [`GET ${WALLET}/payouts`]: [
+        {
+          status: 200,
+          body: {
+            data: [
+              payout(),
+              payout({
+                id: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d8002',
+                status: 'failed',
+                beneficiaryOperator: 'moov',
+                amount: xof(15000),
+                completedAt: null,
+                failedAt: '2026-11-16T10:30:00Z',
+              }),
+            ],
+            nextCursor: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d8002',
+          },
+        },
+        {
+          status: 200,
+          body: {
+            data: [
+              payout({ id: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d8003', status: 'submitted', completedAt: null }),
+            ],
+            nextCursor: null,
+          },
+        },
+      ],
+    });
+    render(<WalletSpace />);
+    const section = await screen.findByRole('region', { name: 'Reversements' });
+    expect(plain(section.textContent)).toContain('Déjà reversé36 000 F CFA');
+    expect(plain(section.textContent)).toContain('En cours15 000 F CFA');
+    expect(await within(section).findByText('Vers MTN +229 •• •• 45')).toBeInTheDocument();
+    expect(within(section).getByText('Versé')).toBeInTheDocument();
+    expect(within(section).getByText('Échoué')).toBeInTheDocument();
+    expect(within(section).getByText(/le montant est revenu à votre solde/)).toBeInTheDocument();
+    fireEvent.click(within(section).getByRole('button', { name: 'Afficher plus' }));
+    expect(await within(section).findByText('En cours', { selector: 'span' })).toBeInTheDocument();
+    const reads = calls.filter((call) => call.path === `${WALLET}/payouts`);
+    expect(reads[0]?.query).toMatchObject({ limit: '10' });
+    expect(reads[1]?.query).toMatchObject({ cursor: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d8002' });
+  });
+
+  it('client sans fonds à reverser : ni rubrique ni lecture des reversements', async () => {
+    const calls = stubGateway({
+      [`GET ${WALLET}`]: {
+        status: 200,
+        body: { ...wallet(9800), totalCollected: xof(0), payoutsInProgress: xof(0), totalPaidOut: xof(0) },
+      },
+      [`GET ${WALLET}/statement`]: empty,
+    });
+    render(<WalletSpace />);
+    await screen.findByRole('region', { name: 'Solde disponible' });
+    await screen.findByText('Aucune opération pour le moment.');
+    expect(screen.queryByRole('region', { name: 'Reversements' })).not.toBeInTheDocument();
+    expect(calls.some((call) => call.path === `${WALLET}/payouts`)).toBe(false);
+  });
+
+  it('reversements illisibles : message et « Réessayer », le reste de l’écran reste affiché', async () => {
+    stubGateway({
+      [`GET ${WALLET}`]: { status: 200, body: creditor },
+      [`GET ${WALLET}/statement`]: empty,
+      [`GET ${WALLET}/payouts`]: [
+        { status: 503, body: errorBody('WALLET_UNAVAILABLE', 'Portefeuille momentanément indisponible.') },
+        { status: 200, body: { data: [payout()], nextCursor: null } },
+      ],
+    });
+    render(<WalletSpace />);
+    const section = await screen.findByRole('region', { name: 'Reversements' });
+    expect(await within(section).findByText('Portefeuille momentanément indisponible.')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Solde disponible' })).toBeInTheDocument();
+    fireEvent.click(within(section).getByRole('button', { name: 'Réessayer' }));
+    expect(await within(section).findByText('Vers MTN +229 •• •• 45')).toBeInTheDocument();
+  });
+});
+
 describe('Mon portefeuille', () => {
   it('solde, relevé lisible avec lien vers la mission, page suivante', async () => {
     const calls = stubGateway({

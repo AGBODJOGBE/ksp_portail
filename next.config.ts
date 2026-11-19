@@ -40,7 +40,19 @@ const nextConfig: NextConfig = {
     remotePatterns: [{ protocol: 'https', hostname: '**.ksp.bj' }],
   },
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      // Pages ouvertes par un lien personnel (paiement, signature) : le jeton est dans l'adresse. Il ne
+      // part vers aucun autre site (prestataire, stockage du PDF) et la page n'est jamais indexée. La
+      // page est rendue à chaque requête : Next la sert déjà en `no-store`.
+      ...['/payer/:token', '/signer/:token'].map((source) => ({
+        source,
+        headers: [
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+        ],
+      })),
+    ];
   },
   async redirects() {
     // Ancienne demande de devis à une seule prestation : remplacée par la demande par lieu (ADR-034).

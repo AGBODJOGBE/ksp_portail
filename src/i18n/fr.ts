@@ -139,6 +139,10 @@ export const fr = {
     genericTitle: 'Une erreur est survenue',
     genericText: "Nous n'avons pas pu afficher cette page. Réessayez dans quelques instants.",
   },
+  /* Pages ouvertes par un lien personnel, sans compte (titre de l'onglet). */
+  links: {
+    paymentTitle: 'Paiement sécurisé',
+  },
   legal: {
     pending: 'Contenu en cours de rédaction. Il sera publié avant la mise en ligne du site.',
   },

@@ -770,6 +770,15 @@ body:has([data-header='light']) .header-actions {
 }
 
 /*
+ * Pages ouvertes par un lien personnel, sans compte (`data-header='minimal'` : paiement, signature) : le
+ * logo seul, pour ne garder qu'une action à l'écran (ni menu, ni connexion).
+ */
+body:has([data-header='minimal']) .header-full,
+body:has([data-header='minimal']) .header-actions {
+  display: none;
+}
+
+/*
  * ——— v3 (F-020) : présentation des portails d'e-services ———
  * Héros photo : voile bleu nuit sur la photo (texte blanc ≥ 5:1 même sur la zone la plus claire de
  * l'image), recherche en pilule translucide, pied de page bleu nuit dégradé.
