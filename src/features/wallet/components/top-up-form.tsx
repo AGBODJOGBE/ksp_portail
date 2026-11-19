@@ -47,7 +47,7 @@ export function TopUpForm({ limits }: { limits: TopUpLimits }) {
     <form onSubmit={submit} noValidate className="grid gap-5">
       <fieldset className="grid gap-3">
         <legend className="text-ink font-semibold">{t.presetsLabel}</legend>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2">
           {presets.map((amount) => {
             const selected = 'amount' in check && check.amount === amount;
             return (
