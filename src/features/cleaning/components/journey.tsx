@@ -37,7 +37,7 @@ import { PlaceIcon } from './place-icon';
 // Étapes suivantes et confirmation : téléchargées seulement quand le client y arrive.
 const ServicesStep = lazy(() => import('./journey-services').then((m) => ({ default: m.ServicesStep })));
 const AddressStep = lazy(() => import('./journey-address').then((m) => ({ default: m.AddressStep })));
-const SlotsStep = lazy(() => import('./journey-slots').then((m) => ({ default: m.SlotsStep })));
+const ScheduleStep = lazy(() => import('./journey-schedule').then((m) => ({ default: m.ScheduleStep })));
 const ReviewStep = lazy(() => import('./journey-review').then((m) => ({ default: m.ReviewStep })));
 const JourneySent = lazy(() => import('./journey-sent').then((m) => ({ default: m.JourneySent })));
 
@@ -49,6 +49,11 @@ export interface StepProps {
   errors: JourneyErrors;
   update: (change: (draft: JourneyDraft) => JourneyDraft) => void;
   clearError: (key: string) => void;
+  /**
+   * Erreurs connues de l'étape hors de sa saisie (plan refusé par l'aperçu de la gateway) : « Continuer »
+   * s'y arrête. Un objet vide : rien ne bloque.
+   */
+  block?: (errors: JourneyErrors) => void;
 }
 
 const PANEL = 'rounded-card border-line bg-surface border p-6 sm:p-8';
@@ -132,7 +137,7 @@ function startingDraft(catalog: PlaceCatalog, zones: ReadonlyArray<ServedZone>, 
 
 /**
  * Demande de devis du Nettoyage par lieu (ADR-034), en assistant : lieu, prestations et estimation
- * en direct, adresse (position GPS), disponibilités, récapitulatif et envoi (connexion demandée à
+ * en direct, adresse (position GPS), passages (plan et aperçu de la gateway, ADR-052), récapitulatif et envoi (connexion demandée à
  * cette étape seulement), confirmation. Le brouillon est gardé dans l'onglet (`sessionStorage`).
  */
 export function CleaningJourney({
@@ -158,6 +163,10 @@ export function CleaningJourney({
   const [sent, setSent] = useState<RequestGroup | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const moved = useRef(false);
+  const blocked = useRef<JourneyErrors>({});
+  const block = useCallback((found: JourneyErrors) => {
+    blocked.current = found;
+  }, []);
 
   useEffect(() => {
     if (initialCatalog) return;
@@ -270,13 +279,13 @@ export function CleaningJourney({
     );
   }
 
-  const props: StepProps = { draft, catalog, zones, errors, update, clearError };
+  const props: StepProps = { draft, catalog, zones, errors, update, clearError, block };
   const name = STEPS[step];
   const titles = {
     place: [t.place.title, t.place.hint],
     services: [t.services.title, t.services.hint],
     address: [t.address.title, t.address.hint],
-    slots: [t.slots.title, null],
+    schedule: [t.schedule.title, t.schedule.hint],
     review: [t.review.title, t.review.hint],
   } as const;
   const [title, hint] = titles[name ?? 'place'];
@@ -284,7 +293,7 @@ export function CleaningJourney({
 
   function next() {
     if (!draft || !catalog || !zones) return;
-    const found = stepErrors(step, draft, catalog, zones);
+    const found = { ...blocked.current, ...stepErrors(step, draft, catalog, zones) };
     if (Object.keys(found).length) return goTo(step, found);
     goTo(step + 1);
   }
@@ -337,7 +346,7 @@ export function CleaningJourney({
           {name === 'place' ? <PlaceStep {...props} /> : null}
           {name === 'services' ? <ServicesStep {...props} /> : null}
           {name === 'address' ? <AddressStep {...props} /> : null}
-          {name === 'slots' ? <SlotsStep {...props} /> : null}
+          {name === 'schedule' ? <ScheduleStep {...props} /> : null}
           {name === 'review' ? (
             <ReviewStep
               {...props}

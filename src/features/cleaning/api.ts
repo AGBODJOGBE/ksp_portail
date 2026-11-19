@@ -75,7 +75,9 @@ export interface GeoLocationInput {
 
 /**
  * `RequestCleaningQuoteGroupRequest` : le type de client (particulier ou entreprise) vient du contexte
- * actif ; `commune` ne sert qu'en repli, si la position n'est rattachée à aucune commune.
+ * actif ; `commune` ne sert qu'en repli, si la position n'est rattachée à aucune commune. Avec un plan
+ * (`schedule`, ADR-052), `preferredSlots` est facultatif (le premier passage en tient lieu) ; la
+ * `recurrence` dépréciée n'est jamais envoyée.
  */
 export interface QuoteGroupInput {
   placeType: string;
@@ -83,7 +85,8 @@ export interface QuoteGroupInput {
   landmark: string;
   commune?: string;
   items: PlaceItemInput[];
-  preferredSlots: TimeSlot[];
+  preferredSlots?: TimeSlot[];
+  schedule?: ScheduleInput;
   comment?: string;
 }
 

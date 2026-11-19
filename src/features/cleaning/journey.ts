@@ -1,23 +1,32 @@
-import { beninDate, beninSlot, formatShortDate } from '@/lib/format';
-import type { AnswerSet, EstimateInput, GeoLocationInput, PlaceItemInput, QuoteGroupInput } from './api';
-import { journeyTexts, servedLine, type SlotPeriod, slotPeriods } from './journey-texts';
-import type { FormField, PlaceCatalog, PlaceService, PlaceType, ServedZone } from './schemas';
+import { beninDate } from '@/lib/format';
+import type {
+  AnswerSet,
+  EstimateInput,
+  GeoLocationInput,
+  PlaceItemInput,
+  QuoteGroupInput,
+  ScheduleInput,
+  Weekday,
+} from './api';
+import { journeyTexts, servedLine } from './journey-texts';
+import type { FormField, PlaceCatalog, PlaceService, PlaceType, Schedule, ServedZone } from './schemas';
 
 /*
  * Parcours « demande de devis par lieu » (ADR-034), sans React : brouillon, contrôle de forme des
  * réponses et construction des corps envoyés à la gateway. Les règles (prix, bornes en vigueur, zones,
- * délais) restent celles de la gateway : ici, seulement ce qui évite un aller-retour inutile. Aucun prix
- * n'est calculé par le front.
+ * délais, dates des passages) restent celles de la gateway : ici, seulement ce qui évite un aller-retour
+ * inutile. Aucun prix ni aucune date de passage n'est calculé par le front.
  */
 
 /** Étapes de saisie (la confirmation suit, hors du fil de progression). */
-export const STEPS = ['place', 'services', 'address', 'slots', 'review'] as const;
+export const STEPS = ['place', 'services', 'address', 'schedule', 'review'] as const;
 export type StepName = (typeof STEPS)[number];
 export const CONFIRMATION_STEP = STEPS.length;
+/** Étape des passages (plan, ADR-052). */
+export const SCHEDULE_STEP = STEPS.indexOf('schedule');
 
 /** Limites du contrat (`RequestCleaningQuoteGroupRequest`). */
 export const MAX_SERVICES = 10;
-export const MAX_SLOTS = 3;
 export const MAX_LANDMARK = 500;
 export const MAX_COMMENT = 2000;
 const MAX_NUMBER = 1_000_000;
@@ -34,11 +43,11 @@ export const POSITION_REQUIRED = true;
 /** Saisie brute d'un champ : texte d'un nombre, code d'une valeur, `yes` ou `no` ; `''` sans réponse. */
 export type RawAnswers = Record<string, string>;
 
+/** Réponses à une prestation. Sa fréquence de prix n'est plus demandée : elle suit le plan (`frequencyFor`). */
 export interface ServiceDraft {
   fields: RawAnswers;
   /** Options cochées (clé = code de l'option) et réponses à leurs champs. */
   options: Record<string, RawAnswers>;
-  frequency: string;
 }
 
 export interface AddressDraft {
@@ -51,40 +60,93 @@ export interface AddressDraft {
   landmark: string;
 }
 
-export interface SlotDraft {
-  date: string;
-  period: SlotPeriod;
+/** Mode du plan de passages (`CleaningScheduleInput.mode`). */
+export type ScheduleMode = ScheduleInput['mode'];
+export const SCHEDULE_MODES: ReadonlyArray<ScheduleMode> = ['dates', 'weekly', 'monthly'];
+/** Lundi d'abord, comme la semaine au Bénin. */
+export const WEEKDAYS: ReadonlyArray<Weekday> = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+/** Rang du jour de semaine dans le mois : 1ᵉʳ à 4ᵉ, ou dernier. */
+export type WeekOfMonth = 1 | 2 | 3 | 4 | 'last';
+export const WEEKS_OF_MONTH: ReadonlyArray<WeekOfMonth> = [1, 2, 3, 4, 'last'];
+/** Rythme hebdomadaire : chaque semaine (1) jusqu'à toutes les 12 semaines (contrat). */
+export const MAX_EVERY_WEEKS = 12;
+/** Forme du plan mensuel : des jours du mois, ou un jour de la semaine à un rang du mois. */
+export type MonthlyForm = 'monthDays' | 'weekdays';
+/** Période : 3, 6 ou 12 mois depuis le début (raccourcis), ou jusqu'à une date choisie. */
+export type PeriodLength = '3' | '6' | '12' | 'until';
+export const PERIOD_LENGTHS: ReadonlyArray<PeriodLength> = ['3', '6', '12', 'until'];
+
+/**
+ * Saisie du plan de passages (ADR-052). Les champs de tous les modes sont gardés pendant la saisie (changer
+ * de mode ne perd rien) ; seuls ceux du mode choisi sont envoyés (`scheduleInputOf`).
+ */
+export interface ScheduleDraft {
+  mode: ScheduleMode | null;
+  /** Mode `dates` : jours cochés. */
+  dates: string[];
+  /** Modes `weekly` et `monthly` : début de la période, et sa durée ou sa fin. */
+  startDate: string;
+  period: PeriodLength | null;
+  endDate: string;
+  /** `weekly`, ou `monthly` par jour de semaine. */
+  weekdays: Weekday[];
+  everyWeeks: number;
+  monthlyForm: MonthlyForm;
+  monthDays: number[];
+  weeksOfMonth: WeekOfMonth[];
+  /** Heure de début de chaque passage, `HH:mm`, heure du Bénin. */
+  startTime: string;
+  excludedDates: string[];
+  extraDates: string[];
 }
 
 export interface JourneyDraft {
-  version: 1;
+  version: 2;
   step: number;
   placeType: string | null;
   /** Prestations cochées, dans l'ordre du lieu. */
   services: string[];
   answers: Record<string, ServiceDraft>;
   address: AddressDraft;
-  slots: SlotDraft[];
+  schedule: ScheduleDraft;
   comment: string;
 }
 
-/** Erreurs par clé de champ (`services`, `house_cleaning.fields.surface`, `address.landmark`…). */
+/** Erreurs par clé de champ (`services`, `house_cleaning.fields.surface`, `schedule.weekdays`…). */
 export type JourneyErrors = Record<string, string>;
+
+export function emptySchedule(): ScheduleDraft {
+  return {
+    mode: null,
+    dates: [],
+    startDate: '',
+    period: null,
+    endDate: '',
+    weekdays: [],
+    everyWeeks: 1,
+    monthlyForm: 'monthDays',
+    monthDays: [],
+    weeksOfMonth: [],
+    startTime: '',
+    excludedDates: [],
+    extraDates: [],
+  };
+}
 
 export function emptyDraft(placeType: string | null = null): JourneyDraft {
   return {
-    version: 1,
+    version: 2,
     step: 0,
     placeType,
     services: [],
     answers: {},
     address: { location: null, resolved: null, commune: '', district: '', landmark: '' },
-    slots: [{ date: '', period: 'morning' }],
+    schedule: emptySchedule(),
     comment: '',
   };
 }
 
-export const emptyServiceDraft = (): ServiceDraft => ({ fields: {}, options: {}, frequency: '' });
+export const emptyServiceDraft = (): ServiceDraft => ({ fields: {}, options: {} });
 
 /** Identifiant HTML d'un champ d'après sa clé d'erreur : le focus va au premier champ en erreur. */
 export const fieldId = (key: string) => `demande-${key.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
@@ -174,10 +236,35 @@ export function checkFields(
   return { answers, errors };
 }
 
+/** Code de fréquence attendu pour chaque mode du plan (codes de départ du catalogue, ADR-033 point 11). */
+const FREQUENCY_OF_MODE: Record<ScheduleMode, string> = {
+  dates: 'once',
+  weekly: 'weekly',
+  monthly: 'monthly',
+};
+/** Fréquence de repli : le prix d'un passage ponctuel, sans remise de régularité supposée. */
+const PRUDENT_FREQUENCY = 'once';
+
+/**
+ * Fréquence de prix d'une prestation (ADR-033), déduite du plan au lieu d'être demandée : `weekly` pour un
+ * plan hebdomadaire, `monthly` pour un plan mensuel, `once` pour des dates précises ou tant que le plan
+ * n'est pas choisi. Si la prestation n'a pas ce code, repli prudent sur `once`, sinon sa première
+ * fréquence. `undefined` si la prestation n'a pas de fréquence (le champ doit alors être absent).
+ * À valider : des dates précises (même nombreuses) restent au tarif `once`.
+ */
+export function frequencyFor(service: PlaceService, mode: ScheduleMode | null): string | undefined {
+  const codes = service.form.frequencies.map((item) => item.code);
+  if (!codes.length) return undefined;
+  const wanted = mode ? FREQUENCY_OF_MODE[mode] : PRUDENT_FREQUENCY;
+  if (codes.includes(wanted)) return wanted;
+  return codes.includes(PRUDENT_FREQUENCY) ? PRUDENT_FREQUENCY : codes[0];
+}
+
 /** Une prestation au format du contrat (`CleaningPlaceItem`), ou ses erreurs. */
 export function serviceItem(
   service: PlaceService,
   draft: ServiceDraft | undefined,
+  mode: ScheduleMode | null = null,
 ): { item: PlaceItemInput | null; errors: JourneyErrors } {
   const current = draft ?? emptyServiceDraft();
   const { answers, errors } = checkFields(service.form.fields, current.fields, `${service.code}.fields`);
@@ -189,9 +276,7 @@ export function serviceItem(
     Object.assign(errors, checked.errors);
     options.push({ code: option.code, answers: checked.answers });
   }
-  const frequencies = service.form.frequencies;
-  const frequency = frequencies.some((item) => item.code === current.frequency) ? current.frequency : '';
-  if (frequencies.length && !frequency) errors[`${service.code}.frequency`] = journeyTexts.fieldErrors.choose;
+  const frequency = frequencyFor(service, mode);
   if (Object.keys(errors).length) return { item: null, errors };
   return {
     item: { serviceCode: service.code, answers, options, ...(frequency ? { frequency } : {}) },
@@ -211,7 +296,7 @@ export function itemsOf(
   const errors: JourneyErrors = {};
   const incomplete: string[] = [];
   for (const service of services) {
-    const result = serviceItem(service, draft.answers[service.code]);
+    const result = serviceItem(service, draft.answers[service.code], draft.schedule.mode);
     if (result.item) items.push(result.item);
     else {
       incomplete.push(service.code);
@@ -281,36 +366,180 @@ export function checkAddress(address: AddressDraft, zones: ReadonlyArray<ServedZ
   return errors;
 }
 
-// --- Créneaux ----------------------------------------------------------------------------------------
+// --- Passages (plan, ADR-052) ------------------------------------------------------------------------
 
-/** Première date proposée, au Bénin. */
+/**
+ * Premier jour proposé au calendrier, au Bénin (J+2, délai minimum de 48 h). Simple aide à la saisie : la
+ * gateway reste seule juge du délai (`CLEANING_LEAD_TIME_TOO_SHORT`, affiché sous le champ).
+ */
 export function firstAllowedDate(now: Date = new Date()): string {
   return beninDate(now, LEAD_DAYS);
 }
 
-export function checkSlots(draft: JourneyDraft, now: Date = new Date()): JourneyErrors {
-  const t = journeyTexts.slots;
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+const DAY_MS = 86_400_000;
+
+/** Jour civil valide `AAAA-MM-JJ` (le 2027-02-30 est refusé). */
+export function isDay(value: string): boolean {
+  if (!DAY.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+/**
+ * Fin d'une période de `months` mois commencée le `start` (bornes incluses) : la veille du même jour
+ * `months` mois plus tard. « 1 an » depuis le 2027-01-01 finit le 2027-12-31. Sert seulement à remplir
+ * `endDate` depuis les raccourcis de durée : les dates des passages viennent de l'aperçu de la gateway.
+ */
+export function periodEnd(start: string, months: number): string {
+  const [year, month, day] = start.split('-').map(Number) as [number, number, number];
+  const target = new Date(Date.UTC(year, month - 1 + months, 1));
+  const length = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  const same = Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), Math.min(day, length));
+  return new Date(same - DAY_MS).toISOString().slice(0, 10);
+}
+
+/** Fin de la période saisie : raccourci de durée, ou date choisie ; `''` si elle manque. */
+export function endDateOf(schedule: ScheduleDraft): string {
+  if (!isDay(schedule.startDate) || !schedule.period) return '';
+  return schedule.period === 'until'
+    ? schedule.endDate
+    : periodEnd(schedule.startDate, Number(schedule.period));
+}
+
+const sortedDays = (days: ReadonlyArray<string>) => [...new Set(days)].filter(isDay).sort();
+const byWeek = (days: ReadonlyArray<Weekday>) => WEEKDAYS.filter((day) => days.includes(day));
+const byRank = (ranks: ReadonlyArray<WeekOfMonth>) => WEEKS_OF_MONTH.filter((rank) => ranks.includes(rank));
+
+/** Clé d'erreur du délai minimum : le calendrier en mode `dates`, la date de début sinon. */
+export function leadTimeKey(mode: ScheduleMode | null): string {
+  return mode === 'dates' ? 'schedule.dates' : 'schedule.startDate';
+}
+
+/** Champs du plan que la gateway peut nommer (`details.field` : `schedule.<champ>`). */
+const SCHEDULE_FIELDS = new Set([
+  'mode',
+  'dates',
+  'startDate',
+  'endDate',
+  'weekdays',
+  'everyWeeks',
+  'monthDays',
+  'weeksOfMonth',
+  'startTime',
+  'excludedDates',
+  'extraDates',
+]);
+
+/**
+ * Clé d'erreur du parcours pour un champ du plan nommé par la gateway : `schedule.weekdays[0]` →
+ * `schedule.weekdays` ; `weekdays` (corps de l'aperçu) aussi ; `schedule` seul ou un champ inconnu →
+ * `schedule` (plan sans passage ou trop chargé, affiché avec l'aperçu).
+ */
+export function scheduleErrorKey(field: string): string {
+  const name = field.replace(/^schedule\.?/, '').replace(/[[.].*$/, '');
+  return SCHEDULE_FIELDS.has(name) ? `schedule.${name}` : 'schedule';
+}
+
+/** Contrôle de forme du plan : ce qui manque pour demander l'aperçu (les règles restent à la gateway). */
+export function checkSchedule(schedule: ScheduleDraft, now: Date = new Date()): JourneyErrors {
+  const t = journeyTexts.schedule.errors;
   const errors: JourneyErrors = {};
-  const minDate = firstAllowedDate(now);
-  const filled = draft.slots.filter((slot) => slot.date);
-  if (!filled.length) errors['slots'] = t.required;
-  else if (filled.some((slot) => slot.date < minDate)) {
-    errors['slots'] = t.tooEarly(formatShortDate(`${minDate}T12:00:00Z`));
+  if (!schedule.mode) return { 'schedule.mode': t.mode };
+  if (schedule.mode === 'dates') {
+    const days = sortedDays(schedule.dates);
+    // Jour passé ou trop proche (brouillon repris plus tard) : le calendrier ne le propose plus.
+    const minDate = firstAllowedDate(now);
+    if (!days.length) errors['schedule.dates'] = t.dates;
+    else if (days[0]! < minDate) errors['schedule.dates'] = t.tooEarly(minDate);
+  } else {
+    if (!isDay(schedule.startDate)) errors['schedule.startDate'] = t.startDate;
+    else if (!schedule.period) errors['schedule.endDate'] = t.period;
+    else if (schedule.period === 'until') {
+      if (!isDay(schedule.endDate)) errors['schedule.endDate'] = t.endDate;
+      else if (schedule.endDate < schedule.startDate) errors['schedule.endDate'] = t.endBeforeStart;
+    }
+    if (schedule.mode === 'weekly' || schedule.monthlyForm === 'weekdays') {
+      if (!schedule.weekdays.length) errors['schedule.weekdays'] = t.weekdays;
+    }
+    if (schedule.mode === 'monthly' && schedule.monthlyForm === 'monthDays' && !schedule.monthDays.length) {
+      errors['schedule.monthDays'] = t.monthDays;
+    }
+    if (schedule.mode === 'monthly' && schedule.monthlyForm === 'weekdays' && !schedule.weeksOfMonth.length) {
+      errors['schedule.weeksOfMonth'] = t.weeksOfMonth;
+    }
   }
-  if (draft.comment.trim().length > MAX_COMMENT) errors['comment'] = t.commentTooLong(MAX_COMMENT);
+  if (!TIME.test(schedule.startTime)) errors['schedule.startTime'] = t.startTime;
   return errors;
 }
 
-/** Créneaux du contrat (heures du Bénin en UTC), sans doublon. */
-export function preferredSlots(draft: JourneyDraft) {
-  const seen = new Set<string>();
-  return draft.slots
-    .filter((slot) => slot.date)
-    .map((slot) => {
-      const range = slotPeriods.find((item) => item.value === slot.period) ?? slotPeriods[0];
-      return beninSlot(slot.date, range.from, range.to);
-    })
-    .filter((slot) => !seen.has(slot.start) && seen.add(slot.start));
+/**
+ * Plan au format du contrat (`CleaningScheduleInput`), avec **seulement** les champs du mode choisi (la
+ * gateway refuse un champ d'un autre mode) ; `null` tant qu'il est incomplet. Jamais de `recurrence`.
+ */
+export function scheduleInputOf(schedule: ScheduleDraft, now: Date = new Date()): ScheduleInput | null {
+  if (!schedule.mode || Object.keys(checkSchedule(schedule, now)).length) return null;
+  const excluded = sortedDays(schedule.excludedDates);
+  const extra = sortedDays(schedule.extraDates);
+  const adjust = {
+    ...(excluded.length ? { excludedDates: excluded } : {}),
+    ...(extra.length ? { extraDates: extra } : {}),
+  };
+  const { startTime } = schedule;
+  if (schedule.mode === 'dates') {
+    return { mode: 'dates', dates: sortedDays(schedule.dates), startTime, ...adjust };
+  }
+  const period = { startDate: schedule.startDate, endDate: endDateOf(schedule) };
+  if (schedule.mode === 'weekly') {
+    const everyWeeks = Math.min(MAX_EVERY_WEEKS, Math.max(1, Math.trunc(schedule.everyWeeks) || 1));
+    return {
+      mode: 'weekly',
+      ...period,
+      weekdays: byWeek(schedule.weekdays),
+      ...(everyWeeks > 1 ? { everyWeeks } : {}),
+      startTime,
+      ...adjust,
+    };
+  }
+  if (schedule.monthlyForm === 'monthDays') {
+    const monthDays = [...new Set(schedule.monthDays)].sort((a, b) => a - b);
+    return { mode: 'monthly', ...period, monthDays, startTime, ...adjust };
+  }
+  return {
+    mode: 'monthly',
+    ...period,
+    weekdays: byWeek(schedule.weekdays),
+    weeksOfMonth: byRank(schedule.weeksOfMonth),
+    startTime,
+    ...adjust,
+  };
+}
+
+/** Plan envoyé, à la forme d'un plan enregistré (`CleaningSchedule`) : pour son résumé et son calendrier. */
+export function scheduleOf(input: ScheduleInput): Schedule {
+  return {
+    mode: input.mode,
+    dates: input.mode === 'dates' ? input.dates : [],
+    startDate: input.mode === 'dates' ? null : input.startDate,
+    endDate: input.mode === 'dates' ? null : input.endDate,
+    weekdays: input.mode === 'dates' ? [] : (input.weekdays ?? []),
+    everyWeeks: input.mode === 'weekly' ? (input.everyWeeks ?? 1) : 1,
+    monthDays: input.mode === 'monthly' ? (input.monthDays ?? []) : [],
+    weeksOfMonth: input.mode === 'monthly' ? (input.weeksOfMonth ?? []) : [],
+    startTime: input.startTime,
+    excludedDates: input.excludedDates ?? [],
+    extraDates: input.extraDates ?? [],
+  };
+}
+
+/** Erreurs de l'étape des passages : plan incomplet, commentaire trop long. */
+export function checkScheduleStep(draft: JourneyDraft, now: Date = new Date()): JourneyErrors {
+  const errors = checkSchedule(draft.schedule, now);
+  if (draft.comment.trim().length > MAX_COMMENT) {
+    errors['comment'] = journeyTexts.schedule.commentTooLong(MAX_COMMENT);
+  }
+  return errors;
 }
 
 // --- Étapes ------------------------------------------------------------------------------------------
@@ -335,8 +564,8 @@ export function stepErrors(
     }
     case 'address':
       return checkAddress(draft.address, zones);
-    case 'slots':
-      return checkSlots(draft, now);
+    case 'schedule':
+      return checkScheduleStep(draft, now);
     default:
       return {};
   }
@@ -366,20 +595,22 @@ export function buildGroupInput(
   const invalid = firstInvalidStep(STEPS.length - 1, draft, catalog, zones, now);
   const { items } = itemsOf(catalog, draft);
   const location = draft.address.location;
-  if (invalid < STEPS.length - 1 || !draft.placeType || !items.length || !location) {
+  const schedule = scheduleInputOf(draft.schedule, now);
+  if (invalid < STEPS.length - 1 || !draft.placeType || !items.length || !location || !schedule) {
     return { input: null, invalidStep: Math.min(invalid, STEPS.length - 2) };
   }
   const commune = communeOf(draft.address, zones);
   const comment = draft.comment.trim();
   return {
     invalidStep: null,
+    // Avec un plan, pas de créneaux souhaités (le premier passage en tient lieu) ni de `recurrence`.
     input: {
       placeType: draft.placeType,
       location,
       landmark: landmarkOf(draft.address),
       ...(commune ? { commune } : {}),
       items,
-      preferredSlots: preferredSlots(draft),
+      schedule,
       ...(comment ? { comment } : {}),
     },
   };
@@ -401,7 +632,8 @@ export function locateContractField(
     const service = items[Number(item[1])];
     if (!service) return { step: 1, key: 'services' };
     const [, , part, optionIndex, code] = item;
-    if (part === 'frequency') return { step: 1, key: `${service.serviceCode}.frequency` };
+    // La fréquence de prix suit le plan : c'est lui qu'il faut revoir.
+    if (part === 'frequency') return { step: SCHEDULE_STEP, key: 'schedule.mode' };
     if (part === 'answers' && code) return { step: 1, key: `${service.serviceCode}.fields.${code}` };
     const option = optionIndex !== undefined ? service.options[Number(optionIndex)] : undefined;
     if (part === 'options' && option && code) {
@@ -414,8 +646,9 @@ export function locateContractField(
   if (root === 'location') return { step: 2, key: 'address.location' };
   if (root === 'landmark') return { step: 2, key: 'address.landmark' };
   if (root === 'commune') return { step: 2, key: 'address.commune' };
-  if (root === 'preferredSlots') return { step: 3, key: 'slots' };
-  if (root === 'comment') return { step: 3, key: 'comment' };
+  if (root === 'schedule') return { step: SCHEDULE_STEP, key: scheduleErrorKey(field) };
+  if (root === 'preferredSlots') return { step: SCHEDULE_STEP, key: 'schedule' };
+  if (root === 'comment') return { step: SCHEDULE_STEP, key: 'comment' };
   return null;
 }
 
@@ -446,17 +679,61 @@ function readLocation(value: unknown): GeoLocationInput | null {
   };
 }
 
+/** Réponses d'une prestation ; la fréquence d'un brouillon v1 est ignorée (elle suit désormais le plan). */
 function readServiceDraft(value: unknown): ServiceDraft | null {
-  if (!isRecord(value) || !isStrings(value.fields) || typeof value.frequency !== 'string') return null;
+  if (!isRecord(value) || !isStrings(value.fields)) return null;
   if (!isRecord(value.options) || !Object.values(value.options).every(isStrings)) return null;
+  return { fields: value.fields, options: value.options as Record<string, RawAnswers> };
+}
+
+const MAX_DRAFT_DAYS = 1000;
+
+function readDays(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((item): item is string => typeof item === 'string' && isDay(item)))]
+    .sort()
+    .slice(0, MAX_DRAFT_DAYS);
+}
+
+function readOneOf<T>(value: unknown, allowed: ReadonlyArray<T>, fallback: T): T {
+  return allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+/** Plan d'un brouillon v2 : chaque champ altéré reprend sa valeur vide, sans tout perdre. */
+function readSchedule(value: unknown): ScheduleDraft {
+  const empty = emptySchedule();
+  if (!isRecord(value)) return empty;
+  const text = (item: unknown) => (typeof item === 'string' ? item : '');
+  const every = value.everyWeeks;
+  const weekdays: unknown[] = Array.isArray(value.weekdays) ? value.weekdays : [];
+  const ranks: unknown[] = Array.isArray(value.weeksOfMonth) ? value.weeksOfMonth : [];
   return {
-    fields: value.fields,
-    options: value.options as Record<string, RawAnswers>,
-    frequency: value.frequency,
+    mode: readOneOf<ScheduleMode | null>(value.mode, SCHEDULE_MODES, null),
+    dates: readDays(value.dates),
+    startDate: isDay(text(value.startDate)) ? text(value.startDate) : '',
+    period: readOneOf<PeriodLength | null>(value.period, PERIOD_LENGTHS, null),
+    endDate: isDay(text(value.endDate)) ? text(value.endDate) : '',
+    weekdays: WEEKDAYS.filter((day) => weekdays.includes(day)),
+    everyWeeks: isNumber(every, 1, MAX_EVERY_WEEKS) && Number.isInteger(every) ? every : empty.everyWeeks,
+    monthlyForm: readOneOf<MonthlyForm>(value.monthlyForm, ['monthDays', 'weekdays'], 'monthDays'),
+    monthDays: Array.isArray(value.monthDays)
+      ? [...new Set(value.monthDays)].filter(
+          (day): day is number => isNumber(day, 1, 31) && Number.isInteger(day),
+        )
+      : [],
+    weeksOfMonth: WEEKS_OF_MONTH.filter((rank) => ranks.includes(rank)),
+    startTime: TIME.test(text(value.startTime)) ? text(value.startTime) : '',
+    excludedDates: readDays(value.excludedDates),
+    extraDates: readDays(value.extraDates),
   };
 }
 
-/** Relit un brouillon enregistré ; `null` s'il est absent, d'une autre version ou altéré. */
+/**
+ * Relit un brouillon enregistré ; `null` s'il est absent, d'une version inconnue ou altéré.
+ * Version 1 (créneaux souhaités, avant le plan de passages) : lieu, prestations, adresse et commentaire
+ * sont repris ; les créneaux ne le sont pas (trois créneaux possibles pour une intervention ne sont pas
+ * trois passages) : le client choisit ses passages à l'étape qui les remplace.
+ */
 export function parseDraft(text: string | null): JourneyDraft | null {
   if (!text) return null;
   let value: unknown;
@@ -465,8 +742,8 @@ export function parseDraft(text: string | null): JourneyDraft | null {
   } catch {
     return null;
   }
-  if (!isRecord(value) || value.version !== 1) return null;
-  const { step, placeType, services, answers, address, slots, comment } = value;
+  if (!isRecord(value) || (value.version !== 1 && value.version !== 2)) return null;
+  const { step, placeType, services, answers, address, comment } = value;
   if (!isNumber(step, 0, STEPS.length - 1) || !Number.isInteger(step)) return null;
   if (placeType !== null && typeof placeType !== 'string') return null;
   if (!Array.isArray(services) || !services.every((item) => typeof item === 'string')) return null;
@@ -486,19 +763,8 @@ export function parseDraft(text: string | null): JourneyDraft | null {
     : null;
   const text_ = (item: unknown) => (typeof item === 'string' ? item : '');
   const location = readLocation(address.location);
-  const parsedSlots = Array.isArray(slots)
-    ? slots
-        .filter(isRecord)
-        .slice(0, MAX_SLOTS)
-        .map((slot) => ({
-          date: /^\d{4}-\d{2}-\d{2}$/.test(text_(slot.date)) ? text_(slot.date) : '',
-          period: (slotPeriods.some((period) => period.value === slot.period)
-            ? slot.period
-            : 'morning') as SlotPeriod,
-        }))
-    : [];
   return {
-    version: 1,
+    version: 2,
     step,
     placeType,
     services: services.slice(0, MAX_SERVICES),
@@ -511,7 +777,7 @@ export function parseDraft(text: string | null): JourneyDraft | null {
       district: text_(address.district),
       landmark: text_(address.landmark),
     },
-    slots: parsedSlots.length ? parsedSlots : [{ date: '', period: 'morning' }],
+    schedule: value.version === 2 ? readSchedule(value.schedule) : emptySchedule(),
     comment,
   };
 }

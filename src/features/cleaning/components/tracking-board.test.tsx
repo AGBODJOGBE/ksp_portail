@@ -178,6 +178,15 @@ describe('Suivre ma demande', () => {
       );
     }
     expect(screen.getByRole('button', { name: /Action requise/ })).toHaveTextContent('0');
+    // Filtre à part : les devis expirés ne sont plus rangés sous « Annulées ».
+    const expired = screen.getByRole('button', { name: /Expirées/ });
+    expect(expired).toHaveTextContent('2');
+    expect(screen.getByRole('button', { name: /Annulées/ })).toHaveTextContent('0');
+    fireEvent.click(expired);
+    expect(expired).toHaveAttribute('aria-pressed', 'true');
+    expect(cards()).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: /Annulées/ }));
+    expect(screen.getByText('Aucune demande ne correspond')).toBeInTheDocument();
   });
 
   it('propose « Réessayer » si la gateway ne répond pas', async () => {

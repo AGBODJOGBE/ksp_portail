@@ -19,7 +19,7 @@ import { journeyTexts } from '@/features/cleaning/journey-texts';
 import type { PlaceService } from '@/features/cleaning/schemas';
 import type { StepProps } from './journey';
 import { JourneyEstimate } from './journey-estimate';
-import { AnswerField, ChoicePills } from './journey-fields';
+import { AnswerField } from './journey-fields';
 
 const t = journeyTexts.services;
 
@@ -42,7 +42,7 @@ function CheckMark() {
   );
 }
 
-/** Formulaire d'une prestation cochée : ses champs, ses options (et leurs champs), sa fréquence. */
+/** Formulaire d'une prestation cochée : ses champs et ses options (et leurs champs). La fréquence suit le plan. */
 function ServicePanel({
   service,
   answers,
@@ -145,21 +145,6 @@ function ServicePanel({
             );
           })}
         </fieldset>
-      ) : null}
-
-      {form.frequencies.length ? (
-        <ChoicePills
-          name={`demande-${service.code}-frequence`}
-          legend={t.frequency}
-          options={form.frequencies.map((item) => ({ value: item.code, label: item.label }))}
-          value={answers.frequency}
-          onChange={(value) => {
-            change({ ...answers, frequency: value });
-            clearError(`${service.code}.frequency`);
-          }}
-          error={errors[`${service.code}.frequency`]}
-          errorKey={`${service.code}.frequency`}
-        />
       ) : null}
     </section>
   );

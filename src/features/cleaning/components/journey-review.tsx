@@ -1,14 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
 import { IconClock } from '@/components/ui/icons';
 import { ContextSwitcher, InlineLogin, ProfileForm, identityPaths } from '@/features/identity';
 import { ApiError, isDeletionPending, session, useSession } from '@/lib/api';
-import { formatShortDate } from '@/lib/format';
+import { cn } from '@/lib/cn';
 import { frenchSpacing } from '@/lib/typography';
 import { requestQuoteGroup } from '@/features/cleaning/api';
 import { describeCleaningError } from '@/features/cleaning/errors';
@@ -20,20 +20,27 @@ import {
   type JourneyDraft,
   type JourneyErrors,
   landmarkOf,
+  leadTimeKey,
   locateContractField,
   outOfZone,
   placeOf,
   type RawAnswers,
+  SCHEDULE_STEP,
+  scheduleInputOf,
+  scheduleOf,
   servicesOf,
   stepErrors,
 } from '@/features/cleaning/journey';
-import { journeyTexts, slotPeriods } from '@/features/cleaning/journey-texts';
+import { journeyTexts } from '@/features/cleaning/journey-texts';
+import { scheduleTexts } from '@/features/cleaning/journey-schedule-texts';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import type { FormField, PlaceService, RequestGroup } from '@/features/cleaning/schemas';
 import { cleaningTexts } from '@/features/cleaning/texts';
 import type { StepProps } from './journey';
 import { OutOfZoneNotice, useResolveLocation } from './journey-address';
 import { JourneyEstimate } from './journey-estimate';
+import { SchedulePlan } from './schedule-plan';
+import { useSchedulePreview } from './use-schedule-preview';
 
 const t = journeyTexts.review;
 
@@ -55,12 +62,11 @@ function answerLines(fields: ReadonlyArray<FormField>, raw: RawAnswers): string[
   });
 }
 
-/** Une prestation du récapitulatif : réponses, options cochées et fréquence. */
+/** Une prestation du récapitulatif : réponses et options cochées (la fréquence de prix suit le plan). */
 function ServiceRecap({ service, draft }: { service: PlaceService; draft: JourneyDraft }) {
   const answers = draft.answers[service.code];
   if (!answers) return null;
   const options = service.form.options.filter((option) => answers.options[option.code]);
-  const frequency = service.form.frequencies.find((item) => item.code === answers.frequency);
   return (
     <li className="grid gap-1 py-3">
       <p className="text-ink font-semibold">{service.name}</p>
@@ -71,7 +77,6 @@ function ServiceRecap({ service, draft }: { service: PlaceService; draft: Journe
             const details = answerLines(option.fields, answers.options[option.code] ?? {});
             return details.length ? `${option.label} (${details.join(', ')})` : option.label;
           }),
-          ...(frequency ? [`${t.frequency} : ${frequency.label}`] : []),
         ].join(' · ')}
       </p>
     </li>
@@ -170,6 +175,12 @@ export function ReviewStep({
   const frozen = isDeletionPending(current);
   const context = current?.activeContext;
   const business = context?.type === 'business';
+  // Aperçu du plan (déjà reçu à l'étape des passages : relu sans nouvel appel).
+  const scheduleInput = useMemo(() => scheduleInputOf(draft.schedule), [draft.schedule]);
+  const { state: preview, retry: retryPreview } = useSchedulePreview(scheduleInput);
+  const p = scheduleTexts.preview;
+  const shownPreview =
+    preview.status === 'ready' ? preview.preview : preview.status === 'pending' ? preview.previous : null;
 
   async function send() {
     if (pending) return;
@@ -191,8 +202,10 @@ export function ReviewStep({
       else if (view.kind === 'zone' || view.kind === 'location') {
         if (view.kind === 'location') setResolved({ commune: null, served: false, displayAddress: null });
         goTo(2, { 'address.commune': view.message });
-      } else if (view.kind === 'slots') goTo(3, { slots: view.message });
-      else if (view.kind === 'field' && located) goTo(located.step, { [located.key]: view.message });
+      } else if (view.kind === 'slots') {
+        // Délai minimum (48 h) : sous la date de début, ou sous le calendrier des dates précises.
+        goTo(SCHEDULE_STEP, { [leadTimeKey(draft.schedule.mode)]: view.message });
+      } else if (view.kind === 'field' && located) goTo(located.step, { [located.key]: view.message });
       else if (view.kind === 'catalog') {
         setMessage(
           <>
@@ -251,19 +264,44 @@ export function ReviewStep({
               {t.position} : {draft.address.location ? t.positionSet : t.none}
             </p>
           </RecapRow>
-          <RecapRow label={t.slots} onEdit={() => goTo(3)} editLabel={`${journeyTexts.edit} : ${steps[3]}`}>
-            <ul className="grid gap-1">
-              {draft.slots
-                .filter((slot) => slot.date)
-                .map((slot) => (
-                  <li key={`${slot.date}-${slot.period}`}>
-                    {formatShortDate(`${slot.date}T12:00:00Z`)} ·{' '}
-                    {slotPeriods.find((period) => period.value === slot.period)?.label}
-                  </li>
-                ))}
-            </ul>
+          <RecapRow
+            label={t.passages}
+            onEdit={() => goTo(SCHEDULE_STEP)}
+            editLabel={`${journeyTexts.edit} : ${steps[SCHEDULE_STEP]}`}
+          >
+            {scheduleInput && shownPreview ? (
+              <div className={cn('transition-opacity', preview.status === 'pending' && 'opacity-60')}>
+                <SchedulePlan
+                  key={shownPreview.firstDate}
+                  schedule={scheduleOf(scheduleInput)}
+                  dates={shownPreview.dates}
+                />
+              </div>
+            ) : null}
+            {!scheduleInput ? <p className="text-ink-muted">{t.none}</p> : null}
+            {preview.status === 'pending' && !shownPreview ? (
+              <p role="status" className="text-small text-ink-muted">
+                {p.loading}
+              </p>
+            ) : null}
+            {preview.status === 'invalid' ? (
+              <p className="text-small text-danger font-medium">{preview.message}</p>
+            ) : null}
+            {preview.status === 'busy' ? (
+              <p role="status" className="text-small text-ink">
+                {p.busy(preview.seconds)}
+              </p>
+            ) : null}
+            {preview.status === 'failed' ? (
+              <div className="grid justify-items-start gap-2">
+                <p className="text-small text-danger font-medium">{`${p.failed} ${preview.message}`}</p>
+                <Button variant="secondary" onClick={retryPreview}>
+                  {p.retry}
+                </Button>
+              </div>
+            ) : null}
             {draft.comment.trim() ? (
-              <p className="text-small text-ink-muted mt-2">
+              <p className="text-small text-ink-muted mt-3">
                 {t.comment} : {draft.comment.trim()}
               </p>
             ) : null}
@@ -278,6 +316,7 @@ export function ReviewStep({
         catalog={catalog}
         draft={draft}
         commune={commune}
+        passages={preview.status === 'ready' ? preview.preview.count : null}
         className="lg:sticky lg:top-[calc(var(--header-h)+1.5rem)] lg:col-start-2 lg:row-span-2 lg:row-start-1"
       />
 

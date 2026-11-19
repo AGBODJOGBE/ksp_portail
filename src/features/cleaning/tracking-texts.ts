@@ -18,6 +18,7 @@ export const trackingTexts = {
     action: 'Action requise',
     ongoing: 'En cours',
     done: 'Terminées',
+    expired: 'Expirées',
     cancelled: 'Annulées',
   },
   soon: 'Bientôt',
