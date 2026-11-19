@@ -49,3 +49,39 @@ export const paymentListSchema = z.object({
 
 export type Payment = z.infer<typeof paymentSchema>;
 export type PaymentList = z.infer<typeof paymentListSchema>;
+
+/*
+ * Lien de paiement vu par un payeur sans compte (ADR-040, routes publiques `/api/v1/payment/links/{token}`) :
+ * aucune donnée personnelle, aucun identifiant interne sauf celui de la tentative.
+ */
+
+/** `PaymentLinkPayment` : tentative de paiement d'un lien. */
+export const paymentLinkPaymentSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+  /** Page du prestataire tant que la tentative est `pending` ; null sinon. */
+  checkoutUrl: z.nullable(z.string()),
+  expiresAt: z.string(),
+  failureReason: z.nullable(z.string()),
+});
+
+/** `PublicPaymentLink` : `active`, `paid`, `under_review`, `revoked` ou `expired`. */
+export const publicPaymentLinkSchema = z.object({
+  status: z.string(),
+  /** Bénéficiaire affiché (créancier). */
+  beneficiaryName: z.string(),
+  /** Libellé, par exemple « Échéance 2 sur 6 ». */
+  description: z.string(),
+  /** Référence de l'émetteur, à citer au support. */
+  reference: z.string(),
+  amount: moneySchema,
+  /** Date seule (AAAA-MM-JJ). */
+  dueDate: z.nullable(z.string()),
+  expiresAt: z.string(),
+  paidAt: z.nullable(z.string()),
+  /** Dernière tentative, null si aucune. */
+  payment: z.nullable(paymentLinkPaymentSchema),
+});
+
+export type PaymentLinkPayment = z.infer<typeof paymentLinkPaymentSchema>;
+export type PublicPaymentLink = z.infer<typeof publicPaymentLinkSchema>;

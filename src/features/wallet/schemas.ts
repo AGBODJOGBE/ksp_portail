@@ -13,10 +13,18 @@ const moneySchema = z.object({ amount: z.int(), currency: z.literal('XOF') });
  * montants de recharge acceptés (`topUpLimits`). Les fonds de créancier (`balance`, ADR-042) ne sont pas
  * affichés ici. `prepaid` et `topUpLimits` sont facultatifs au contrat (gateway antérieure) : absents, le
  * solde se lit comme nul et la recharge n'est pas proposée.
+ *
+ * `totalCollected`, `payoutsInProgress`, `totalPaidOut` (fonds de créancier, ADR-041, 042) : obligatoires au
+ * contrat, lus ici seulement pour savoir si la rubrique « Reversements » concerne le titulaire. Facultatifs
+ * dans ce schéma : le paiement par le portefeuille (fiches des missions et factures) relit aussi
+ * `GET /wallet/me` et ne doit pas échouer pour une rubrique qu'il n'affiche pas.
  */
 export const walletSchema = z.object({
   prepaid: z.optional(z.object({ balance: moneySchema, lastEntryAt: z.nullable(z.string()) })),
   topUpLimits: z.optional(z.object({ min: moneySchema, max: moneySchema })),
+  totalCollected: z.optional(moneySchema),
+  payoutsInProgress: z.optional(moneySchema),
+  totalPaidOut: z.optional(moneySchema),
 });
 
 /** `WalletObjectReference` : mission ou facture payée, chez le service qui a débité. */
@@ -55,7 +63,33 @@ export const topUpSchema = z.object({
   checkoutUrl: z.nullable(z.string()),
 });
 
+/**
+ * `WalletPayout` (ADR-041) : reversement des fonds dus au titulaire vers son compte Mobile Money. Statuts
+ * `pending_submission`, `submitted`, `completed`, `failed` (montant rendu au solde). Numéro toujours masqué.
+ */
+export const payoutSchema = z.object({
+  id: z.string(),
+  holder: z.object({ type: z.string(), id: z.string() }),
+  amount: moneySchema,
+  status: z.string(),
+  paymentPayoutId: z.nullable(z.string()),
+  /** `mtn`, `moov` ou `celtiis`. */
+  beneficiaryOperator: z.string(),
+  beneficiaryPhoneMasked: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  completedAt: z.nullable(z.string()),
+  failedAt: z.nullable(z.string()),
+});
+
+export const payoutListSchema = z.object({
+  data: z.array(payoutSchema),
+  nextCursor: z.nullable(z.string()),
+});
+
 export type Money = z.infer<typeof moneySchema>;
+export type Payout = z.infer<typeof payoutSchema>;
+export type PayoutList = z.infer<typeof payoutListSchema>;
 export type Wallet = z.infer<typeof walletSchema>;
 export type StatementLine = z.infer<typeof statementLineSchema>;
 export type Statement = z.infer<typeof statementSchema>;

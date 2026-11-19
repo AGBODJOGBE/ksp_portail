@@ -56,6 +56,23 @@ export const walletTexts = {
   seeMission: 'Voir la prestation',
   seeInvoice: 'Voir la facture',
 
+  // Reversements (fonds dus au titulaire, ADR-041).
+  payoutsTitle: 'Reversements',
+  payoutsLead: 'Les sommes qui vous sont dues sont versées sur votre compte Mobile Money.',
+  paidOut: 'Déjà reversé',
+  inProgress: 'En cours',
+  payoutsEmpty: 'Aucun reversement pour le moment.',
+  payoutTo: (operator: string, phone: string) => `Vers ${operator} ${phone}`,
+  payoutCompleted: (date: string) => `Versé le ${date}`,
+  payoutFailed: (date: string) => `Échec le ${date} : le montant est revenu à votre solde.`,
+  payoutStatuses: {
+    pending_submission: 'En préparation',
+    submitted: 'En cours',
+    completed: 'Versé',
+    failed: 'Échoué',
+  } as Record<string, string>,
+  operators: { mtn: 'MTN', moov: 'Moov', celtiis: 'Celtiis' } as Record<string, string>,
+
   // Retour d'une recharge (page de retour du prestataire).
   topUpDone: 'Recharge confirmée : votre portefeuille est crédité.',
   newBalance: (amount: string) => `Nouveau solde : ${amount}`,

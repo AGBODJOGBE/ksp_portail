@@ -9,6 +9,7 @@ import { useResource } from '@/lib/use-resource';
 import { useReadOnly } from '@/features/identity';
 import { getWallet } from '@/features/wallet/api';
 import { walletTexts as t } from '@/features/wallet/texts';
+import { Payouts } from './payouts';
 import { Statement } from './statement';
 import { TopUpForm } from './top-up-form';
 
@@ -45,8 +46,12 @@ function Space() {
     );
   }
 
-  const { prepaid, topUpLimits } = state.data;
+  const { prepaid, topUpLimits, totalCollected, payoutsInProgress, totalPaidOut } = state.data;
   const balance = prepaid?.balance ?? { amount: 0, currency: 'XOF' as const };
+  // « Reversements » : seulement pour un titulaire qui a reçu des fonds à reverser (créancier, ADR-042).
+  const collects = [totalCollected, payoutsInProgress, totalPaidOut].some(
+    (money) => (money?.amount ?? 0) > 0,
+  );
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
       <section
@@ -88,6 +93,35 @@ function Space() {
         </Heading>
         <Statement />
       </section>
+
+      {collects ? (
+        <section aria-labelledby="reversements-titre" className="grid gap-3 lg:col-start-1 lg:row-start-3">
+          <div className="grid gap-1">
+            <Heading as="h2" size="h3" id="reversements-titre">
+              {t.payoutsTitle}
+            </Heading>
+            <p className="text-small text-ink-muted">{t.payoutsLead}</p>
+          </div>
+          <dl className="flex flex-wrap gap-x-8 gap-y-2">
+            {(
+              [
+                [t.paidOut, totalPaidOut],
+                [t.inProgress, payoutsInProgress],
+              ] as const
+            ).map(([label, money]) =>
+              money ? (
+                <div key={label} className="grid">
+                  <dt className="text-small text-ink-muted">{label}</dt>
+                  <dd className="font-display text-ink text-lg font-semibold tabular-nums">
+                    {formatXof(money)}
+                  </dd>
+                </div>
+              ) : null,
+            )}
+          </dl>
+          <Payouts />
+        </section>
+      ) : null}
     </div>
   );
 }

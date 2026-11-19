@@ -62,6 +62,13 @@ describe('lien d’une notification', () => {
     expect(internalLink('https://ksp.bj/mon-espace-pirate')).toBeNull();
     expect(internalLink(null)).toBeNull();
   });
+
+  it('mène au document à signer (lien `accountSigningLink` du service document)', () => {
+    const id = '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d7001';
+    expect(internalLink(`https://ksp.bj/mon-espace/documents/${id}`)).toBe(`/mon-espace/documents/${id}`);
+    // Le lien personnel d'un signataire sans compte n'est jamais une notification de Mon espace.
+    expect(internalLink('https://ksp.bj/signer/jeton-du-lien-personnel')).toBeNull();
+  });
 });
 
 describe('Mes notifications', () => {

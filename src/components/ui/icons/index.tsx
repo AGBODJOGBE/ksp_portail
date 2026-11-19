@@ -390,3 +390,23 @@ export function IconGrid(props: IconProps) {
     </Icon>
   );
 }
+
+/** Bouclier coché : sécurité d'un paiement ou d'une signature. */
+export function IconShield(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3.5 5 6v5.5c0 4.2 2.9 7.9 7 9 4.1-1.1 7-4.8 7-9V6l-7-2.5Z" />
+      <path d="m9 12 2 2 4-4" />
+    </Icon>
+  );
+}
+
+/** Stylo : signature d'un document. */
+export function IconPen(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M15.5 4.5 19.5 8.5 9 19H5v-4L15.5 4.5Z" />
+      <path d="M13.5 6.5l4 4M4 21h16" />
+    </Icon>
+  );
+}

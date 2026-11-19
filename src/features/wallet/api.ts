@@ -1,9 +1,11 @@
 import { api, parseResponse } from '@/lib/api';
 import {
   type Money,
+  type PayoutList,
   type Statement,
   type TopUp,
   type Wallet,
+  payoutListSchema,
   statementSchema,
   topUpSchema,
   walletSchema,
@@ -32,4 +34,12 @@ export async function listStatement(cursor?: string): Promise<Statement> {
 /** Recharge par Mobile Money : le portefeuille est crédité à la confirmation par le prestataire. */
 export async function createTopUp(amount: Money, idempotencyKey: string): Promise<TopUp> {
   return parseResponse(topUpSchema, await api.post(`${WALLET}/top-ups`, { amount }, { idempotencyKey }));
+}
+
+/** Reversements du titulaire (ADR-041), les plus récents d'abord, page par page (curseur). */
+export async function listPayouts(cursor?: string): Promise<PayoutList> {
+  return parseResponse(
+    payoutListSchema,
+    await api.get(`${WALLET}/payouts`, { query: { limit: PAGE_SIZE, cursor } }),
+  );
 }
