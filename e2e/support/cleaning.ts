@@ -202,6 +202,18 @@ export function fakeCleaning(): FakeCleaning {
     if (key === 'GET /api/v1/cleaning/services') return { status: 200, body: SERVICES };
     if (key === 'GET /api/v1/cleaning/zones') return { status: 200, body: ZONES };
     if (key === 'GET /api/v1/cleaning/catalog') return { status: 200, body: CATALOG };
+    if (key === 'POST /api/v1/cleaning/schedules/preview') {
+      // Treize lundis à partir du premier lundi de la période : assez juste pour le parcours.
+      const start = new Date(`${String(body?.startDate)}T00:00:00Z`);
+      start.setUTCDate(start.getUTCDate() + ((8 - start.getUTCDay()) % 7));
+      const dates = Array.from({ length: 13 }, (_, i) =>
+        new Date(start.getTime() + i * 7 * 86_400_000).toISOString().slice(0, 10),
+      );
+      return {
+        status: 200,
+        body: { dates, count: dates.length, firstDate: dates[0], lastDate: dates.at(-1), warnings: [] },
+      };
+    }
     if (key === 'POST /api/v1/cleaning/estimates') {
       const commune = typeof body?.commune === 'string' ? body.commune : null;
       return {
