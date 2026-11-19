@@ -4,7 +4,6 @@ import {
   type Statement,
   type TopUp,
   type Wallet,
-  membershipRoleSchema,
   statementSchema,
   topUpSchema,
   walletSchema,
@@ -33,14 +32,4 @@ export async function listStatement(cursor?: string): Promise<Statement> {
 /** Recharge par Mobile Money : le portefeuille est crédité à la confirmation par le prestataire. */
 export async function createTopUp(amount: Money, idempotencyKey: string): Promise<TopUp> {
   return parseResponse(topUpSchema, await api.post(`${WALLET}/top-ups`, { amount }, { idempotencyKey }));
-}
-
-/**
- * Rôle du membre dans l'organisation active (`GET /identity/organizations/{id}`, rôle seul) : lu ici plutôt
- * que par l'index d'identity, dont l'import ferait télécharger ses écrans et ses schémas aux pages qui
- * affichent le solde.
- */
-export async function getOrganizationRole(organizationId: string): Promise<string> {
-  const path = `/api/v1/identity/organizations/${encodeURIComponent(organizationId)}`;
-  return parseResponse(membershipRoleSchema, await api.get(path)).role;
 }

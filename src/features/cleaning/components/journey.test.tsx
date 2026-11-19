@@ -10,11 +10,18 @@ import {
   requestGroup,
   stubGateway,
 } from '@/features/cleaning/fake-gateway.test-utils';
-import { DRAFT_KEY, emptyDraft } from '@/features/cleaning/journey';
+import {
+  DRAFT_KEY,
+  emptyDraft,
+  emptySchedule,
+  firstAllowedDate,
+  type JourneyDraft,
+} from '@/features/cleaning/journey';
 import type { PlaceCatalog } from '@/features/cleaning/schemas';
 import { CleaningJourney } from './journey';
 import { parseCoordinates } from './journey-address';
 import { ReviewStep } from './journey-review';
+import { resetPreviewCache } from './use-schedule-preview';
 
 // La carte (Leaflet) ne se charge pas dans jsdom : l'écran doit le dire et garder la saisie des coordonnées.
 vi.mock('leaflet', () => {
@@ -34,7 +41,18 @@ vi.mock('next/navigation', () => ({
 const LAZY = { timeout: 5000 };
 const plain = (text: string | null) => (text ?? '').replace(/\s/g, ' ');
 const next = () => fireEvent.click(screen.getByRole('button', { name: /^(Continuer|Vérifier ma demande)/ }));
-const inDays = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+/** Jour civil `AAAA-MM-JJ` décalé de `days` jours (dates de test seulement). */
+const shift = (day: string, days: number) =>
+  new Date(Date.parse(`${day}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+const PREVIEW = '/api/v1/cleaning/schedules/preview';
+/** Aperçu de la gateway : les dates exactes viennent d'elle, jamais du front. */
+const previewOf = (dates: string[]) => ({
+  dates,
+  count: dates.length,
+  firstDate: dates[0],
+  lastDate: dates.at(-1),
+  warnings: [],
+});
 
 function signIn() {
   session.set({
@@ -76,6 +94,7 @@ beforeEach(() => {
   search = '';
   replace.mockReset();
   resetServicesCache();
+  resetPreviewCache();
   window.sessionStorage.clear();
 });
 afterEach(() => {
@@ -84,8 +103,11 @@ afterEach(() => {
 });
 
 describe('demande de devis par lieu', () => {
-  it('parcours complet : lieu, prestations et estimation, adresse, créneaux, connexion à l’envoi, confirmation', async () => {
+  it('parcours complet : lieu, prestations et estimation, adresse, passages, connexion à l’envoi, confirmation', async () => {
+    const start = shift(firstAllowedDate(), 3);
+    const planned = [shift(start, 2), shift(start, 9), shift(start, 16)];
     const gateway = stubGateway({
+      [`POST ${PREVIEW}`]: { status: 200, body: previewOf(planned) },
       'POST /api/v1/cleaning/estimates': (body) => ({
         status: 200,
         body: estimateResponse(body as Parameters<typeof estimateResponse>[0]),
@@ -128,9 +150,7 @@ describe('demande de devis par lieu', () => {
     fireEvent.change(screen.getByRole('textbox', { name: /^Superficie/ }), { target: { value: '180' } });
     const condition = screen.getByRole('group', { name: 'État de la maison' });
     fireEvent.click(within(condition).getByLabelText('Normal'));
-    fireEvent.click(
-      within(screen.getAllByRole('group', { name: 'À quelle fréquence ?' })[0]!).getByLabelText('Une fois'),
-    );
+    expect(screen.queryByRole('group', { name: 'À quelle fréquence ?' })).not.toBeInTheDocument();
     const windows = screen.getAllByRole('textbox', { name: /^Nombre de fenêtres/ });
     fireEvent.change(windows[0]!, { target: { value: '10' } });
     const estimate = screen.getByRole('region', { name: 'Votre estimation' });
@@ -163,16 +183,36 @@ describe('demande de devis par lieu', () => {
     });
     next();
 
-    // 4. Les créneaux.
-    fireEvent.change(await screen.findByLabelText('Date du créneau 1', {}, LAZY), {
-      target: { value: inDays(5) },
-    });
+    // 4. Les passages : continuer sans choix signale le mode ; puis chaque semaine, lundi, 3 mois, 8 h.
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Quand faut-il passer ?' }, LAZY),
+    ).toBeInTheDocument();
+    await screen.findByLabelText(/^Chaque semaine/, {}, LAZY);
+    next();
+    expect(screen.getByText('Choisissez comment se répartissent vos passages.')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText(/^Chaque semaine/));
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Quels jours de la semaine ?' })).getByLabelText('lundi'),
+    );
+    fireEvent.change(screen.getByLabelText('À partir du'), { target: { value: start } });
+    fireEvent.click(screen.getByLabelText('3 mois'));
+    fireEvent.change(screen.getByLabelText('Heure d’arrivée'), { target: { value: '08:00' } });
+    const passages = screen.getByRole('region', { name: 'Vos passages' });
+    expect(await within(passages).findByText('3 passages', {}, LAZY)).toBeInTheDocument();
     next();
 
     // 5. Récapitulatif : la connexion est demandée ici, la saisie est gardée dans l'onglet.
     expect(await screen.findByRole('button', { name: 'Recevoir mon code' }, LAZY)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Envoyer ma demande' })).toBeDisabled();
-    expect(JSON.parse(window.sessionStorage.getItem(DRAFT_KEY) ?? '{}')).toMatchObject({ step: 4 });
+    expect(JSON.parse(window.sessionStorage.getItem(DRAFT_KEY) ?? '{}')).toMatchObject({
+      version: 2,
+      step: 4,
+      schedule: { mode: 'weekly', weekdays: ['mon'], startDate: start, period: '3', startTime: '08:00' },
+    });
+    // Le récapitulatif montre le plan (résumé, calendrier) sans nouvel appel à l’aperçu.
+    expect(await screen.findByText(/^3 passages, chaque lundi, du/, {}, LAZY)).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Calendrier des passages' })).toBeInTheDocument();
+    expect(gateway.calls.filter((call) => call.path === PREVIEW)).toHaveLength(1);
     act(() => signIn());
     expect(await screen.findByText('Connecté : Koffi Adjovi')).toBeInTheDocument();
     // Connecté : la commune de la position est retrouvée avant l'envoi.
@@ -192,7 +232,14 @@ describe('demande de devis par lieu', () => {
       location: { latitude: 6.365412, longitude: 2.418346, accuracyMeters: 12 },
       landmark: 'Portail vert',
       commune: 'Cotonou',
+      schedule: { mode: 'weekly', startDate: start, weekdays: ['mon'], startTime: '08:00' },
     });
+    // Un plan, ni créneaux ni récurrence ; fréquence de prix déduite du plan (pas de « weekly » : repli « once »).
+    expect(sent?.body).not.toHaveProperty('preferredSlots');
+    expect(sent?.body).not.toHaveProperty('recurrence');
+    expect(
+      (sent?.body as { items: Array<{ frequency?: string }> }).items.map((item) => item.frequency),
+    ).toEqual(['once', undefined]);
     const resolve = gateway.calls.find((call) => call.path === '/api/v1/cleaning/locations/resolve');
     expect(resolve?.body).toEqual({ latitude: 6.365412, longitude: 2.418346 });
     expect(window.sessionStorage.getItem(DRAFT_KEY)).toBeNull();
@@ -341,5 +388,116 @@ describe('récapitulatif avec un compte en cours de suppression (ADR-036)', () =
     );
     expect(screen.getByRole('button', { name: 'Envoyer ma demande' })).toBeDisabled();
     expect(calls.filter((call) => call.method !== 'POST' || !call.path.endsWith('/estimates'))).toEqual([]);
+  });
+});
+
+/** Brouillon complet : maison, ménage seul (prix publié), position à Cotonou, plan hebdomadaire. */
+function reviewDraft(): JourneyDraft {
+  return {
+    ...emptyDraft('house'),
+    step: 4,
+    services: ['house_cleaning'],
+    answers: { house_cleaning: { fields: { surface: '180', condition: 'normal' }, options: {} } },
+    address: {
+      location: { latitude: 6.3654, longitude: 2.4183 },
+      resolved: null,
+      commune: 'Cotonou',
+      district: '',
+      landmark: 'Portail vert',
+    },
+    schedule: {
+      ...emptySchedule(),
+      mode: 'weekly',
+      startDate: shift(firstAllowedDate(), 3),
+      period: '3',
+      weekdays: ['mon'],
+      startTime: '08:00',
+    },
+  };
+}
+
+function renderReview(goTo = vi.fn()) {
+  render(
+    <ReviewStep
+      draft={reviewDraft()}
+      catalog={CATALOG as PlaceCatalog}
+      zones={ZONES.data}
+      update={vi.fn()}
+      errors={{}}
+      clearError={vi.fn()}
+      goTo={goTo}
+      onSent={vi.fn()}
+    />,
+  );
+  return goTo;
+}
+
+describe('récapitulatif avec un plan de passages (ADR-052)', () => {
+  const start = shift(firstAllowedDate(), 3);
+  const planned = Array.from({ length: 13 }, (_, index) => shift(start, 2 + index * 7));
+  const routes = {
+    [`POST ${PREVIEW}`]: { status: 200, body: previewOf(planned) },
+    'POST /api/v1/cleaning/estimates': (body: unknown) => ({
+      status: 200,
+      body: estimateResponse(body as Parameters<typeof estimateResponse>[0]),
+    }),
+  };
+
+  it('prix d’un passage gardé visible, et × nombre de passages de l’aperçu, indicatif (décision A1)', async () => {
+    stubGateway(routes);
+    signIn();
+    renderReview();
+    const estimate = screen.getByRole('region', { name: 'Votre estimation' });
+    await within(estimate).findByText('Pour vos 13 passages', {}, LAZY);
+    expect(plain(estimate.textContent)).toMatch(/Prix d’un passage50 000/);
+    expect(plain(estimate.textContent)).toMatch(/Pour vos 13 passages650 000/);
+    expect(plain(estimate.textContent)).toContain('Montant indicatif, confirmé au devis');
+    expect(screen.getByText(/^13 passages, chaque lundi, du/)).toBeInTheDocument();
+  });
+
+  it('délai trop court à l’envoi : retour aux passages, message sous la date de début', async () => {
+    stubGateway({
+      ...routes,
+      'POST /api/v1/cleaning/quote-request-groups': {
+        status: 422,
+        body: errorBody(
+          'CLEANING_LEAD_TIME_TOO_SHORT',
+          'Une intervention se réserve au moins 48 heures à l’avance.',
+          {
+            minimumHours: 48,
+          },
+        ),
+      },
+    });
+    signIn();
+    const goTo = renderReview();
+    const send = await screen.findByRole('button', { name: 'Envoyer ma demande' }, LAZY);
+    await vi.waitFor(() => expect(send).toBeEnabled());
+    fireEvent.click(send);
+    await vi.waitFor(() =>
+      expect(goTo).toHaveBeenCalledWith(3, {
+        'schedule.startDate': 'Une intervention se réserve au moins 48 heures à l’avance.',
+      }),
+    );
+  });
+
+  it('champ du plan refusé à l’envoi : retour aux passages, sous ce champ', async () => {
+    stubGateway({
+      ...routes,
+      'POST /api/v1/cleaning/quote-request-groups': {
+        status: 400,
+        body: errorBody('CLEANING_VALIDATION_FAILED', 'La période couvre 36 mois au plus.', {
+          field: 'schedule.endDate',
+        }),
+      },
+    });
+    signIn();
+    const goTo = renderReview();
+    const send = await screen.findByRole('button', { name: 'Envoyer ma demande' }, LAZY);
+    await vi.waitFor(() => expect(send).toBeEnabled());
+    fireEvent.click(send);
+    await vi.waitFor(() =>
+      expect(goTo).toHaveBeenCalledWith(3, { 'schedule.endDate': 'La période couvre 36 mois au plus.' }),
+    );
   });
 });

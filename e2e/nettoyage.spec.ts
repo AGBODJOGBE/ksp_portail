@@ -1,10 +1,10 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 import { fakeCleaning } from './support/cleaning';
 import { mockGateway, VALID_CODE } from './support/gateway';
 
 /**
  * Parcours client du Nettoyage contre une gateway simulée : demande de devis par lieu (lieu,
- * prestations et estimation, position, créneaux, connexion à l'envoi, confirmation, suivi du groupe),
+ * prestations et estimation, position, plan de passages, connexion à l'envoi, confirmation, suivi du groupe),
  * puis acceptation d'un devis et mission.
  */
 
@@ -35,7 +35,8 @@ test('demande de devis par lieu : estimation, position, connexion à l’envoi, 
   await page.getByText('Nettoyage de vitres', { exact: true }).first().click();
   await page.getByRole('textbox', { name: /^Nombre de fenêtres/ }).fill('12');
   await page.getByRole('group', { name: 'Accès aux fenêtres' }).getByText('Plain-pied').click();
-  await page.getByRole('group', { name: 'À quelle fréquence ?' }).getByText('Une fois').click();
+  // La fréquence n'est plus demandée : elle vient du plan de passages.
+  await expect(page.getByRole('group', { name: 'À quelle fréquence ?' })).toHaveCount(0);
   const estimate = page.getByRole('region', { name: 'Votre estimation' });
   await expect(estimate.getByText(/33\s500\sF\sCFA – 43\s000\sF\sCFA/)).toBeVisible();
   await expect(estimate.getByText(/Estimation non contractuelle/)).toBeVisible();
@@ -55,8 +56,16 @@ test('demande de devis par lieu : estimation, position, connexion à l’envoi, 
   );
   await next();
 
-  // 4. Les créneaux.
-  await page.getByLabel('Date du créneau 1').fill(inDays(4));
+  // 4. Les passages : chaque lundi pendant 3 mois, dates calculées par la gateway.
+  // Choix en cartes : le champ est masqué, on clique sur sa carte (le libellé), comme l'utilisateur.
+  const card = (field: Locator) => field.locator('xpath=ancestor::label[1]').click();
+  await card(page.getByRole('radio', { name: /^Chaque semaine/ }));
+  await card(page.getByRole('group', { name: 'Quels jours de la semaine ?' }).getByLabel('lundi'));
+  await page.getByLabel('À partir du').fill(inDays(5));
+  await card(page.getByLabel('3 mois'));
+  await page.getByLabel('Heure d’arrivée').fill('08:00');
+  const plan = page.getByRole('region', { name: 'Vos passages' });
+  await expect(plan.getByText('13 passages prévus.')).toBeVisible();
   await next();
 
   // 5. Récapitulatif : connexion par téléphone dans le parcours, puis envoi.
@@ -84,10 +93,13 @@ test('demande de devis par lieu : estimation, position, connexion à l’envoi, 
       {
         serviceCode: 'window_cleaning',
         answers: { window_count: 12, access: 'ground_floor' },
-        frequency: 'once',
+        frequency: 'weekly',
       },
     ],
+    schedule: { mode: 'weekly', weekdays: ['mon'], startDate: inDays(5), startTime: '08:00' },
   });
+  expect(sent?.body).not.toHaveProperty('preferredSlots');
+  expect(sent?.body).not.toHaveProperty('recurrence');
   // « Suivre ma demande » de la confirmation (l'en-tête a aussi un lien de ce nom, vers /mon-espace/suivi).
   await page
     .getByRole('main')

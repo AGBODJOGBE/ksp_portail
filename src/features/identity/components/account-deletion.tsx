@@ -32,7 +32,8 @@ export function ObstacleList({ obstacles }: { obstacles: ReadonlyArray<DeletionO
                 href={href}
                 className="text-action-ink inline-flex min-h-11 items-center gap-1 text-sm font-semibold underline-offset-4 hover:underline"
               >
-                {`${t.obstacleLink} : ${label.toLowerCase()}`}
+                {/* Première lettre seulement : « somme due à KSP » garde son sigle. */}
+                {`${t.obstacleLink} : ${label.charAt(0).toLowerCase()}${label.slice(1)}`}
                 <IconArrowRight className="size-4" />
               </Link>
             ) : null}

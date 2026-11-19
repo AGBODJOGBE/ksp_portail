@@ -1,6 +1,7 @@
 import { ApiError } from '@/lib/api';
 import { describeWalletError } from './errors';
 import { objectPath } from './paths';
+import { statementKindLabel } from './texts';
 import {
   checkTopUpAmount,
   forgetResume,
@@ -62,6 +63,15 @@ describe('portefeuille : relevé et refus', () => {
     expect(objectPath({ objectType: 'autre', objectId: 'x' })).toBeNull();
   });
 
+  it('crédit d’une mission arrêtée (ADR-049 §7) : libellé explicite, autres remboursements inchangés', () => {
+    expect(statementKindLabel({ kind: 'refund', reference: 'mission-credit:0192f1c4-7a2b' })).toBe(
+      'Crédit d’une prestation arrêtée',
+    );
+    expect(statementKindLabel({ kind: 'refund', reference: 'refund:0192f1c4-7a2b' })).toBe('Remboursement');
+    expect(statementKindLabel({ kind: 'service_payment', reference: 'mission-credit:x' })).toBe('Paiement');
+    expect(statementKindLabel({ kind: 'nouveau', reference: 'x' })).toBe('Opération');
+  });
+
   it('codes du contrat : conséquence pour l’écran', () => {
     const error = (status: number, code: string, details: Record<string, unknown> = {}) =>
       new ApiError(status, code, 'message de la gateway', details);
@@ -77,6 +87,12 @@ describe('portefeuille : relevé et refus', () => {
     expect(describeWalletError(error(422, 'BILLING_INVALID_TRANSITION')).kind).toBe('stale');
     expect(describeWalletError(error(403, 'AUTH_FORBIDDEN')).kind).toBe('forbidden');
     expect(describeWalletError(ApiError.network()).kind).toBe('retry');
+    expect(
+      describeWalletError(error(409, 'PAYMENT_CHECKOUT_OPEN', { expiresAt: '2026-11-20T13:30:00Z' })),
+    ).toEqual({
+      message: expect.stringContaining('jusqu’au 20 novembre 2026 à 14:30 (heure du Bénin)'),
+      kind: 'other',
+    });
     expect(describeWalletError(error(400, 'WALLET_VALIDATION_FAILED'))).toEqual({
       message: 'message de la gateway',
       kind: 'other',

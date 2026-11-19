@@ -148,6 +148,47 @@ describe('Suivre ma demande', () => {
     expect(screen.getByRole('link', { name: /Faire une demande/ })).toHaveAttribute('href', '/services');
   });
 
+  it('devis expiré (enregistré, ou validité passée) : badge, aide et lien vers une nouvelle demande', async () => {
+    const lapsed = { ...QUOTE, validUntil: '2026-01-01T08:00:00Z' };
+    stubGateway({
+      'GET /api/v1/cleaning/services': { status: 200, body: SERVICES },
+      'GET /api/v1/cleaning/quote-requests': {
+        status: 200,
+        body: {
+          data: [
+            // Enregistré par la gateway (ADR-053).
+            quoteRequest({ status: 'expired', quote: lapsed }),
+            // Pas encore enregistré : validité passée, affiché expiré quand même.
+            quoteRequest({ id: OTHER_REQUEST, status: 'quote_sent', quote: lapsed }),
+          ],
+          nextCursor: null,
+        },
+      },
+      'GET /api/v1/cleaning/missions': { status: 200, body: { data: [], nextCursor: null } },
+    });
+    render(<CleaningTracking />);
+    expect(await screen.findByText('2 demandes')).toBeInTheDocument();
+    for (const card of cards()) {
+      expect(within(card).getByText('Devis expiré')).toBeInTheDocument();
+      expect(within(card).getByText(/n’a pas été accepté à temps/)).toBeInTheDocument();
+      expect(within(card).queryByText('À vous d’agir')).not.toBeInTheDocument();
+      expect(within(card).getByRole('link', { name: /Faire une nouvelle demande/ })).toHaveAttribute(
+        'href',
+        '/nettoyage/demande',
+      );
+    }
+    expect(screen.getByRole('button', { name: /Action requise/ })).toHaveTextContent('0');
+    // Filtre à part : les devis expirés ne sont plus rangés sous « Annulées ».
+    const expired = screen.getByRole('button', { name: /Expirées/ });
+    expect(expired).toHaveTextContent('2');
+    expect(screen.getByRole('button', { name: /Annulées/ })).toHaveTextContent('0');
+    fireEvent.click(expired);
+    expect(expired).toHaveAttribute('aria-pressed', 'true');
+    expect(cards()).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: /Annulées/ }));
+    expect(screen.getByText('Aucune demande ne correspond')).toBeInTheDocument();
+  });
+
   it('propose « Réessayer » si la gateway ne répond pas', async () => {
     stubGateway({
       'GET /api/v1/cleaning/services': { status: 200, body: SERVICES },

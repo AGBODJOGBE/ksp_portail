@@ -9,7 +9,7 @@ import { usePagedList } from '@/lib/use-paged-list';
 import { listStatement } from '@/features/wallet/api';
 import { objectPath } from '@/features/wallet/paths';
 import type { StatementLine } from '@/features/wallet/schemas';
-import { walletTexts as t } from '@/features/wallet/texts';
+import { statementKindLabel, walletTexts as t } from '@/features/wallet/texts';
 
 const TONES: Record<string, BadgeTone> = { top_up: 'success', service_payment: 'neutral', refund: 'brand' };
 
@@ -23,7 +23,7 @@ function Line({ line }: { line: StatementLine }) {
         <p className="text-small text-ink-muted">{formatDateTime(line.createdAt)}</p>
         <p className="text-ink font-semibold">{line.description}</p>
         <div>
-          <Badge tone={TONES[line.kind] ?? 'neutral'}>{t.kinds[line.kind] ?? t.otherKind}</Badge>
+          <Badge tone={TONES[line.kind] ?? 'neutral'}>{statementKindLabel(line)}</Badge>
         </div>
         {path && line.object ? (
           <Link

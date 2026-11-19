@@ -35,6 +35,11 @@ export type CleaningErrorKind =
    * nommé (`field`, nom du contrat : `address`, `commune`, `recurrence`, `paymentPlan`…).
    */
   | 'field'
+  /**
+   * Membre lecteur (`org_viewer`) de l'organisation active (`AUTH_FORBIDDEN`, 403, ADR-049 §3) : il voit
+   * les dossiers de l'entreprise mais n'accepte, ne refuse, n'annule ni ne paie. Les actions sont masquées.
+   */
+  | 'forbidden'
   | 'notFound'
   | 'other';
 
@@ -52,6 +57,7 @@ const NOT_FOUND = new Set([
   'CLEANING_REQUEST_NOT_FOUND',
   'CLEANING_MISSION_NOT_FOUND',
   'CLEANING_REQUEST_GROUP_NOT_FOUND',
+  'CLEANING_INTERVENTION_NOT_FOUND',
 ]);
 const CATALOG_CODES = new Set(['CLEANING_SERVICE_NOT_OFFERED', 'CLEANING_PLACE_TYPE_NOT_FOUND']);
 
@@ -64,6 +70,7 @@ export function describeCleaningError(error: unknown): CleaningErrorView {
   if (!(error instanceof ApiError)) return { message: t.common.genericError, kind: 'other' };
   const { code, message, status } = error;
 
+  if (code === 'AUTH_FORBIDDEN') return { message: t.missionDetail.readOnly, kind: 'forbidden' };
   if (code === 'IDENTITY_PROFILE_INCOMPLETE') return { message, kind: 'profile' };
   if (code === 'CLEANING_QUOTE_EXPIRED') return { message, kind: 'expired' };
   if (SLOT_CODES.has(code)) return { message, kind: 'slots' };

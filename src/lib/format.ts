@@ -58,6 +58,11 @@ export function formatShortDate(iso: string): string {
   return shortDateFormat.format(new Date(iso));
 }
 
+/** Borne exclusive (minuit du lendemain) affichée comme dernier jour inclus : « 30 novembre 2026 ». */
+export function formatExclusiveEndDate(iso: string): string {
+  return shortDateFormat.format(new Date(new Date(iso).getTime() - 1));
+}
+
 /** « 09:00 ». */
 export function formatTime(iso: string): string {
   return timeFormat.format(new Date(iso));

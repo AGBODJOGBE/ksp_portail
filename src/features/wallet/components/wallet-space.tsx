@@ -6,11 +6,11 @@ import { Heading } from '@/components/ui/heading';
 import { ApiError, contextKey, useSession } from '@/lib/api';
 import { formatDateTime, formatXof } from '@/lib/format';
 import { useResource } from '@/lib/use-resource';
+import { useReadOnly } from '@/features/identity';
 import { getWallet } from '@/features/wallet/api';
 import { walletTexts as t } from '@/features/wallet/texts';
 import { Statement } from './statement';
 import { TopUpForm } from './top-up-form';
-import { useReadOnly } from './use-read-only';
 
 const SECTION = 'rounded-card border-line bg-surface grid gap-5 border p-5 shadow-xs sm:p-6';
 

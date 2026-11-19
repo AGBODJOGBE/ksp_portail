@@ -11,6 +11,8 @@ import {
   estimateSchema,
   type GroupOutcome,
   groupOutcomeSchema,
+  type InterventionPhoto,
+  interventionPhotoListSchema,
   type LocationResolution,
   locationResolutionSchema,
   type PlaceCatalog,
@@ -21,6 +23,8 @@ import {
   quoteRequestSchema,
   type RequestGroup,
   requestGroupSchema,
+  type SchedulePreview,
+  schedulePreviewSchema,
   type ServedZone,
   servedZoneListSchema,
   type ServiceOffer,
@@ -70,7 +74,9 @@ export interface GeoLocationInput {
 
 /**
  * `RequestCleaningQuoteGroupRequest` : le type de client (particulier ou entreprise) vient du contexte
- * actif ; `commune` ne sert qu'en repli, si la position n'est rattachée à aucune commune.
+ * actif ; `commune` ne sert qu'en repli, si la position n'est rattachée à aucune commune. Avec un plan
+ * (`schedule`, ADR-052), `preferredSlots` est facultatif (le premier passage en tient lieu) ; la
+ * `recurrence` dépréciée n'est jamais envoyée.
  */
 export interface QuoteGroupInput {
   placeType: string;
@@ -78,9 +84,41 @@ export interface QuoteGroupInput {
   landmark: string;
   commune?: string;
   items: PlaceItemInput[];
-  preferredSlots: TimeSlot[];
+  preferredSlots?: TimeSlot[];
+  schedule?: ScheduleInput;
   comment?: string;
 }
+
+/** `CleaningWeekday`. */
+export type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+
+/**
+ * `CleaningScheduleInput` (ADR-052) : plan de passages envoyé à l'aperçu, à la simulation et à la demande
+ * de devis. Seuls les champs du mode choisi sont envoyés (un champ d'un autre mode est refusé).
+ */
+export type ScheduleInput =
+  | { mode: 'dates'; dates: string[]; startTime: string; excludedDates?: string[]; extraDates?: string[] }
+  | {
+      mode: 'weekly';
+      startDate: string;
+      endDate: string;
+      weekdays: Weekday[];
+      everyWeeks?: number;
+      startTime: string;
+      excludedDates?: string[];
+      extraDates?: string[];
+    }
+  | {
+      mode: 'monthly';
+      startDate: string;
+      endDate: string;
+      monthDays?: number[];
+      weekdays?: Weekday[];
+      weeksOfMonth?: Array<number | 'last'>;
+      startTime: string;
+      excludedDates?: string[];
+      extraDates?: string[];
+    };
 
 /** `AcceptCleaningQuoteRequest` : `paymentPlan` obligatoire pour un particulier, absent pour une entreprise. */
 export interface AcceptInput {
@@ -147,6 +185,17 @@ export async function estimatePlace(input: EstimateInput, signal?: AbortSignal):
   return parseResponse(
     estimateSchema,
     await api.post(`${CLEANING_API}/estimates`, input, { auth: false, signal }),
+  );
+}
+
+/**
+ * Dates exactes d'un plan de passages (`POST /cleaning/schedules/preview`, public, rien n'est enregistré) :
+ * calendrier affiché avant la demande de devis. `signal` annule un aperçu dépassé.
+ */
+export async function previewSchedule(input: ScheduleInput, signal?: AbortSignal): Promise<SchedulePreview> {
+  return parseResponse(
+    schedulePreviewSchema,
+    await api.post(`${CLEANING_API}/schedules/preview`, input, { auth: false, signal }),
   );
 }
 
@@ -261,6 +310,17 @@ export async function payMission(
     missionSchema,
     await api.post(`${MISSIONS}/${encodeURIComponent(id)}/pay`, { part }, { idempotencyKey }),
   );
+}
+
+/**
+ * Photos avant et après d'un passage d'une de mes missions (ADR-053). Les adresses de lecture sont de
+ * courte durée : jamais gardées, redemandées à chaque ouverture de la galerie.
+ */
+export async function listInterventionPhotos(id: string): Promise<InterventionPhoto[]> {
+  return parseResponse(
+    interventionPhotoListSchema,
+    await api.get(`${CLEANING_API}/interventions/${encodeURIComponent(id)}/photos`),
+  ).data;
 }
 
 export async function cancelMission(id: string, reason: string): Promise<Mission> {

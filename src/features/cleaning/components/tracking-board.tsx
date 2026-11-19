@@ -162,6 +162,16 @@ function TrackCard({ item }: { item: TrackItem }) {
             ) : null}
           </p>
           <p className="text-small text-ink">{finished ? t.done : item.next}</p>
+          {item.link ? (
+            // Au-dessus du lien étiré de la carte : un second lien, cliquable à part.
+            <Link
+              href={item.link.href}
+              className="text-action-ink relative z-10 inline-flex min-h-11 items-center gap-1 justify-self-start text-sm font-semibold underline underline-offset-4"
+            >
+              {item.link.label}
+              <IconArrowRight className="size-4" />
+            </Link>
+          ) : null}
         </div>
       ) : null}
       <Link

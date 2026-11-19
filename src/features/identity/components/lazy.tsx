@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import type { ReactNode } from 'react';
 
 /*
  * Écrans du compte chargés à la demande (même relais que le Nettoyage, voir docs/architecture.md) :
@@ -69,3 +70,32 @@ export const DeletionRequested = dynamic(
 
 /** E-mail à ajouter ou à vérifier, dans la rubrique « À faire » de l'accueil de l'espace. */
 export const ProfileTodo = dynamic(() => import('./profile-todo').then((module_) => module_.ProfileTodo));
+
+const ContextGate = dynamic(
+  () => import('./organization-context-gate').then((module_) => module_.OrganizationContextGate),
+  { loading: Loading },
+);
+
+/**
+ * Dossier d'une organisation ouvert par un lien (`?organisation=`, ADR-050 §8) : passe dans ce contexte
+ * avant d'afficher la page. Sans organisation dans le lien, la page s'affiche telle quelle et le changement
+ * de contexte n'est pas téléchargé.
+ */
+export function OrganizationContextGate({
+  organisation,
+  back,
+  children,
+}: {
+  /** Valeur brute de `?organisation=` (la première si répétée). */
+  organisation: string | string[] | undefined;
+  back: { href: string; label: string };
+  children: ReactNode;
+}) {
+  const organizationId = (Array.isArray(organisation) ? organisation[0] : organisation)?.trim();
+  if (!organizationId) return children;
+  return (
+    <ContextGate organizationId={organizationId} back={back}>
+      {children}
+    </ContextGate>
+  );
+}

@@ -9,6 +9,7 @@ import { BandHeader } from '@/components/ui/band-header';
 import { Heading } from '@/components/ui/heading';
 import { IconArrowRight } from '@/components/ui/icons';
 import { StepTimeline } from '@/components/ui/step-timeline';
+import { useReadOnly } from '@/features/identity';
 import { WalletPay, walletTexts } from '@/features/wallet';
 import { formatDateTime, formatShortDate, formatXof, isPast } from '@/lib/format';
 import { useResource } from '@/lib/use-resource';
@@ -211,6 +212,8 @@ export function RequestGroupDetail({ id }: { id: string }) {
   const [outcome, setOutcome] = useState<{ value: GroupOutcome; kind: 'accept' | 'cancel' } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const cancelSubmission = useRef(idempotentSubmission());
+  // Membre lecteur de l'entreprise (ADR-049 §3) : ni acceptation ni annulation.
+  const readOnly = useReadOnly();
 
   const afterFailure = useCallback(
     (view: CleaningErrorView) => {
@@ -244,7 +247,7 @@ export function RequestGroupDetail({ id }: { id: string }) {
       return null;
     } catch (caught) {
       const view = describeCleaningError(caught);
-      if (view.kind === 'stale') {
+      if (view.kind === 'stale' || view.kind === 'forbidden') {
         afterFailure(view);
         return null;
       }
@@ -285,7 +288,7 @@ export function RequestGroupDetail({ id }: { id: string }) {
           actor={quotes.length ? 'client' : open ? 'ksp' : undefined}
           text={nextText(data, quotes.length)}
         >
-          {quotes.length && !accepting ? (
+          {quotes.length && !accepting && !readOnly ? (
             <Button size="lg" variant="action" onClick={() => setAccepting(true)}>
               {t.acceptAll}
             </Button>
@@ -298,7 +301,7 @@ export function RequestGroupDetail({ id }: { id: string }) {
         </NextStep>
       ) : null}
 
-      {accepting && quotes.length ? (
+      {accepting && quotes.length && !readOnly ? (
         <Suspense fallback={<InlineLoading />}>
           <GroupAccept
             group={data}
@@ -351,7 +354,10 @@ export function RequestGroupDetail({ id }: { id: string }) {
             {journeyTexts.group.reference} : <span className="font-mono break-all">{data.groupId}</span> ·{' '}
             {formatShortDate(data.createdAt)}
           </p>
-          {open ? (
+          {open && readOnly ? (
+            <FormMessage tone="info">{cleaningTexts.missionDetail.readOnly}</FormMessage>
+          ) : null}
+          {open && !readOnly ? (
             <div className="grid justify-items-start">
               <ReasonAction
                 label={t.cancel}

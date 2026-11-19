@@ -25,19 +25,24 @@ type Outcome = { key: string } & (
 /**
  * Récapitulatif d'estimation du parcours, mis à jour en direct (`POST /cleaning/estimates`) : une
  * requête après chaque pause de saisie, la précédente annulée. Les montants viennent tels quels de la
- * gateway (fourchette par prestation, total) ; rien n'est calculé ici. La zone `aria-live` n'annonce
+ * gateway (fourchette par prestation, prix d'un passage). Seule exception validée (décision A1) : avec le
+ * nombre de passages de l'aperçu du plan, le prix d'un passage × ce nombre, affiché comme indicatif et
+ * confirmé au devis (`POST /cleaning/estimates` n'accepte pas de plan). La zone `aria-live` n'annonce
  * qu'un résultat arrivé, jamais la frappe.
  */
 export function JourneyEstimate({
   catalog,
   draft,
   commune,
+  passages = null,
   className,
 }: {
   catalog: PlaceCatalog;
   draft: JourneyDraft;
   /** Commune connue du lieu (étape de l'adresse franchie) ; sans elle, estimation indicative. */
   commune: string | null;
+  /** Nombre de passages du plan (aperçu de la gateway) ; null tant qu'il n'est pas connu. */
+  passages?: number | null;
   className?: string;
 }) {
   const input = useMemo(() => estimateInput(catalog, draft, commune), [catalog, draft, commune]);
@@ -119,12 +124,30 @@ export function JourneyEstimate({
       ) : null}
 
       {estimate && estimate.total !== null && estimate.status === 'priced' ? (
-        <div className="rounded-control bg-surface-muted grid gap-1 p-4">
-          <p className="text-small text-ink-muted">{t.total}</p>
-          <p className="font-display text-ink text-3xl font-semibold tabular-nums">
-            {formatXof(estimate.total)}
-          </p>
-          <p className="text-small text-ink-muted">{t.totalHint}</p>
+        <div className="rounded-control bg-surface-muted grid gap-3 p-4">
+          <div className="grid gap-1">
+            <p className="text-small text-ink-muted">{passages ? t.onePassage : t.total}</p>
+            <p
+              className={cn(
+                'font-display text-ink font-semibold tabular-nums',
+                passages ? 'text-xl' : 'text-3xl',
+              )}
+            >
+              {formatXof(estimate.total)}
+            </p>
+            <p className="text-small text-ink-muted">{t.totalHint}</p>
+          </div>
+          {passages ? (
+            <div className="border-line grid gap-1 border-t pt-3">
+              <p className="text-small text-ink-muted">{t.passagesTotal(passages)}</p>
+              <p className="font-display text-ink text-3xl font-semibold tabular-nums">
+                {formatXof(estimate.total * passages)}
+              </p>
+              <p className="text-small text-ink-muted">
+                {frenchSpacing(t.passagesHint(passages, formatXof(estimate.total)))}
+              </p>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

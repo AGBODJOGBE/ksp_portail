@@ -17,7 +17,7 @@ export const journeyTexts = {
   title: 'Votre demande de devis',
   lead: 'Quelques questions sur votre lieu et vos besoins : une estimation immédiate, puis une visite avant le devis définitif.',
   progressLabel: 'Étapes de la demande de devis',
-  steps: ['Le lieu', 'Les prestations', 'L’adresse', 'Vos disponibilités', 'Récapitulatif'],
+  steps: ['Le lieu', 'Les prestations', 'L’adresse', 'Vos passages', 'Récapitulatif'],
   stepOf: (index: number, total: number) => `Étape ${index} sur ${total}`,
   back: 'Retour',
   next: 'Continuer',
@@ -46,7 +46,6 @@ export const journeyTexts = {
     details: (name: string) => `${name} : votre besoin`,
     options: 'Prestations complémentaires',
     optionsHint: 'Facultatif : cochez ce qui vous intéresse.',
-    frequency: 'À quelle fréquence ?',
     optional: '(facultatif)',
     yes: 'Oui',
     no: 'Non',
@@ -74,6 +73,10 @@ export const journeyTexts = {
     total: 'Total estimé',
     totalHint: 'Un passage de chaque prestation.',
     perVisit: 'par passage',
+    onePassage: 'Prix d’un passage',
+    passagesTotal: (count: number) => (count > 1 ? `Pour vos ${count} passages` : 'Pour votre passage'),
+    passagesHint: (count: number, unit: string) =>
+      `${count} × ${unit}. Montant indicatif, confirmé au devis après la visite des lieux.`,
     partial: 'Le total s’affichera quand toutes les prestations auront un prix publié.',
     notContractual:
       'Estimation non contractuelle : le prix définitif figure dans le devis, établi après la visite des lieux.',
@@ -142,21 +145,23 @@ export const journeyTexts = {
     outOfZone: (commune: string | null, line: string) =>
       `${commune ? `${commune} n’est pas encore desservie. ` : ''}${line} Contactez-nous : nous vous préviendrons dès qu’elle le sera.`,
   },
-  slots: {
-    title: 'Quand êtes-vous disponible ?',
-    legend: 'Créneaux souhaités',
-    hint: (minDate: string) =>
-      `Jusqu’à trois créneaux pour la visite des lieux et l’intervention, à partir du ${minDate}. Heures du Bénin.`,
-    date: (index: number) => `Date du créneau ${index}`,
-    period: (index: number) => `Moment du créneau ${index}`,
-    add: 'Ajouter un créneau',
-    remove: (index: number) => `Retirer le créneau ${index}`,
-    required: 'Choisissez au moins une date.',
-    tooEarly: (minDate: string) => `Choisissez une date à partir du ${minDate}.`,
-    comment: 'Commentaire (facultatif)',
-    commentHint: 'Accès, animaux, contraintes particulières…',
-    commentCount: (count: number, max: number) => `${count} / ${max} caractères`,
+  schedule: {
+    title: 'Quand faut-il passer ?',
+    hint: 'Choisissez vos jours : nous calculons aussitôt les dates exactes de vos passages.',
     commentTooLong: (max: number) => `Le commentaire ne doit pas dépasser ${max} caractères.`,
+    errors: {
+      mode: 'Choisissez comment se répartissent vos passages.',
+      dates: 'Choisissez au moins un jour.',
+      tooEarly: (minDate: string) => `Choisissez des jours à partir du ${minDate}.`,
+      startDate: 'Indiquez la date de début.',
+      period: 'Choisissez la durée.',
+      endDate: 'Indiquez la date de fin.',
+      endBeforeStart: 'La date de fin doit suivre la date de début.',
+      weekdays: 'Choisissez au moins un jour de la semaine.',
+      monthDays: 'Choisissez au moins un jour du mois.',
+      weeksOfMonth: 'Choisissez au moins une semaine du mois.',
+      startTime: 'Indiquez l’heure d’arrivée (heure du Bénin).',
+    },
   },
   review: {
     title: 'Vérifiez et envoyez votre demande',
@@ -166,10 +171,9 @@ export const journeyTexts = {
     address: 'Adresse',
     position: 'Position',
     positionSet: 'Enregistrée',
-    slots: 'Disponibilités',
+    passages: 'Passages',
     comment: 'Commentaire',
     none: 'Aucun',
-    frequency: 'Fréquence',
     accountTitle: 'Votre compte KSP',
     checking: 'Vérification de votre session…',
     loginLead:
@@ -235,11 +239,3 @@ export const journeyTexts = {
     reference: 'Numéro',
   },
 } as const;
-
-/** Moments proposés pour un créneau (heures du Bénin). */
-export const slotPeriods = [
-  { value: 'morning', label: 'Matin (8 h – 12 h)', from: '08:00', to: '12:00' },
-  { value: 'afternoon', label: 'Après-midi (13 h – 17 h)', from: '13:00', to: '17:00' },
-] as const;
-
-export type SlotPeriod = (typeof slotPeriods)[number]['value'];

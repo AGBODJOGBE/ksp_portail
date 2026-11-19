@@ -6,6 +6,7 @@
 // Écrans client chargés à la demande (voir components/lazy.tsx).
 export { PaymentReturn, PaymentSimulation } from './components/lazy';
 export { listPayments } from './api';
+export { describeCheckoutOpen } from './errors';
 export { safeCheckoutUrl } from './polling';
 export type { Payment } from './schemas';
 export { paymentPaths, paymentTexts, paymentView, subjectLabel } from './texts';

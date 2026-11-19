@@ -22,7 +22,7 @@ export const deletionTexts = {
       'À la date prévue, vos données personnelles sont effacées (nom, numéro de téléphone, e-mail). Vos factures et paiements sont conservés 10 ans, comme l’exige la loi comptable.',
     ],
     conditions:
-      'La suppression est refusée tant qu’une opération est en cours : prestation ou demande de devis, facture à régler, paiement en attente ou en vérification.',
+      'La suppression est refusée tant qu’une opération est en cours : prestation ou demande de devis, facture à régler, paiement en attente ou en vérification, argent dans votre portefeuille (solde à utiliser, fonds à vous reverser, somme due à KSP, reversement en cours).',
     start: 'Supprimer mon compte',
     confirmTitle: 'Confirmer la suppression de votre compte ?',
     confirmText:
@@ -76,6 +76,11 @@ export const deletionObstacleKinds: Record<string, { label: string; href: string
   pending_payment: { label: 'Paiement en attente', href: '/mon-espace/paiements' },
   payment_under_review: { label: 'Paiement en vérification', href: '/mon-espace/paiements' },
   last_org_admin: { label: 'Compte entreprise sans autre administrateur', href: '/mon-espace/entreprise' },
+  // Portefeuille (ADR-048 §13) : argent encore tenu pour le compte personnel.
+  prepaid_balance: { label: 'Solde du portefeuille à utiliser', href: '/mon-espace/portefeuille' },
+  funds_owed: { label: 'Fonds à vous reverser', href: '/mon-espace/portefeuille' },
+  negative_balance: { label: 'Somme due à KSP', href: '/mon-espace/portefeuille' },
+  payout_in_progress: { label: 'Reversement en cours', href: '/mon-espace/portefeuille' },
 };
 
 /** Repli par service, pour une nature encore inconnue du portail (liste ouverte du contrat). */
@@ -84,6 +89,7 @@ const obstacleServices: Record<string, { label: string; href: string }> = {
   billing: { label: 'Facturation', href: '/mon-espace/factures' },
   payment: { label: 'Paiement', href: '/mon-espace/paiements' },
   identity: { label: 'Compte entreprise', href: '/mon-espace/entreprise' },
+  wallet: { label: 'Portefeuille', href: '/mon-espace/portefeuille' },
 };
 
 /**

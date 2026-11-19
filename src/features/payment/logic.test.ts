@@ -1,3 +1,5 @@
+import { ApiError } from '@/lib/api';
+import { describeCheckoutOpen } from './errors';
 import { POLL_DELAYS_MS, nextPollDelay, safeCheckoutUrl } from './polling';
 import { FINAL_STATUSES, paymentStatus, paymentView, subjectLabel, subjectPath } from './texts';
 
@@ -44,5 +46,22 @@ describe('paiement : règles d’affichage', () => {
     expect(paymentView({ status: 'amount_mismatch', underReview: false }).label).toBe('Vérifié par KSP');
     expect(paymentView({ status: 'amount_mismatch' }).label).toBe('En vérification');
     expect(paymentView({ status: 'succeeded', underReview: false }).label).toBe('Réussi');
+  });
+});
+
+describe('paiement : page déjà ouverte (ADR-048 §1)', () => {
+  it('409 PAYMENT_CHECKOUT_OPEN : heure d’expiration à l’heure du Bénin', () => {
+    const open = (details: Record<string, unknown>) =>
+      new ApiError(409, 'PAYMENT_CHECKOUT_OPEN', 'Un paiement est déjà en cours pour cet objet.', details);
+    // 13:30 UTC = 14:30 à Porto-Novo (UTC+1).
+    expect(describeCheckoutOpen(open({ expiresAt: '2026-11-20T13:30:00Z' }))).toBe(
+      'Une page de paiement est déjà ouverte pour ce paiement, jusqu’au 20 novembre 2026 à 14:30 (heure du Bénin). Terminez-la, ou réessayez après cette heure.',
+    );
+    expect(describeCheckoutOpen(open({}))).toBe(
+      'Une page de paiement est déjà ouverte pour ce paiement. Terminez-la, ou réessayez quand elle aura expiré.',
+    );
+    expect(describeCheckoutOpen(open({ expiresAt: 'pas une date' }))).toMatch(/quand elle aura expiré/);
+    expect(describeCheckoutOpen(new ApiError(409, 'PAYMENT_ALREADY_RECEIVED', 'reçu'))).toBeNull();
+    expect(describeCheckoutOpen(new Error('autre'))).toBeNull();
   });
 });

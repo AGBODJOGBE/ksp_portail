@@ -4,6 +4,7 @@ import {
   formatDate,
   formatDateTime,
   formatDuration,
+  formatExclusiveEndDate,
   formatSlot,
   formatTime,
   formatXof,
@@ -55,5 +56,12 @@ describe('dates à l’heure du Bénin (UTC+1)', () => {
     expect(formatDuration(180)).toBe('3 h');
     expect(formatDuration(90)).toBe('1 h 30');
     expect(formatDuration(45)).toBe('45 min');
+  });
+});
+
+describe('fin de période exclusive', () => {
+  it('affiche le dernier jour facturé, pas le lendemain', () => {
+    // Minuit du 1er décembre au Bénin : la période s'arrête le 30 novembre inclus.
+    expect(formatExclusiveEndDate('2026-11-30T23:00:00Z')).toBe('30 novembre 2026');
   });
 });

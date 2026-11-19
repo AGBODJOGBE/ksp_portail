@@ -142,6 +142,16 @@ export const accountTexts = {
     switched: (label: string) => `Vous utilisez maintenant : ${label}.`,
     hint: 'Le compte actif décide de ce que vous voyez et commandez : vos demandes et missions, vos factures.',
   },
+  // Lien d'un message vers un dossier d'entreprise (`?organisation=`, ADR-050 §8).
+  contextLink: {
+    switching: 'Ouverture du compte entreprise…',
+    notMemberTitle: 'Page réservée à un compte entreprise',
+    notMember:
+      'Cette page appartient à un compte entreprise dont vous n’êtes pas membre. Si vous devez y accéder, demandez à un administrateur de l’entreprise de vous ajouter.',
+    unavailableTitle: 'Compte entreprise indisponible',
+    errorTitle: 'Changement de compte impossible',
+    manageLink: 'Voir mes comptes entreprise',
+  },
 } as const;
 
 export type StatusLabel = { label: string; tone: BadgeTone; hint?: string };

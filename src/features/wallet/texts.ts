@@ -50,6 +50,7 @@ export const walletTexts = {
     refund: 'Remboursement',
   } as Record<string, string>,
   otherKind: 'Opération',
+  missionCredit: 'Crédit d’une prestation arrêtée',
   credit: 'Crédit',
   debit: 'Débit',
   seeMission: 'Voir la prestation',
@@ -85,3 +86,16 @@ export const walletTexts = {
   topUpMinimum: (amount: string) => `La recharge minimum est de ${amount}.`,
   payWithWalletHint: 'Payé depuis votre solde prépayé KSP, rechargeable par Mobile Money.',
 } as const;
+
+/**
+ * Référence d'un crédit au prorata d'une mission récurrente arrêtée (ADR-049 §7, ADR-048 §14) : wallet
+ * l'écrit comme un remboursement (`refund`) de référence `mission-credit:<creditId>`. Format lu dans le
+ * service wallet, pas encore décrit par le contrat : sans lui, la ligne reste un « Remboursement ».
+ */
+const MISSION_CREDIT = 'mission-credit:';
+
+/** Libellé du type d'une ligne du relevé ; type inconnu : libellé neutre. */
+export function statementKindLabel(line: { kind: string; reference?: string }): string {
+  if (line.kind === 'refund' && line.reference?.startsWith(MISSION_CREDIT)) return walletTexts.missionCredit;
+  return walletTexts.kinds[line.kind] ?? walletTexts.otherKind;
+}

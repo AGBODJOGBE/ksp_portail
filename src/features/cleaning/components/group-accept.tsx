@@ -91,7 +91,13 @@ export function GroupAccept({
       onAccepted(outcome);
     } catch (caught) {
       const view = describeCleaningError(caught);
-      if (view.kind === 'expired' || view.kind === 'stale' || view.kind === 'notFound') onFailure(view);
+      if (
+        view.kind === 'expired' ||
+        view.kind === 'stale' ||
+        view.kind === 'notFound' ||
+        view.kind === 'forbidden'
+      )
+        onFailure(view);
       else if (view.kind === 'slots' || (view.kind === 'field' && view.field === 'slotStart')) {
         setSlotError(view.message);
         slotsRef.current?.querySelector('input')?.focus();
@@ -215,6 +221,8 @@ export function GroupAccept({
             options={OFFERED_PAYMENT_METHODS.map((value) => ({ value, label: planMethods[value]! }))}
             onChange={(method) => setPlan({ ...plan, method })}
           />
+          {/* Paiement « avant » (ADR-049 §6) : aucun passage ne démarre avant le règlement. */}
+          {plan.timing === 'before' ? <FormMessage tone="info">{t.upfrontNotice}</FormMessage> : null}
         </fieldset>
       )}
 

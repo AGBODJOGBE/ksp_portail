@@ -50,6 +50,10 @@ export const paymentTexts = {
   back: 'Retour à mes paiements',
   notFound: 'Ce paiement est introuvable. Il appartient peut-être à un autre compte.',
   genericError: 'Une erreur est survenue. Réessayez dans quelques instants.',
+  checkoutOpen:
+    'Une page de paiement est déjà ouverte pour ce paiement. Terminez-la, ou réessayez quand elle aura expiré.',
+  checkoutOpenUntil: (date: string) =>
+    `Une page de paiement est déjà ouverte pour ce paiement, jusqu’au ${date} (heure du Bénin). Terminez-la, ou réessayez après cette heure.`,
 
   resume: 'Reprendre le paiement',
   // Paiement à vérifier par l'équipe KSP (ADR-032).

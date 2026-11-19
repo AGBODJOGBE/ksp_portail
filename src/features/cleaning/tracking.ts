@@ -22,10 +22,13 @@ import { trackingTexts as t } from './tracking-texts';
  * de la gateway : aucune règle métier, aucun montant calculé.
  */
 
-/** Rangement d'une carte de suivi. */
-export type TrackState = 'action' | 'ongoing' | 'done' | 'cancelled';
+/**
+ * Rangement d'une carte de suivi. `expired` : demande close dont un devis n'a pas été accepté à temps
+ * (ADR-053), rangée à part des annulations.
+ */
+export type TrackState = 'action' | 'ongoing' | 'done' | 'expired' | 'cancelled';
 
-export const TRACK_STATES: ReadonlyArray<TrackState> = ['action', 'ongoing', 'done', 'cancelled'];
+export const TRACK_STATES: ReadonlyArray<TrackState> = ['action', 'ongoing', 'done', 'expired', 'cancelled'];
 
 export interface TrackItem {
   key: string;
@@ -44,6 +47,8 @@ export interface TrackItem {
   next: string | null;
   actor: Actor | null;
   href: string;
+  /** Action de repli d'une carte close (devis expiré : « Faire une nouvelle demande »). */
+  link?: { href: string; label: string };
 }
 
 /** Huit étapes du cycle de vie → cinq étapes du suivi : demande, visite, devis, réservation, passages. */
@@ -65,7 +70,18 @@ function quoteWaiting(request: QuoteRequest): boolean {
   return request.status === 'quote_sent' && !!request.quote && !isPast(request.quote.validUntil);
 }
 
-function requestItem(requests: ReadonlyArray<QuoteRequest>, name: (code: string) => string): TrackItem {
+/**
+ * Devis dont la validité est passée : la gateway enregistre l'état `expired` (ADR-053, tâche toutes les
+ * 10 minutes) ; en attendant, un devis envoyé dont la date de validité est passée s'affiche déjà expiré,
+ * comme sur le détail de la demande.
+ */
+function shownStatus(request: QuoteRequest): QuoteRequest {
+  const lapsed = request.status === 'quote_sent' && !!request.quote && isPast(request.quote.validUntil);
+  return lapsed ? { ...request, status: 'expired' } : request;
+}
+
+function requestItem(source: ReadonlyArray<QuoteRequest>, name: (code: string) => string): TrackItem {
+  const requests = source.map(shownStatus);
   const first = requests[0]!;
   const grouped = requests.length > 1 && !!first.groupId;
   const open = requests.filter((request) => !STOPPED_REQUESTS.has(request.status));
@@ -73,11 +89,14 @@ function requestItem(requests: ReadonlyArray<QuoteRequest>, name: (code: string)
   const shown = requests.find(quoteWaiting) ?? open[0] ?? first;
   const status = statusOf(requestStatuses, shown.status);
   const stage = grouped ? groupStage(requests) : requestStage(first);
+  const expired = requests.some((request) => request.status === 'expired');
   const state: TrackState = requests.some(quoteWaiting)
     ? 'action'
-    : open.length === 0
-      ? 'cancelled'
-      : 'ongoing';
+    : open.length > 0
+      ? 'ongoing'
+      : expired
+        ? 'expired'
+        : 'cancelled';
   return {
     key: grouped ? `groupe-${first.groupId}` : `demande-${first.id}`,
     service: 'nettoyage',
@@ -93,6 +112,7 @@ function requestItem(requests: ReadonlyArray<QuoteRequest>, name: (code: string)
     next: status.hint ?? null,
     actor: status.actor ?? null,
     href: grouped ? cleaningPaths.group(first.groupId!) : cleaningPaths.request(first.id),
+    link: state === 'expired' ? { href: cleaningPaths.journey, label: t.newRequest } : undefined,
   };
 }
 
@@ -174,7 +194,7 @@ export function filterTrackItems(items: ReadonlyArray<TrackItem>, filter: TrackF
 
 /** Nombre de cartes par état (pastilles des filtres). */
 export function countByState(items: ReadonlyArray<TrackItem>): Record<TrackState, number> {
-  const counts: Record<TrackState, number> = { action: 0, ongoing: 0, done: 0, cancelled: 0 };
+  const counts: Record<TrackState, number> = { action: 0, ongoing: 0, done: 0, expired: 0, cancelled: 0 };
   for (const item of items) counts[item.state] += 1;
   return counts;
 }

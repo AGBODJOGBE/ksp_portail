@@ -401,3 +401,31 @@ export function requestGroup(serviceCodes: string[] = ['house_cleaning']) {
     remainingDue: null,
   };
 }
+
+/** Jours `AAAA-MM-JJ` d'une période dont le jour de semaine (0 = dimanche) est dans `weekdays`. */
+export function weekdayDates(from: string, to: string, weekdays: number[]): string[] {
+  const dates: string[] = [];
+  for (let day = new Date(`${from}T12:00:00Z`); day <= new Date(`${to}T12:00:00Z`);) {
+    if (weekdays.includes(day.getUTCDay())) dates.push(day.toISOString().slice(0, 10));
+    day = new Date(day.getTime() + 86_400_000);
+  }
+  return dates;
+}
+
+/** `CleaningSchedule` de l'exemple du contrat : lundi, mercredi et samedi, du 10/11/2026 au 11/11/2027, à 8 h. */
+export const WEEKLY_SCHEDULE = {
+  mode: 'weekly',
+  dates: [],
+  startDate: '2026-11-10',
+  endDate: '2027-11-11',
+  weekdays: ['mon', 'wed', 'sat'],
+  everyWeeks: 1,
+  monthDays: [],
+  weeksOfMonth: [],
+  startTime: '08:00',
+  excludedDates: [],
+  extraDates: [],
+};
+
+/** Les 157 dates exactes de `WEEKLY_SCHEDULE` (exemple du contrat). */
+export const WEEKLY_DATES = weekdayDates('2026-11-11', '2027-11-10', [1, 3, 6]);
