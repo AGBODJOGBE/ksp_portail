@@ -1,11 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { ButtonLink } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Eyebrow } from '@/components/ui/eyebrow';
 import { IconArrowLeft } from '@/components/ui/icons';
 import { navigation } from '@/config/navigation';
-import { CleaningTracking, trackingTexts as t } from '@/features/cleaning';
-import { ContextSwitcher, RequireSession } from '@/features/identity';
+import { trackingTexts as t } from '@/features/cleaning';
+import { RequireSession } from '@/features/identity';
+import { paymentPaths } from '@/features/payment';
 import { pageMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = {
@@ -14,9 +17,9 @@ export const metadata: Metadata = {
 };
 
 /**
- * « Suivre ma demande » (F-020) : l'avancement de toutes les demandes du client, tous services
- * confondus, à la manière de la page Services des portails d'e-services (filtres à gauche, recherche et
- * cartes à droite). Coque statique ; garde de session et lectures dans le navigateur (F-005, option A).
+ * « Suivre ma demande » (F-020) : l'avancement des demandes du client, tous services confondus. Le
+ * Nettoyage, seul service suivi ici jusqu'à présent, prépare sa nouvelle version (v2) : la page reste
+ * en place (lien de l'en-tête), avec un état vide, et son suivi reviendra au lot suivant.
  */
 export default function TrackingPage() {
   return (
@@ -30,17 +33,29 @@ export default function TrackingPage() {
             <IconArrowLeft className="size-4" />
             {t.back}
           </Link>
-          <header className="mt-4 mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-reading">
-              <Eyebrow>{t.eyebrow}</Eyebrow>
-              <h1 className="font-display text-h1 text-ink mt-3 font-bold">{t.title}</h1>
-              <p className="text-lead text-ink-muted mt-3">{t.lead}</p>
-            </div>
-            <div className="w-full lg:w-96 lg:shrink-0">
-              <ContextSwitcher />
-            </div>
+          <header className="max-w-reading mt-4 mb-10">
+            <Eyebrow>{t.eyebrow}</Eyebrow>
+            <h1 className="font-display text-h1 text-ink mt-3 font-bold">{t.title}</h1>
+            <p className="text-lead text-ink-muted mt-3">{t.lead}</p>
           </header>
-          <CleaningTracking />
+          <section
+            aria-labelledby="suivi-vide-titre"
+            className="rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-8"
+          >
+            <EmptyState
+              illustration="soon"
+              title={t.emptyTitle}
+              titleAs="h2"
+              titleId="suivi-vide-titre"
+              action={
+                <ButtonLink href={paymentPaths.list} variant="secondary">
+                  {t.emptyAction}
+                </ButtonLink>
+              }
+            >
+              {t.emptyText}
+            </EmptyState>
+          </section>
         </Container>
       </RequireSession>
     </div>

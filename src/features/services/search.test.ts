@@ -8,26 +8,21 @@ import {
   type ServiceEntry,
 } from './search';
 
-const GATEWAY = [
-  { code: 'window_cleaning', name: 'Nettoyage de vitres', description: 'Fenêtres et baies vitrées.' },
-  { code: 'deep_cleaning', name: 'Grand ménage', description: 'Nettoyage complet du sol au plafond.' },
-];
-
 describe('annuaire des services', () => {
-  it('prend les prestations du Nettoyage à la gateway, chacune vers la demande de devis', () => {
-    const cleaning = buildServiceDirectory(GATEWAY).filter((entry) => entry.category === 'nettoyage');
-    expect(cleaning.map((entry) => entry.title)).toEqual(['Nettoyage de vitres', 'Grand ménage']);
-    cleaning.forEach((entry) => expect(entry.href).toBe('/nettoyage/demande'));
-  });
-
-  it('reprend les prestations de la page Nettoyage si la gateway ne répond pas', () => {
-    const cleaning = buildServiceDirectory(null).filter((entry) => entry.category === 'nettoyage');
-    expect(cleaning.length).toBeGreaterThan(0);
+  it('reprend les prestations de la page Nettoyage, sans appel à la gateway', () => {
+    const cleaning = buildServiceDirectory().filter((entry) => entry.category === 'nettoyage');
+    expect(cleaning.map((entry) => entry.title)).toEqual([
+      'Nettoyage : bureaux',
+      'Nettoyage : domicile',
+      'Nettoyage : fin de chantier',
+      'Nettoyage : vidange',
+      'Nettoyage : désinsectisation',
+    ]);
     cleaning.forEach((entry) => expect(entry.href).toBe('/nettoyage#prestations'));
   });
 
   it('couvre les six métiers, avec des identifiants uniques et des liens vers leurs pages', () => {
-    const entries = buildServiceDirectory(GATEWAY);
+    const entries = buildServiceDirectory();
     expect(new Set(entries.map((entry) => entry.category)).size).toBe(6);
     expect(new Set(entries.map((entry) => entry.id)).size).toBe(entries.length);
     entries.forEach((entry) => expect(entry.href).toMatch(/^\/[a-z-]+/));
@@ -35,25 +30,29 @@ describe('annuaire des services', () => {
 });
 
 describe('recherche', () => {
-  const entries = buildServiceDirectory(GATEWAY);
+  const entries = buildServiceDirectory();
   const titles = (list: ReadonlyArray<ServiceEntry>) => list.map((entry) => entry.title);
 
   it('ignore les accents et la casse, et accepte un début de mot', () => {
     const found = entries.filter((entry) => matchesQuery(entry, 'CREANCE'));
     expect(found.length).toBeGreaterThan(0);
     found.forEach((entry) => expect(entry.category).toBe('recouvrement'));
-    expect(titles(entries.filter((entry) => matchesQuery(entry, 'vitr')))).toEqual(['Nettoyage de vitres']);
+    expect(titles(entries.filter((entry) => matchesQuery(entry, 'desinsect')))).toEqual([
+      'Nettoyage : désinsectisation',
+    ]);
   });
 
   it('exige chacun des mots cherchés', () => {
-    expect(titles(entries.filter((entry) => matchesQuery(entry, 'grand ménage')))).toEqual(['Grand ménage']);
+    expect(titles(entries.filter((entry) => matchesQuery(entry, 'fosses septiques')))).toEqual([
+      'Nettoyage : vidange',
+    ]);
     expect(entries.filter((entry) => matchesQuery(entry, 'vitres bâches'))).toEqual([]);
   });
 
   it('filtre par catégorie, puis par recherche', () => {
     const cleaning = filterServices(entries, { category: 'nettoyage', q: '', page: 1 });
-    expect(cleaning.total).toBe(2);
-    expect(filterServices(entries, { category: 'nettoyage', q: 'plafond', page: 1 }).items).toHaveLength(1);
+    expect(cleaning.total).toBe(5);
+    expect(filterServices(entries, { category: 'nettoyage', q: 'fosses', page: 1 }).items).toHaveLength(1);
     expect(filterServices(entries, { category: 'livraison', q: 'vitres', page: 1 }).total).toBe(0);
   });
 

@@ -63,6 +63,9 @@ export const fr = {
     phoneNumber: 'Numéro',
     phoneHint: 'Exemple : 01 97 00 00 45. Hors du Bénin, changez l’indicatif.',
     phoneInvalid: 'Numéro invalide : vérifiez l’indicatif et le numéro.',
+    /** Ancien numéro béninois à 8 chiffres, complété par 01 (ADR-063) : la forme envoyée est montrée. */
+    phoneConverted: (phone: string) => `Numéro utilisé : ${phone}.`,
+    phoneTenDigits: 'Les numéros béninois ont désormais 10 chiffres (01 devant).',
     sendCode: 'Recevoir mon code',
     sending: 'Envoi du code…',
     codeTitle: 'Saisissez votre code',

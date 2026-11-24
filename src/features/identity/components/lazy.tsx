@@ -40,14 +40,6 @@ export const ContextSwitcher = dynamic(() =>
   import('./context-switcher').then((module_) => module_.ContextSwitcher),
 );
 
-/**
- * Connexion intégrée à une page (demande de devis du Nettoyage) : téléchargée seulement quand la page
- * demande la connexion.
- */
-export const InlineLogin = dynamic(() => import('./inline-login').then((module_) => module_.InlineLogin), {
-  loading: Loading,
-});
-
 /** « Supprimer mon compte » (ADR-036), sur la page « Mon compte ». */
 export const AccountDeletion = dynamic(
   () => import('./account-deletion').then((module_) => module_.AccountDeletion),

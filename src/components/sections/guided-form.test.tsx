@@ -178,7 +178,7 @@ describe('simulateur de nettoyage (formulaire guidé)', () => {
 
   it('n’envoie rien : aucun appel réseau pendant tout le parcours', () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    renderSimulator('22990000000');
+    renderSimulator('2290197000045');
     completeSimulator();
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
@@ -190,11 +190,11 @@ describe('simulateur de nettoyage (formulaire guidé)', () => {
     expect(screen.queryByRole('link', { name: /WhatsApp/ })).toBeNull();
     unmount();
 
-    renderSimulator('22990000000');
+    renderSimulator('2290197000045');
     completeSimulator();
     const link = screen.getByRole('link', { name: /WhatsApp/ });
     const href = decodeURIComponent(link.getAttribute('href') ?? '');
-    expect(href).toContain('https://wa.me/22990000000?text=');
+    expect(href).toContain('https://wa.me/2290197000045?text=');
     expect(href).toContain('- Prestation : Nettoyage de bureaux');
   });
 

@@ -3,6 +3,7 @@ import { type ApiClient, createApiClient } from './client';
 import { session } from './session';
 
 export { ApiError } from './errors';
+export { isBackendPending } from './pending';
 export type { ApiClient, RequestOptions } from './client';
 export {
   contextKey,

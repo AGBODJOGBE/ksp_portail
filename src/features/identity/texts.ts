@@ -140,7 +140,7 @@ export const accountTexts = {
     createLink: 'Demander un compte entreprise',
     manageLink: 'Gérer mes comptes entreprise',
     switched: (label: string) => `Vous utilisez maintenant : ${label}.`,
-    hint: 'Le compte actif décide de ce que vous voyez et commandez : vos demandes et missions, vos factures.',
+    hint: 'Le compte actif décide de ce que vous voyez et commandez : vos demandes, vos factures et vos paiements.',
   },
   // Lien d'un message vers un dossier d'entreprise (`?organisation=`, ADR-050 §8).
   contextLink: {

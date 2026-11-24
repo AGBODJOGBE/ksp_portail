@@ -103,9 +103,11 @@ describe('Page de retour', () => {
     });
     expect(await screen.findByText(/Paiement confirmé/)).toBeInTheDocument();
     expect(screen.getByText('Confirmé le')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Voir la prestation' })).toHaveAttribute(
+    // Mission du Nettoyage v1 : plus d'écran, donc plus de lien vers elle.
+    expect(screen.queryByRole('link', { name: 'Voir la prestation' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Voir mes paiements' })).toHaveAttribute(
       'href',
-      `/mon-espace/nettoyage/missions/${MISSION_ID}`,
+      '/mon-espace/paiements',
     );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30000);

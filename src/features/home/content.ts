@@ -30,11 +30,9 @@ export type Need = { metierId: MetierId; title: string; text: string; href: stri
 
 export const homeContent = {
   banner: {
-    /** Phrase du bandeau d'information, complétée par les communes lues à la gateway. */
-    cleaningOnline: (communes: string) => `Le Nettoyage est disponible en ligne à ${communes}.`,
-    cleaningOnlineFallback:
-      'Le Nettoyage est disponible en ligne : demandez votre devis en quelques minutes.',
-    action: { label: 'Demander un devis', href: '/nettoyage/demande' },
+    /** Phrase du bandeau d'information. */
+    text: 'Le Nettoyage prépare sa nouvelle version en ligne : notre équipe prend vos demandes en attendant.',
+    action: { label: 'Découvrir le Nettoyage', href: '/nettoyage' },
     close: 'Fermer le message d’information',
   },
   hero: {
@@ -66,9 +64,9 @@ export const homeContent = {
     slides: [
       {
         id: 'nettoyage',
-        title: 'Le Nettoyage se commande en ligne',
-        text: 'Choisissez le lieu et vos prestations : une estimation s’affiche aussitôt, puis vous recevez votre devis dans Mon espace KSP.',
-        action: { label: 'Demander un devis', href: '/nettoyage/demande' },
+        title: 'Le Nettoyage fait peau neuve',
+        text: 'Une nouvelle version de la demande et du suivi en ligne se prépare. Bureaux, domicile, fin de chantier : notre équipe vous répond déjà.',
+        action: { label: 'Découvrir le Nettoyage', href: '/nettoyage' },
         illustration: 'cleaning',
       },
       {
@@ -102,8 +100,8 @@ export const homeContent = {
       {
         metierId: 'nettoyage',
         title: 'Je veux faire nettoyer mes locaux',
-        text: 'Bureaux, maison, appartement ou fin de chantier : estimation immédiate et devis en ligne.',
-        href: '/nettoyage/demande',
+        text: 'Bureaux, maison, appartement ou fin de chantier : une seule équipe pour vos locaux.',
+        href: '/nettoyage',
       },
       {
         metierId: 'recouvrement',

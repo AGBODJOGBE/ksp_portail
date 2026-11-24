@@ -15,9 +15,9 @@ import { topUpFor } from '@/features/wallet/top-up';
 import { useTopUp } from './use-top-up';
 
 export interface WalletPayProps<T> {
-  /** Paiement de l'objet par la route de son service (mission, facture), avec la clé d'idempotence. */
+  /** Paiement de l'objet par la route de son service (facture), avec la clé d'idempotence. */
   pay: (idempotencyKey: string) => Promise<T>;
-  /** Montant lu tel quel sur la mission ou la facture ; null quand la fiche ne le donne pas. */
+  /** Montant lu tel quel sur la fiche (reste dû d'une facture) ; null quand la fiche ne le donne pas. */
   amount: Money | null;
   label?: string;
   /** Écran où revenir payer après une recharge ; par défaut, l'écran courant. */

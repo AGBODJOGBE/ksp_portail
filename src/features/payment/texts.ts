@@ -14,12 +14,12 @@ export const paymentPaths = {
 export const TOP_UP = 'wallet_top_up';
 
 /**
- * Objet payé → écran du portail. Adresses fixées par cleaning, billing et wallet, recopiées ici : billing
- * importe cette fonctionnalité (historique) et wallet aussi (redirection), l'inverse ferait un cycle.
+ * Objet payé → écran du portail. Adresses fixées par billing et wallet, recopiées ici : billing importe
+ * cette fonctionnalité (historique) et wallet aussi (redirection), l'inverse ferait un cycle. Les objets
+ * du Nettoyage v1 (missions) n'ont plus d'écran : pas de lien.
  */
 export function subjectPath(subject: { type: string; id: string }): string | null {
   const id = encodeURIComponent(subject.id);
-  if (subject.type === 'cleaning_mission') return `/mon-espace/nettoyage/missions/${id}`;
   if (subject.type === 'billing_invoice') return `/mon-espace/factures/${id}`;
   if (subject.type === TOP_UP) return '/mon-espace/portefeuille';
   return null;
@@ -69,7 +69,6 @@ export const paymentTexts = {
     invoice: (reference: string | null) => (reference ? `Facture ${reference}` : 'Facture'),
     topUp: 'Recharge du portefeuille',
   },
-  seeMission: 'Voir la prestation',
   seeInvoice: 'Voir la facture',
   seeWallet: 'Voir mon portefeuille',
   seeAll: 'Voir mes paiements',

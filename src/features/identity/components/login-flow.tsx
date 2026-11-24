@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { getDictionary } from '@/i18n';
 import { isDeletionPending, type Session, session } from '@/lib/api';
+import { formatPhone } from '@/lib/phone';
 import { RETURN_PARAM, safeReturnPath } from '@/features/identity/return-path';
 import { identityPaths } from '@/features/identity/paths';
 import type { OtpChallenge } from '@/features/identity/schemas';
@@ -73,7 +74,7 @@ export function LoginFlow() {
       return (
         <PhoneStep
           layout="card"
-          initialPhone={step.phone}
+          initialPhone={step.phone ? formatPhone(step.phone) : undefined}
           numberRef={numberRef}
           onSent={(phone, challenge) => setStep({ name: 'code', phone, challenge })}
         />

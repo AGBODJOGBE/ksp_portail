@@ -132,7 +132,7 @@ describe('Mes factures', () => {
     expect(filters).toBeInTheDocument();
   });
 
-  it('détaille une facture impayée : lignes, reste à régler, renvoi vers la mission', async () => {
+  it('détaille une facture impayée : lignes, reste à régler, sans lien vers l’ancienne mission', async () => {
     stub({ status: 200, body: invoice({ status: 'overdue' }) });
     render(<InvoiceDetail id={INVOICE_ID} />);
     expect(
@@ -147,10 +147,8 @@ describe('Mes factures', () => {
     expect(plain(screen.getByText('Reste à régler').nextElementSibling?.textContent ?? null)).toBe(
       '300 000 F CFA',
     );
-    expect(screen.getByRole('link', { name: 'Voir la mission' })).toHaveAttribute(
-      'href',
-      '/mon-espace/nettoyage/missions/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1000',
-    );
+    // Le Nettoyage v1 est retiré : plus de renvoi vers une mission.
+    expect(screen.queryByRole('link', { name: 'Voir la mission' })).toBeNull();
     // Paiement par le portefeuille (ADR-046) : le montant affiché est le reste dû de la facture.
     const pay = screen.getByRole('region', { name: 'Payer avec le portefeuille' });
     expect(

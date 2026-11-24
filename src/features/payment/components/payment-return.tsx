@@ -180,7 +180,6 @@ export function PaymentReturn({ id, topUpResult }: { id: string; topUpResult?: R
   const pending = payment.status === 'pending';
   const checkout = pending ? safeCheckoutUrl(payment.checkoutUrl) : null;
   const subject = subjectPath(payment.subject);
-  const isInvoice = payment.subject.type === 'billing_invoice';
   const isTopUp = payment.subject.type === TOP_UP;
   // Recharge réussie : le bloc du portefeuille porte déjà ses liens.
   const toppedUp = isTopUp && payment.status === 'succeeded' && !!topUpResult;
@@ -285,7 +284,7 @@ export function PaymentReturn({ id, topUpResult }: { id: string; topUpResult?: R
         ) : null}
         {subject && !toppedUp ? (
           <ButtonLink href={subject} variant={checkout || payment.underReview ? 'secondary' : 'primary'}>
-            {isTopUp ? t.seeWallet : isInvoice ? t.seeInvoice : t.seeMission}
+            {isTopUp ? t.seeWallet : t.seeInvoice}
           </ButtonLink>
         ) : null}
         <ButtonLink href={paymentPaths.list} variant="ghost">

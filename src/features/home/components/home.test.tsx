@@ -10,14 +10,14 @@ vi.mock('next/navigation', () => ({
 
 describe('accueil', () => {
   it('affiche la promesse du groupe en titre principal', async () => {
-    render(await HomePage());
+    render(<HomePage />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       'Vos services du quotidien, réunis par un seul groupe',
     );
   });
 
   it('propose la recherche des services et le mode guidé vers « Votre besoin »', async () => {
-    render(await HomePage());
+    render(<HomePage />);
     // Recherche chargée à la demande (features/services/components/lazy.tsx).
     expect(await screen.findByRole('combobox', { name: 'Trouver un service' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Être guidé' })).toHaveAttribute('href', '#votre-besoin');
@@ -25,14 +25,14 @@ describe('accueil', () => {
   });
 
   it('oriente chaque besoin vers le bon service', async () => {
-    render(await HomePage());
+    render(<HomePage />);
     const section = screen.getByRole('region', { name: /Dites-nous ce qu’il vous faut/ });
     const hrefs = within(section)
       .getAllByRole('link')
       .map((link) => link.getAttribute('href'));
     expect(hrefs).toEqual([
       '/services',
-      '/nettoyage/demande',
+      '/nettoyage',
       '/recouvrement',
       '/immobilier',
       '/impression',
@@ -41,14 +41,18 @@ describe('accueil', () => {
     ]);
   });
 
-  it('referme le bandeau d’information', async () => {
-    render(await HomePage());
+  it('annonce la nouvelle version du Nettoyage et mène à sa page, puis se referme', async () => {
+    render(<HomePage />);
+    expect(screen.getByText(homeContent.banner.text)).toBeInTheDocument();
+    const links = screen.getAllByRole('link', { name: 'Découvrir le Nettoyage' });
+    expect(links.length).toBeGreaterThan(0);
+    links.forEach((link) => expect(link).toHaveAttribute('href', '/nettoyage'));
     fireEvent.click(screen.getByRole('button', { name: homeContent.banner.close }));
     expect(screen.queryByRole('button', { name: homeContent.banner.close })).toBeNull();
   });
 
   it('n’invente aucun contenu : sans données, il affiche des emplacements « à venir »', async () => {
-    const { container } = render(await HomePage());
+    const { container } = render(<HomePage />);
     expect(container.querySelectorAll('[data-placeholder]').length).toBeGreaterThan(0);
     expect(screen.getByRole('region', { name: 'Chiffres clés' })).toHaveTextContent('Chiffre clé à venir');
   });

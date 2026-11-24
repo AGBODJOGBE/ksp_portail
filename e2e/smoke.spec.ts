@@ -83,7 +83,7 @@ test('l’accueil présente les six métiers et y conduit depuis « Être guidé
   const cartes = besoins.getByRole('listitem').getByRole('link');
   await expect(cartes).toHaveCount(6);
   for (const href of [
-    '/nettoyage/demande',
+    '/nettoyage',
     '/recouvrement',
     '/immobilier',
     '/impression',
@@ -106,10 +106,7 @@ const METIER_PAGES = [
   },
   {
     path: '/nettoyage',
-    links: {
-      'Demander un devis': '/nettoyage/demande',
-      'Mes prestations de nettoyage': '/mon-espace/nettoyage/demandes',
-    },
+    links: { 'Nous contacter': '/contact?sujet=nettoyage' },
   },
   {
     path: '/immobilier',
@@ -170,4 +167,41 @@ test('les liens vers KSP Print et KSP Shop pointent vers les sites de l’écosy
   ).toHaveAttribute('href', /^https?:\/\//);
 });
 
-// La demande de devis du Nettoyage, branchée sur la gateway, est parcourue dans nettoyage.spec.ts (gateway simulée).
+/* ——— Nettoyage : la v1 est retirée, la v2 est en préparation ——— */
+
+test('Nettoyage : la page annonce la nouvelle version et mène au contact', async ({ page }) => {
+  await page.goto('/nettoyage');
+  const hero = page.getByRole('main').getByRole('region').first();
+  await expect(hero.getByText('Nouvelle version en préparation').first()).toBeVisible();
+  await hero.getByRole('link', { name: /Nous contacter/ }).click();
+  await expect(page).toHaveURL(/\/contact\?sujet=nettoyage$/);
+  await expect(
+    page.getByRole('main').getByText('Nettoyage et assainissement', { exact: true }),
+  ).toBeVisible();
+});
+
+test('Nettoyage : les anciennes demandes de devis redirigent vers la page (307)', async ({ request }) => {
+  for (const path of ['/nettoyage/demande', '/nettoyage/devis']) {
+    const response = await request.get(path, { maxRedirects: 0 });
+    expect(response.status()).toBe(307);
+    expect(new URL(response.headers().location ?? '', 'http://localhost').pathname).toBe('/nettoyage');
+  }
+});
+
+test('Nettoyage : Mon espace dit « Bientôt disponible » pour tout lien de la v1 ou de la v2', async ({
+  page,
+}) => {
+  const gateway = await mockGateway(page, { signedIn: true });
+  for (const path of [
+    '/mon-espace/nettoyage',
+    '/mon-espace/nettoyage/demandes/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1001',
+    '/mon-espace/nettoyage/programmes/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1002/seances/s-1',
+    '/mon-espace/nettoyage/reclamations/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1003',
+    '/mon-espace/nettoyage/missions/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1000',
+  ]) {
+    const response = await page.goto(path);
+    expect(response?.status()).toBe(200);
+    await expect(page.getByRole('heading', { level: 2, name: 'Bientôt disponible' })).toBeVisible();
+  }
+  expect(gateway.calls.filter((call) => call.path.startsWith('/api/v1/cleaning/'))).toEqual([]);
+});

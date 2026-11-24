@@ -16,13 +16,13 @@ const publicSchema = z.object({
   siteUrl: url(),
   apiUrl: url(),
   whatsappNumber: z.optional(
-    z.string().check(z.regex(/^\d{8,15}$/, 'Numéro international sans « + », par exemple 22990000000.')),
+    z.string().check(z.regex(/^\d{8,15}$/, 'Numéro international sans « + », par exemple 2290197000045.')),
   ),
   /** Coordonnées de la page Contact (`config/contact.ts`) ; absentes : valeurs d'exemple signalées. */
   contactPhone: z.optional(
     z
       .string()
-      .check(z.regex(/^\+[1-9]\d{6,14}$/, 'Numéro au format international, par exemple +22901970000.')),
+      .check(z.regex(/^\+[1-9]\d{6,14}$/, 'Numéro au format international, par exemple +2290197000045.')),
   ),
   contactEmail: z.optional(z.email({ error: 'Adresse e-mail attendue, par exemple contact@ksp.bj.' })),
   contactAddress: z.optional(z.string().check(z.minLength(5), z.maxLength(200))),

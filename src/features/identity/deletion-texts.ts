@@ -66,12 +66,15 @@ export const deletionTexts = {
 } as const;
 
 /** Nature d'une obligation qui empêche la suppression (`DeletionObstacle.kind`) : libellé et écran. */
-export const deletionObstacleKinds: Record<string, { label: string; href: string }> = {
-  open_cleaning_mission: {
-    label: 'Prestation de nettoyage en cours',
-    href: '/mon-espace/nettoyage/demandes',
-  },
-  open_cleaning_request: { label: 'Demande de devis en cours', href: '/mon-espace/nettoyage/demandes' },
+export const deletionObstacleKinds: Record<string, { label: string; href: string | null }> = {
+  // Nettoyage v2 (`ObligationKind` de services/cleaning/src/domain/privacy/obligations.ts dans ksp_back).
+  open_cleaning_request: { label: 'Demande de nettoyage en cours', href: '/mon-espace/nettoyage' },
+  open_cleaning_program: { label: 'Programme de nettoyage en cours', href: '/mon-espace/nettoyage' },
+  unpaid_cleaning_session: { label: 'Séance de nettoyage à payer', href: '/mon-espace/nettoyage' },
+  cleaning_payment_in_progress: { label: 'Paiement de nettoyage en cours', href: '/mon-espace/paiements' },
+  unpaid_cleaning_invoice: { label: 'Facture de nettoyage impayée', href: '/mon-espace/factures' },
+  // Agent du Nettoyage : ses affectations se gèrent dans l'espace pro (F-021), pas dans le portail.
+  upcoming_cleaning_assignment: { label: 'Intervention de nettoyage à venir', href: null },
   unpaid_invoice: { label: 'Facture à régler', href: '/mon-espace/factures' },
   pending_payment: { label: 'Paiement en attente', href: '/mon-espace/paiements' },
   payment_under_review: { label: 'Paiement en vérification', href: '/mon-espace/paiements' },
@@ -85,7 +88,7 @@ export const deletionObstacleKinds: Record<string, { label: string; href: string
 
 /** Repli par service, pour une nature encore inconnue du portail (liste ouverte du contrat). */
 const obstacleServices: Record<string, { label: string; href: string }> = {
-  cleaning: { label: 'Nettoyage', href: '/mon-espace/nettoyage/demandes' },
+  cleaning: { label: 'Nettoyage', href: '/mon-espace/nettoyage' },
   billing: { label: 'Facturation', href: '/mon-espace/factures' },
   payment: { label: 'Paiement', href: '/mon-espace/paiements' },
   identity: { label: 'Compte entreprise', href: '/mon-espace/entreprise' },

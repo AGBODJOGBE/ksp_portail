@@ -1,17 +1,11 @@
-/** Adresses des écrans du Nettoyage (celles de « Mes prestations » sont attendues par les notifications). */
+/**
+ * Adresses du Nettoyage. `space` couvre tout `/mon-espace/nettoyage/…` : les liens des notifications du
+ * service cleaning (demandes, programmes, réclamations) y mènent, et y trouvent « Bientôt disponible »
+ * en attendant la nouvelle version.
+ */
 export const cleaningPaths = {
-  /** Demande de devis par lieu (assistant en étapes). */
-  journey: '/nettoyage/demande',
-  /** Demande de devis qui commence par un type de lieu déjà choisi. */
-  journeyFor: (placeType: string) => `/nettoyage/demande?lieu=${encodeURIComponent(placeType)}`,
-  /** Confirmation d'une demande envoyée (relue par son numéro après un rafraîchissement). */
-  journeySent: (groupId: string) => `/nettoyage/demande?groupe=${encodeURIComponent(groupId)}`,
-  space: '/mon-espace/nettoyage/demandes',
-  request: (id: string) => `/mon-espace/nettoyage/demandes/${encodeURIComponent(id)}`,
-  /** Suivi d'une demande groupée (ADR-035 : adresse citée par les messages regroupés). */
-  group: (id: string) => `/mon-espace/nettoyage/demandes/groupes/${encodeURIComponent(id)}`,
-  mission: (id: string) => `/mon-espace/nettoyage/missions/${encodeURIComponent(id)}`,
-  /** Mission tout juste réservée (devis accepté) : l'écran affiche la confirmation. */
-  missionBooked: (id: string) =>
-    `/mon-espace/nettoyage/missions/${encodeURIComponent(id)}?reservation=confirmee`,
+  /** Page publique du Nettoyage. */
+  home: '/nettoyage',
+  /** « Mes prestations de nettoyage » dans Mon espace KSP. */
+  space: '/mon-espace/nettoyage',
 } as const;

@@ -30,7 +30,7 @@ function Line({ line }: { line: StatementLine }) {
             href={path}
             className="text-action-ink inline-flex min-h-11 items-center gap-1 text-sm font-semibold underline-offset-4 hover:underline"
           >
-            {line.object.objectType === 'billing_invoice' ? t.seeInvoice : t.seeMission}
+            {t.seeInvoice}
             <IconArrowRight className="size-4" />
           </Link>
         ) : null}

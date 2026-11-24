@@ -50,10 +50,8 @@ export const walletTexts = {
     refund: 'Remboursement',
   } as Record<string, string>,
   otherKind: 'Opération',
-  missionCredit: 'Crédit d’une prestation arrêtée',
   credit: 'Crédit',
   debit: 'Débit',
-  seeMission: 'Voir la prestation',
   seeInvoice: 'Voir la facture',
 
   // Reversements (fonds dus au titulaire, ADR-041).
@@ -79,10 +77,8 @@ export const walletTexts = {
   resumePayment: 'Reprendre mon paiement',
   seeWallet: 'Voir mon portefeuille',
 
-  // Payer avec le portefeuille (fiche d'une mission, d'une facture).
+  // Payer avec le portefeuille (fiche d'une facture).
   pay: 'Payer avec mon portefeuille',
-  payDeposit: 'Payer l’acompte avec mon portefeuille',
-  payBalance: 'Payer le solde avec mon portefeuille',
   amountToPay: 'Montant à payer',
   amountByKsp: 'Montant calculé par KSP au moment du paiement.',
   currentBalance: 'Solde du portefeuille',
@@ -104,15 +100,7 @@ export const walletTexts = {
   payWithWalletHint: 'Payé depuis votre solde prépayé KSP, rechargeable par Mobile Money.',
 } as const;
 
-/**
- * Référence d'un crédit au prorata d'une mission récurrente arrêtée (ADR-049 §7, ADR-048 §14) : wallet
- * l'écrit comme un remboursement (`refund`) de référence `mission-credit:<creditId>`. Format lu dans le
- * service wallet, pas encore décrit par le contrat : sans lui, la ligne reste un « Remboursement ».
- */
-const MISSION_CREDIT = 'mission-credit:';
-
 /** Libellé du type d'une ligne du relevé ; type inconnu : libellé neutre. */
-export function statementKindLabel(line: { kind: string; reference?: string }): string {
-  if (line.kind === 'refund' && line.reference?.startsWith(MISSION_CREDIT)) return walletTexts.missionCredit;
+export function statementKindLabel(line: { kind: string }): string {
   return walletTexts.kinds[line.kind] ?? walletTexts.otherKind;
 }

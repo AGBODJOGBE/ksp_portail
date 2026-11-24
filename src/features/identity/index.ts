@@ -8,7 +8,6 @@ export { useReadOnly } from './components/use-read-only';
 export {
   AccountDeletion,
   ContextSwitcher,
-  InlineLogin,
   OrganizationContextGate,
   OrganizationDetail,
   OrganizationSpace,

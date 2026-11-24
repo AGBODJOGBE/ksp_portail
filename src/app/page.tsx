@@ -1,6 +1,4 @@
 import { Container } from '@/components/ui/container';
-import { zonesSentence } from '@/features/cleaning';
-import { getPlaceCatalogForPage, getServedZones } from '@/features/cleaning/server';
 import {
   FeaturedServices,
   HomeHero,
@@ -19,12 +17,10 @@ const FEATURED_COUNT = 3;
 /**
  * Accueil du portail (v3, F-020 : présentation des portails d'e-services) : bandeau d'information,
  * grande photo et recherche des services, nouveautés, chiffres clés « à venir », « Votre besoin », puis
- * les services à la une. Page statique : zones et catalogue du Nettoyage lus au build, puis revalidés.
+ * les services à la une. Page statique, sans appel à la gateway.
  */
-export default async function HomePage() {
-  const [zones, catalog] = await Promise.all([getServedZones(), getPlaceCatalogForPage()]);
-  const services = buildServiceDirectory(catalog?.services ?? null);
-  const communes = zones ? zonesSentence(zones) : null;
+export default function HomePage() {
+  const services = buildServiceDirectory();
   const { banner, news } = content;
   const featured = services
     .filter((entry) => !entry.status)
@@ -33,11 +29,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <InfoBanner
-        text={communes ? banner.cleaningOnline(communes) : banner.cleaningOnlineFallback}
-        action={banner.action}
-        closeLabel={banner.close}
-      />
+      <InfoBanner text={banner.text} action={banner.action} closeLabel={banner.close} />
       <HomeHero content={content.hero} services={services} />
       <Container size="wide" className="pt-8 sm:pt-12">
         <NewsCarousel

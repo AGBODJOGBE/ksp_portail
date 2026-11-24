@@ -5,16 +5,23 @@ import { mockGateway } from './support/gateway';
 
 const NOTIFICATION_ID = '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d6001';
 const REQUEST_ID = '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1001';
+const PROGRAM_ID = '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1002';
 
 test('pastille de Mon espace, liste, marquer lu, préférences', async ({ page }) => {
   let unread = 2;
   let preferences = { whatsapp: true, email: true, updatedAt: null as string | null };
-  const notification = (id: string, title: string, readAt: string | null) => ({
+  // Liens du Nettoyage v2 : la page « Bientôt disponible » de Mon espace les reçoit.
+  const notification = (
+    id: string,
+    title: string,
+    readAt: string | null,
+    link = `https://ksp.bj/mon-espace/nettoyage/demandes/${REQUEST_ID}`,
+  ) => ({
     id,
     templateCode: 'cleaning.quote_sent.customer',
     title,
     body: 'Bonjour Koffi,\nVotre devis est prêt.',
-    link: `https://ksp.bj/mon-espace/nettoyage/demandes/${REQUEST_ID}`,
+    link,
     createdAt: '2026-11-05T09:30:00Z',
     readAt,
   });
@@ -34,8 +41,9 @@ test('pastille de Mon espace, liste, marquer lu, préférences', async ({ page }
               notification(NOTIFICATION_ID, 'Votre devis de nettoyage — Vitres', unread === 2 ? null : 'x'),
               notification(
                 '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d6002',
-                'Visite planifiée',
+                'Programme de nettoyage confirmé',
                 unread > 0 ? null : 'x',
+                `https://ksp.bj/mon-espace/nettoyage/programmes/${PROGRAM_ID}`,
               ),
             ],
             nextCursor: null,
@@ -88,6 +96,16 @@ test('pastille de Mon espace, liste, marquer lu, préférences', async ({ page }
     body: { whatsapp: false, email: true },
   });
   expect(gateway.forbiddenHeaders).toEqual([]);
+
+  // Le lien d'une notification du Nettoyage mène à « Bientôt disponible », sans erreur.
+  await page
+    .getByRole('listitem', { name: 'Programme de nettoyage confirmé' })
+    .getByRole('button', { name: 'Voir' })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/mon-espace/nettoyage/programmes/${PROGRAM_ID}$`));
+  await expect(page.getByRole('heading', { level: 1, name: 'Mes prestations de nettoyage' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Bientôt disponible' })).toBeVisible();
+  expect(gateway.calls.filter((call) => call.path.startsWith('/api/v1/cleaning/'))).toEqual([]);
 });
 
 test('page Contact : sujet prérempli depuis un lien « support », sans compte', async ({ page }) => {

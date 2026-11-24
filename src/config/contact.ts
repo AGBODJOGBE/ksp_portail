@@ -6,8 +6,8 @@ import { publicEnv } from './env';
  * remplace et la page la signale « à remplacer » : rien d'inventé n'est présenté comme réel.
  */
 export const CONTACT_EXAMPLES = {
-  whatsappNumber: '22900000000',
-  phone: '+22900000000',
+  whatsappNumber: '2290100000000',
+  phone: '+2290100000000',
   email: 'contact@exemple.ksp.bj',
   address: 'Adresse à compléter, Cotonou, Bénin',
 };

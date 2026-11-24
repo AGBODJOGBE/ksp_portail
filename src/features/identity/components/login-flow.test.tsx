@@ -130,6 +130,37 @@ describe('parcours de connexion', () => {
     expect(calls.filter((call) => call.path.endsWith('/otp/request'))).toHaveLength(0);
   });
 
+  it('ancien numéro béninois à 8 chiffres : montre la forme à 10 chiffres et l’envoie', async () => {
+    const { calls } = stubGateway({
+      [REFRESH]: NO_SESSION,
+      [REQUEST]: { status: 200, body: challengeBody() },
+    });
+    render(<LoginFlow />);
+    const number = await screen.findByRole('textbox', { name: 'Numéro' });
+
+    fireEvent.change(number, { target: { value: '01 97 00 00 45' } });
+    expect(screen.queryByText(/Numéro utilisé/)).toBeNull();
+
+    fireEvent.change(number, { target: { value: '97 00 00 45' } });
+    const converted = screen.getByText('Numéro utilisé : +229 01 97 00 00 45.').parentElement!;
+    expect(converted).toHaveTextContent('Les numéros béninois ont désormais 10 chiffres (01 devant).');
+    expect(converted).toHaveAttribute('aria-live', 'polite');
+    expect(number.getAttribute('aria-describedby')).toContain(converted.id);
+    // Saisie inchangée : seule la forme envoyée est montrée.
+    expect(number).toHaveValue('97 00 00 45');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Recevoir mon code' }));
+    await screen.findByRole('textbox', { name: /Code reçu/ });
+    expect(calls.find((call) => call.path.endsWith('/otp/request'))?.body).toEqual({
+      phone: '+2290197000045',
+    });
+
+    // « Modifier le numéro » : la forme à 10 chiffres revient dans le champ, sans nouvelle aide.
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier le numéro' }));
+    expect(await screen.findByRole('textbox', { name: 'Numéro' })).toHaveValue('+229 01 97 00 00 45');
+    expect(screen.queryByText(/Numéro utilisé/)).toBeNull();
+  });
+
   it('annonce la limite atteinte et bloque la demande pendant le délai', async () => {
     stubGateway({
       [REFRESH]: NO_SESSION,

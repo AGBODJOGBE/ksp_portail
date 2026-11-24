@@ -41,7 +41,7 @@ describe('garde de « Mon espace KSP »', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Chargement de votre espace…');
     expect(await screen.findByRole('heading', { level: 1, name: 'Bonjour Koffi' })).toBeInTheDocument();
     expect(screen.getByText('Contenu réservé')).toBeInTheDocument();
-    expect(screen.getByText('+2290197000045')).toBeInTheDocument();
+    expect(screen.getByText('+229 01 97 00 00 45')).toBeInTheDocument();
     expect(calls[0]).toMatchObject({
       method: 'POST',
       path: '/api/v1/identity/token/refresh',

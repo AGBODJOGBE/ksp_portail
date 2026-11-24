@@ -28,7 +28,7 @@ export const verifyOtpResponseSchema = z.discriminatedUnion('status', [
 export const deletionObstacleSchema = z.object({
   /** Service qui l'a signalée (`cleaning`, `billing`, `payment`…) ou `identity` (compte entreprise). */
   service: z.string(),
-  /** Nature : `open_cleaning_mission`, `unpaid_invoice`, `pending_payment`… (chaîne : liste ouverte). */
+  /** Nature : `open_cleaning_program`, `unpaid_invoice`, `pending_payment`… (chaîne : liste ouverte). */
   kind: z.string(),
   reference: z.string(),
   description: z.string(),

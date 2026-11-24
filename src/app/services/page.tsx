@@ -1,6 +1,5 @@
 import { Container } from '@/components/ui/container';
 import { Eyebrow } from '@/components/ui/eyebrow';
-import { getPlaceCatalogForPage } from '@/features/cleaning/server';
 import { buildServiceDirectory, ServicesDirectory, servicesTexts as t } from '@/features/services';
 import { BreadcrumbJsonLd } from '@/lib/seo/json-ld';
 import { pageMetadata } from '@/lib/seo/metadata';
@@ -10,12 +9,11 @@ export const metadata = pageMetadata({ ...t.metadata, path: '/services' });
 
 /**
  * « Tous nos services » : catégories, recherche et grille de cartes, sur le modèle des portails
- * d'e-services (F-020). Page statique : le catalogue du Nettoyage est lu au build puis revalidé comme la
- * page Nettoyage ; catégorie, recherche et page sont dans l'adresse (`?categorie=`, `?q=`, `?page=`).
+ * d'e-services (F-020). Page statique, tirée des contenus des pages métiers ; catégorie, recherche et
+ * page sont dans l'adresse (`?categorie=`, `?q=`, `?page=`).
  */
-export default async function ServicesPage() {
-  const catalog = await getPlaceCatalogForPage();
-  const entries = buildServiceDirectory(catalog?.services ?? null);
+export default function ServicesPage() {
+  const entries = buildServiceDirectory();
   return (
     <>
       <Container size="wide" className="pb-section-sm pt-10 sm:pt-14">

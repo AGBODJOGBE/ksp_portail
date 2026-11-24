@@ -10,7 +10,7 @@ import sitemap from './sitemap';
 
 type Expectation = { name: string; href: string | null };
 
-/** Une page : composant serveur, éventuellement asynchrone (lecture des zones du Nettoyage). */
+/** Une page : composant serveur, éventuellement asynchrone. */
 type PageComponent = () => ReactNode | Promise<ReactNode>;
 
 /** Rend une page serveur, asynchrone ou non. */
@@ -30,10 +30,7 @@ const PAGES: ReadonlyArray<{ path: string; Page: PageComponent; h1: RegExp; acti
     path: '/nettoyage',
     Page: NettoyagePage,
     h1: /Des locaux propres et sains/,
-    actions: [
-      { name: 'Demander un devis', href: '/nettoyage/demande' },
-      { name: 'Mes prestations de nettoyage', href: '/mon-espace/nettoyage/demandes' },
-    ],
+    actions: [{ name: 'Nous contacter', href: '/contact?sujet=nettoyage' }],
   },
   {
     path: '/immobilier',
@@ -111,5 +108,20 @@ describe.each(PAGES)('page métier $path', ({ path, Page, h1, actions }) => {
   it('n’invente aucun prix', async () => {
     const { container } = await renderPage(Page);
     expect(container.textContent).not.toMatch(/FCFA|F\s?CFA|XOF|\d+\s?%/);
+  });
+});
+
+describe('page Nettoyage, pendant la préparation de la v2', () => {
+  it('annonce la nouvelle version, sans appel à la gateway ni lien vers la v1', () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const { container } = render(<NettoyagePage />);
+    const hero = screen.getByRole('region', { name: /Des locaux propres et sains/ });
+    expect(hero).toHaveTextContent('Nouvelle version en préparation');
+    expect(fetchSpy).not.toHaveBeenCalled();
+    const hrefs = [...container.querySelectorAll('a')].map((link) => link.getAttribute('href') ?? '');
+    expect(
+      hrefs.filter((href) => href.startsWith('/nettoyage/') || href.startsWith('/mon-espace/nettoyage')),
+    ).toEqual([]);
+    fetchSpy.mockRestore();
   });
 });

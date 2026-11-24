@@ -42,7 +42,7 @@ export function topUpFor(missing: number, limits: TopUpLimits | null): number {
 /*
  * Reprise d'un paiement après une recharge : la page de retour du prestataire est celle de tous les
  * paiements (`/mon-espace/paiements/<id>`, fixée par la gateway). L'écran d'où part la recharge (fiche d'une
- * mission, d'une facture) est gardé dans l'onglet pour y ramener le client, solde rechargé.
+ * facture) est gardé dans l'onglet pour y ramener le client, solde rechargé.
  */
 const RESUME_KEY = 'ksp:portefeuille:reprise';
 

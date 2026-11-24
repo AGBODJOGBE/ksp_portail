@@ -36,20 +36,25 @@ La connexion par téléphone (`/connexion`) et « Mon espace KSP » (`/mon-espac
 2. **Cookie de renouvellement.** Sur `http://localhost`, les navigateurs Chrome et Firefox acceptent le cookie `__Secure-ksp_rt` (Secure) : rien à changer. Pour un portail servi en HTTP sur une autre adresse (adresse IP du réseau local, téléphone de test), mettre `REFRESH_COOKIE_INSECURE=true` côté gateway (développement uniquement : refusé en production).
 3. **Lancer les services** : identity, notification et gateway (voir le README de `services/gateway`).
 4. **Code de connexion.** En développement, le service notification utilise le prestataire WhatsApp « console » : le code est écrit dans **le terminal du service notification** (`[notification · développement] WhatsApp vers +229********45 …`), aucun message ne part.
+5. **Numéros du Bénin.** Ils ont 10 chiffres (`01` devant les 8 chiffres d'origine, ADR-063). Un ancien numéro à 8 chiffres saisi à la connexion est complété comme le fait le backend, et le portail montre la forme envoyée (`src/lib/phone.ts`, miroir de `tryNormalizePhone`).
 
 Puis `pnpm dev` et ouvrir http://localhost:3010/mon-espace : sans session, le portail renvoie vers la connexion, puis revient à la page demandée. Le jeton d'accès reste en mémoire (perdu au rechargement, aussitôt repris grâce au cookie) ; aucun jeton n'est écrit dans le stockage du navigateur.
 
-### Tester le Nettoyage contre la gateway locale
+### Nettoyage : nouvelle version en préparation
 
-Le simulateur (`/nettoyage#simulateur`), la demande de devis (`/nettoyage/devis`), « Mes prestations de nettoyage » (`/mon-espace/nettoyage/demandes`) et « Mes factures » (`/mon-espace/factures`) appellent la gateway depuis le navigateur.
+Le Nettoyage v1 est retiré du backend (refonte v2, ADR-054 à 063 de `ksp_back`) : le portail n'appelle plus aucune route `/api/v1/cleaning/*`. En attendant les écrans de la v2 :
 
-1. **Services.** En plus d'identity, notification et gateway (ci-dessus), lancer **cleaning** et **billing** dans `ksp_back` (voir leurs README).
-2. **Prestations et prix.** La grille est vide tant que l'équipe Nettoyage ne l'a pas remplie au back-office : le simulateur répond alors « Prix bientôt disponible ». Pour essayer avec des prix, charger les données de démonstration de `services/cleaning` (`prisma/demo/demo-data.sql`, **prix inventés**, voir le README du service).
-3. **Parcours.** Ouvrir http://localhost:3010/nettoyage#simulateur, répondre aux questions : la fourchette s'affiche en FCFA. « Demander un devis » mène à la connexion, puis revient à la demande avec la simulation (elle voyage dans l'adresse). Choisir une date à partir de J+2 : la gateway refuse un délai plus court.
-4. **Côté KSP.** La visite des lieux, le devis et les paiements se font au back-office (ou par les routes `/api/v1/admin/cleaning/*`). Recharger ensuite la demande dans « Mes prestations » pour accepter le devis : la mission apparaît.
-5. **Zones.** Une commune hors des zones desservies (Cotonou, Porto-Novo, Abomey-Calavi au lancement) reçoit une estimation, mais la demande de devis est refusée (`CLEANING_ZONE_NOT_COVERED`).
+- `/nettoyage` est une page statique (prestations, « Nouvelle version en préparation », « Nous contacter » vers `/contact?sujet=nettoyage`) ; `/nettoyage/demande` et `/nettoyage/devis` y redirigent (307) ;
+- tout `/mon-espace/nettoyage/…` (liens des notifications : demandes, programmes, réclamations, et anciens liens de la v1) affiche « Bientôt disponible » ;
+- « Suivre mes demandes » (`/mon-espace/suivi`) est vide, et la carte du Nettoyage de Mon espace est marquée « Bientôt ».
 
-Sans gateway, `pnpm build` puis `pnpm test:e2e` joue tout le parcours contre une gateway simulée (`e2e/nettoyage.spec.ts`, `e2e/support/cleaning.ts`). Sous Windows, si le serveur lancé par Playwright ne démarre pas (`PORT=… pnpm start` est une commande POSIX), lancer le site construit à la main sur un port libre puis `PORT=3110 pnpm test:e2e` (le serveur déjà lancé est réutilisé) :
+### Routes pas encore servies par le backend
+
+Une section dont la route figure au contrat mais n'est pas encore servie (404 `GATEWAY_ROUTE_NOT_FOUND`, 501 ou code `*_NOT_IMPLEMENTED` ; `isBackendPending` de `src/lib/api`) affiche `BackendPending` (`src/components/ui/backend-pending.tsx`) : « Bientôt disponible » pour le client, et, hors production seulement, les routes que le backend doit fournir. Elle s'active seule dès que la route est livrée.
+
+### Tests de bout en bout sous Windows
+
+`pnpm build` puis `pnpm test:e2e` joue les parcours contre une gateway simulée (`e2e/support/gateway.ts`). Sous Windows, si le serveur lancé par Playwright ne démarre pas (`PORT=… pnpm start` est une commande POSIX), lancer le site construit à la main sur un port libre puis `PORT=3110 pnpm test:e2e` (le serveur déjà lancé est réutilisé) :
 
 ```bash
 cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/
