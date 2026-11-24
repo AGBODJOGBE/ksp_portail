@@ -11,14 +11,12 @@ import { CATEGORY_LABELS, normalize, type ServiceEntry } from './search';
 type Draft = Omit<ServiceEntry, 'search'>;
 
 /*
- * Annuaire des services du portail (`/services`, recherche de l'accueil). Contenu réel uniquement :
- * prestations du catalogue du Nettoyage lues à la gateway, et offres déjà décrites par les pages métiers
- * (`features/<domaine>/content.ts`). Aucune prestation, aucun tarif n'est ajouté ici.
+ * Annuaire des services du portail (`/services`, recherche de l'accueil). Contenu réel uniquement : les
+ * offres déjà décrites par les pages métiers (`features/<domaine>/content.ts`). Aucune prestation, aucun
+ * tarif n'est ajouté ici. Le Nettoyage prépare sa nouvelle version (v2) : ses prestations viennent de sa
+ * page, sans catalogue lu à la gateway.
  * Fichier serveur : il lit les contenus de toutes les pages métiers (le navigateur ne reçoit que la liste).
  */
-
-/** Prestation du catalogue du Nettoyage, telle que la gateway la publie (`GET /cleaning/catalog`). */
-export type CleaningOffer = { code: string; name: string; description: string };
 
 type Offer = { title: string; text: string; points?: ReadonlyArray<string> };
 
@@ -43,25 +41,8 @@ function fromOffers(
   }));
 }
 
-/**
- * Tous les services, dans l'ordre des métiers. Nettoyage : les prestations de la gateway, chacune vers
- * la demande de devis ; sans réponse de la gateway, les prestations décrites par la page Nettoyage.
- */
-export function buildServiceDirectory(cleaning: ReadonlyArray<CleaningOffer> | null): ServiceEntry[] {
-  const cleaningEntries: Draft[] = cleaning?.length
-    ? cleaning.map((service) => ({
-        id: `nettoyage-${service.code}`,
-        category: 'nettoyage',
-        title: service.name,
-        description: service.description,
-        href: '/nettoyage/demande',
-      }))
-    : fromOffers(
-        'nettoyage',
-        nettoyageContent.services.items,
-        '/nettoyage#prestations',
-        (offer) => `Nettoyage : ${offer.title.toLowerCase()}`,
-      );
+/** Tous les services, dans l'ordre des métiers, tirés des pages métiers. */
+export function buildServiceDirectory(): ServiceEntry[] {
   const lower = (offer: Offer) => offer.title.charAt(0).toLowerCase() + offer.title.slice(1);
 
   const byCategory: Record<MetierId, Draft[]> = {
@@ -71,7 +52,12 @@ export function buildServiceDirectory(cleaning: ReadonlyArray<CleaningOffer> | n
       '/recouvrement#offres',
       (offer) => `Recouvrement pour les ${lower(offer)}`,
     ),
-    nettoyage: cleaningEntries,
+    nettoyage: fromOffers(
+      'nettoyage',
+      nettoyageContent.services.items,
+      '/nettoyage#prestations',
+      (offer) => `Nettoyage : ${offer.title.toLowerCase()}`,
+    ),
     immobilier: [
       {
         id: 'immobilier-1',

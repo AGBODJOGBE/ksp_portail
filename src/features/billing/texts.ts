@@ -66,7 +66,6 @@ export const billingTexts = {
     'Réglez-la ci-dessous avec le portefeuille KSP, ou en espèces, par virement ou Mobile Money auprès de l’équipe KSP, qui l’enregistre ici.',
   payTitle: 'Payer avec le portefeuille',
   cancelledNotice: 'Cette facture a été annulée par KSP (correction) : elle n’est plus à régler.',
-  seeMission: 'Voir la mission',
 } as const;
 
 type StatusLabel = { label: string; tone: BadgeTone };

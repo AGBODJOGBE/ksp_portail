@@ -7,6 +7,7 @@ import { FormMessage } from '@/components/ui/field';
 import { Heading } from '@/components/ui/heading';
 import { getDictionary } from '@/i18n';
 import { ApiError, session, useSession } from '@/lib/api';
+import { formatPhone } from '@/lib/phone';
 import { logout } from '@/features/identity/api';
 import { describeError } from '@/features/identity/errors';
 
@@ -46,7 +47,7 @@ export function AccountOverview() {
         {current.user.phone ? (
           <p className="text-ink-muted mt-3">
             {t.account.phone} :{' '}
-            <span className="text-ink font-medium tabular-nums">{current.user.phone}</span>
+            <span className="text-ink font-medium tabular-nums">{formatPhone(current.user.phone)}</span>
           </p>
         ) : null}
       </div>

@@ -5,17 +5,11 @@ import { Card } from '@/components/ui/card';
 import { Heading } from '@/components/ui/heading';
 import { IconMail, IconPhone, IconPin, IconWhatsApp } from '@/components/ui/icons';
 import type { ContactDetails, ContactValue } from '@/config/contact';
+import { formatPhone } from '@/lib/phone';
 import { frenchSpacing } from '@/lib/typography';
 import { contactTexts as t } from '@/features/contact/content';
 
 const TILE = 'rounded-icon bg-brand text-on-brand grid size-11 place-items-center';
-
-/** « +22901970000 » → « +229 01 97 00 00 » : lisible, sans changer le lien. */
-function displayPhone(value: string): string {
-  const match = /^\+229(\d+)$/.exec(value);
-  if (!match) return value;
-  return `+229 ${match[1]!.replace(/(\d{2})(?=\d)/g, '$1 ')}`;
-}
 
 function ExampleBadge({ value }: { value: ContactValue }) {
   if (!value.example) return null;
@@ -78,7 +72,7 @@ export function ContactChannels({ contact, subject }: { contact: ContactDetails;
           text={t.whatsapp.text}
           detail={
             <>
-              <span className="tabular-nums">{displayPhone(`+${whatsappNumber.value}`)}</span>
+              <span className="tabular-nums">{formatPhone(`+${whatsappNumber.value}`)}</span>
               <ExampleBadge value={whatsappNumber} />
             </>
           }
@@ -101,7 +95,7 @@ export function ContactChannels({ contact, subject }: { contact: ContactDetails;
           text={t.phone.text}
           detail={
             <>
-              <span className="tabular-nums">{displayPhone(phone.value)}</span>
+              <span className="tabular-nums">{formatPhone(phone.value)}</span>
               <ExampleBadge value={phone} />
             </>
           }

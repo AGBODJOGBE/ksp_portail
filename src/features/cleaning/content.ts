@@ -1,91 +1,39 @@
 import type {
   CtaContent,
-  FaqItem,
   MetierHeroContent,
   Offer,
   PageAction,
   SectionIntro,
-  Step,
 } from '@/components/sections/types';
-import { cleaningPaths } from './paths';
 
 /*
- * Page Nettoyage et assainissement (phase 1). Textes provisoires (à valider), prêts pour Payload CMS.
- * Parcours P2 de la spécification des fronts.
- *
- * Demande de devis par lieu (ADR-034) : les types de lieu, prestations et formulaires viennent du
- * service cleaning (`GET /cleaning/catalog`), les communes desservies de `GET /cleaning/zones` (lus par
- * le serveur). Aucun prix, aucune commune ni aucune règle de calcul ici.
+ * Page Nettoyage et assainissement, pendant la préparation de la nouvelle version du service (v2,
+ * ADR-054) : contenu statique seulement, sans zones ni catalogue lus à la gateway. La demande en ligne
+ * reviendra avec la v2 ; d'ici là, la page mène au contact. Textes provisoires (à valider), prêts pour
+ * Payload CMS.
  */
 
-/** Ancre de la section « Commencer ma demande » de la page Nettoyage. */
-export const JOURNEY_SECTION_ID = 'demande';
-
-/**
- * Questions fréquentes. La réponse sur les communes cite les zones desservies de la gateway
- * (`zonesSentence`), ou renvoie à la demande en ligne si la page n'a pas pu les lire.
- */
-export function nettoyageFaq(zones: string | null): FaqItem[] {
-  return [
-    {
-      question: 'Comment connaître le prix de ma prestation ?',
-      answer:
-        'Pendant votre demande en ligne, une estimation se met à jour à mesure que vous décrivez le lieu et vos prestations. Le prix définitif figure dans le devis établi par KSP, après la visite des lieux.',
-    },
-    {
-      question: 'Pourquoi une visite des lieux avant le devis ?',
-      answer:
-        'La visite est obligatoire pour toute demande, particulier comme entreprise : les locaux varient beaucoup, et elle permet de préparer un devis qui correspond réellement à vos espaces et à vos contraintes.',
-    },
-    {
-      question: 'Intervenez-vous chez moi ?',
-      answer: zones
-        ? `KSP Nettoyage intervient aujourd’hui à ${zones}. Pour une autre commune, contactez-nous : nous vous préviendrons dès qu’elle sera desservie.`
-        : 'La demande en ligne indique les communes où KSP Nettoyage intervient aujourd’hui. Pour une autre commune, contactez-nous : nous vous préviendrons dès qu’elle sera desservie.',
-    },
-    {
-      question: 'Comment réserver et payer ?',
-      answer:
-        'En acceptant le devis depuis Mon espace KSP, vous choisissez votre créneau. Un particulier choisit aussi sa façon de payer : acompte ou totalité, avant ou après la prestation, en espèces ou par Mobile Money. Une entreprise règle par une facture mensuelle, à retrouver dans « Mes factures ».',
-    },
-    {
-      question: 'Que se passe-t-il en cas d’impayé ?',
-      answer:
-        'Au-delà du seuil d’impayés fixé par KSP (factures d’une entreprise, ou passages d’un contrat régulier), le service est suspendu : les passages à venir sont annulés, puis reprogrammés dès le règlement. Votre espace vous prévient et indique ce qui reste à régler.',
-    },
-    {
-      question: 'Comment suivre la mission ?',
-      answer:
-        'Chaque passage apparaît dans votre espace, avec son équipe, son avancement et les règlements enregistrés.',
-    },
-  ];
-}
-
-/** La demande de devis en ligne, assistant en étapes. */
-const quoteAction: PageAction = { kind: 'link', label: 'Demander un devis', href: cleaningPaths.journey };
-const bookAction: PageAction = {
-  kind: 'link',
-  label: 'Mes prestations de nettoyage',
-  href: '/mon-espace/nettoyage/demandes',
-};
+/** Seule action de la page : la prise de contact, sujet « Nettoyage » présélectionné. */
+const contactAction: PageAction = { kind: 'contact', label: 'Nous contacter', subject: 'nettoyage' };
 
 export const nettoyageContent = {
   metadata: {
     title: 'Nettoyage et assainissement',
     description:
-      'Bureaux, domicile, fin de chantier, vidange et désinsectisation : décrivez vos locaux, demandez un devis au Groupe KSP et réservez votre prestation en ligne.',
+      'Bureaux, domicile, fin de chantier, vidange et désinsectisation : le Groupe KSP nettoie et assainit vos locaux. Nouvelle version du service en ligne en préparation : contactez-nous pour votre demande.',
   },
   hero: {
     metierId: 'nettoyage',
     title: 'Des locaux propres et sains, sans y passer vos journées',
-    lead: 'Bureaux, domicile, fin de chantier, vidange ou désinsectisation : décrivez vos locaux, recevez un devis, puis réservez et suivez la prestation depuis votre espace.',
-    actions: [quoteAction, bookAction],
+    lead: 'Bureaux, domicile, fin de chantier, vidange ou désinsectisation : une seule équipe, pour les particuliers comme pour les entreprises. Décrivez-nous votre besoin, nous vous répondons.',
+    status: 'Nouvelle version en préparation',
+    actions: [contactAction],
     highlightsTitle: 'Avec KSP Nettoyage',
     highlights: [
-      'Estimation immédiate en décrivant votre lieu',
-      'Devis envoyé par notre équipe',
-      'Visite des lieux avant chaque devis',
-      'Réservation et suivi des passages depuis votre espace',
+      'Particuliers et entreprises',
+      'Intervention ponctuelle ou régulière',
+      'Une seule équipe pour tous vos locaux',
+      'Une réponse de notre équipe à chaque demande',
     ],
   } satisfies MetierHeroContent,
   services: {
@@ -117,65 +65,11 @@ export const nettoyageContent = {
       },
     ] satisfies ReadonlyArray<Offer>,
   },
-  entry: {
-    intro: {
-      eyebrow: 'Demande en ligne',
-      title: 'Quel lieu faut-il nettoyer ?',
-      lead: 'Choisissez le type de lieu, cochez vos prestations : une estimation s’affiche aussitôt, sans compte. Le compte n’est demandé qu’au moment d’envoyer.',
-    } satisfies SectionIntro,
-    start: 'Commencer ma demande',
-    fallback:
-      'Décrivez votre lieu et vos besoins en quelques questions : une estimation s’affiche aussitôt, puis vous envoyez votre demande de devis.',
-  },
-  steps: {
-    intro: {
-      eyebrow: 'Comment ça marche',
-      title: 'De la demande au compte rendu',
-      lead: 'Chaque étape se suit depuis Mon espace KSP, dans « Mes prestations de nettoyage ».',
-    } satisfies SectionIntro,
-    items: [
-      {
-        actor: 'client',
-        title: 'Vous décrivez votre besoin',
-        text: 'Vous choisissez le lieu et vos prestations : une estimation s’affiche aussitôt.',
-      },
-      {
-        actor: 'client',
-        title: 'Vous demandez un devis',
-        text: 'Une visite des lieux, obligatoire pour tous, précède le devis afin de préparer un prix juste.',
-      },
-      {
-        actor: 'ksp',
-        title: 'KSP vous envoie le devis',
-        text: 'Vous le recevez dans votre espace, avec le détail de la prestation proposée.',
-      },
-      {
-        actor: 'client',
-        title: 'Vous acceptez et réservez',
-        text: 'Vous acceptez le devis et choisissez votre créneau ; un particulier choisit aussi sa façon de payer, une entreprise règle par facture mensuelle.',
-      },
-      {
-        actor: 'ksp',
-        title: 'Nos agents réalisent la mission',
-        text: 'Chaque passage est planifié, puis réalisé avec sa liste de contrôle.',
-      },
-      {
-        actor: 'client',
-        title: 'Vous suivez chaque passage',
-        text: 'Votre espace montre l’avancement et les règlements ; une entreprise y retrouve ses factures mensuelles.',
-      },
-    ] satisfies ReadonlyArray<Step>,
-    booking: {
-      title: 'Devis accepté ?',
-      text: 'Choisissez votre créneau depuis Mon espace KSP, et votre façon de payer si vous êtes un particulier.',
-      action: bookAction,
-    },
-  },
   cta: {
     eyebrow: 'Passer à l’action',
     title: 'Un local à remettre au propre ?',
-    lead: 'Demandez votre devis, ou réservez si vous l’avez déjà accepté.',
-    actions: [quoteAction, bookAction],
+    lead: 'Décrivez-nous votre besoin : notre équipe vous répond et prépare votre devis.',
+    actions: [contactAction],
     whatsappMessage: 'Bonjour KSP, je souhaite des informations sur vos prestations de nettoyage.',
   } satisfies CtaContent,
 };

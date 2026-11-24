@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ApiError } from '@/lib/api';
+import { ApiError, isBackendPending } from '@/lib/api';
 
 export interface Page<T> {
   data: T[];
@@ -15,6 +15,8 @@ export interface PagedList<T> {
   /** Page suivante en cours de lecture. */
   loadingMore: boolean;
   error: string | null;
+  /** La route n'est pas encore servie par le backend (`isBackendPending`) : afficher `BackendPending`. */
+  pending: boolean;
   hasMore: boolean;
   loadMore: () => void;
   retry: () => void;
@@ -42,6 +44,7 @@ export function usePagedList<T>(
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
   // Lecture demandée : `undefined` pour la première page, sinon le curseur ; `attempt` relance la même.
   const [request, setRequest] = useState<{ cursor?: string; attempt: number }>({ attempt: 0 });
 
@@ -60,6 +63,7 @@ export function usePagedList<T>(
       (caught: unknown) => {
         if (!active) return;
         setError(describe(caught));
+        setPending(isBackendPending(caught));
         setLoading(false);
         setLoadingMore(false);
       },
@@ -71,6 +75,7 @@ export function usePagedList<T>(
 
   function requestPage(from?: string) {
     setError(null);
+    setPending(false);
     if (from) setLoadingMore(true);
     else setLoading(true);
     setRequest((previous) => ({ cursor: from, attempt: previous.attempt + 1 }));
@@ -81,6 +86,7 @@ export function usePagedList<T>(
     loading,
     loadingMore,
     error,
+    pending,
     hasMore: !!cursor,
     loadMore: () => {
       if (cursor && !loadingMore) requestPage(cursor);

@@ -104,7 +104,12 @@ export function BandTitle({
     <div className="grid gap-8 lg:grid-cols-12 lg:items-end lg:gap-10">
       <div className={aside ? 'lg:col-span-7' : 'lg:col-span-10'}>
         {back ? <BandBack {...back} /> : null}
-        {eyebrow ? <Eyebrow className={back ? 'mt-3 flex' : 'flex'}>{eyebrow}</Eyebrow> : null}
+        {/* Sur sa propre ligne, sous le retour : `Eyebrow` est en ligne (`inline-flex`). */}
+        {eyebrow ? (
+          <div className={back ? 'mt-3' : undefined}>
+            <Eyebrow>{eyebrow}</Eyebrow>
+          </div>
+        ) : null}
         <h1 className="font-display text-h1 text-ink mt-3 font-semibold">{title}</h1>
         {lead ? <p className="text-lead text-ink-muted mt-3 max-w-2xl">{lead}</p> : null}
         {children ? <div className="mt-5 grid gap-4">{children}</div> : null}

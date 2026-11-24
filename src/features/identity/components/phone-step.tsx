@@ -10,7 +10,8 @@ import { getDictionary } from '@/i18n';
 import { requestOtp } from '@/features/identity/api';
 import { useCountdown } from '@/features/identity/countdown';
 import { describeError } from '@/features/identity/errors';
-import { DEFAULT_COUNTRY_CODE, toE164 } from '@/features/identity/phone';
+import { DEFAULT_COUNTRY_CODE, readPhoneInput } from '@/features/identity/phone';
+import { formatPhone } from '@/lib/phone';
 import type { OtpChallenge } from '@/features/identity/schemas';
 import { LoginCardHeader } from './login-card-header';
 
@@ -41,14 +42,18 @@ export function PhoneStep({
   const [pending, setPending] = useState(false);
   const wait = useCountdown();
   const ids = fieldIds(PHONE_ID);
+  const convertedId = `${PHONE_ID}-converti`;
   const blocked = wait.remaining > 0;
+  // Ancien numéro béninois à 8 chiffres : la forme à 10 chiffres envoyée est montrée pendant la saisie.
+  const input = readPhoneInput(countryCode, number);
+  const converted = input.converted && input.phone ? formatPhone(input.phone) : null;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending || blocked) return;
     setError(null);
     setPhoneError(null);
-    const phone = toE164(countryCode, number);
+    const { phone } = input;
     if (!phone) {
       setPhoneError(t.login.phoneInvalid);
       numberRef.current?.focus();
@@ -71,7 +76,9 @@ export function PhoneStep({
     }
   }
 
-  const describedBy = [ids.hint, phoneError ? ids.error : null].filter(Boolean).join(' ');
+  const describedBy = [ids.hint, converted ? convertedId : null, phoneError ? ids.error : null]
+    .filter(Boolean)
+    .join(' ');
   const card = layout === 'card';
 
   return (
@@ -135,6 +142,15 @@ export function PhoneStep({
               ) : null}
             </div>
           </div>
+          {/* Zone annoncée posément, présente avant son contenu pour être lue quand il apparaît. */}
+          <p id={convertedId} aria-live="polite" className="text-small text-ink mt-2 empty:hidden">
+            {converted ? (
+              <>
+                <span className="font-semibold tabular-nums">{t.login.phoneConverted(converted)}</span>{' '}
+                {t.login.phoneTenDigits}
+              </>
+            ) : null}
+          </p>
           {phoneError ? <FieldError id={ids.error}>{phoneError}</FieldError> : null}
         </fieldset>
         <FormMessage>{error}</FormMessage>

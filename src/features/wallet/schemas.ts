@@ -16,7 +16,7 @@ const moneySchema = z.object({ amount: z.int(), currency: z.literal('XOF') });
  *
  * `totalCollected`, `payoutsInProgress`, `totalPaidOut` (fonds de créancier, ADR-041, 042) : obligatoires au
  * contrat, lus ici seulement pour savoir si la rubrique « Reversements » concerne le titulaire. Facultatifs
- * dans ce schéma : le paiement par le portefeuille (fiches des missions et factures) relit aussi
+ * dans ce schéma : le paiement par le portefeuille (fiche d'une facture) relit aussi
  * `GET /wallet/me` et ne doit pas échouer pour une rubrique qu'il n'affiche pas.
  */
 export const walletSchema = z.object({
@@ -27,7 +27,7 @@ export const walletSchema = z.object({
   totalPaidOut: z.optional(moneySchema),
 });
 
-/** `WalletObjectReference` : mission ou facture payée, chez le service qui a débité. */
+/** `WalletObjectReference` : objet payé (facture…), chez le service qui a débité. */
 export const objectReferenceSchema = z.object({
   service: z.string(),
   objectType: z.string(),
@@ -43,7 +43,7 @@ export const statementLineSchema = z.object({
   direction: z.string(),
   amount: moneySchema,
   balanceAfter: moneySchema,
-  /** Référence de l'écriture chez wallet ; `mission-credit:<creditId>` pour le crédit d'une mission arrêtée. */
+  /** Référence de l'écriture chez wallet. */
   reference: z.string(),
   description: z.string(),
   object: z.nullable(objectReferenceSchema),

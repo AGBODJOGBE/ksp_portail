@@ -11,9 +11,9 @@ describe('bouton WhatsApp', () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it('ouvre la conversation avec le numéro et le message prérempli', async () => {
-    await renderButton('22990000000');
+    await renderButton('2290197000045');
     const link = screen.getByRole('link', { name: 'Nous écrire sur WhatsApp' });
-    expect(link).toHaveAttribute('href', 'https://wa.me/22990000000?text=Bonjour%20KSP');
+    expect(link).toHaveAttribute('href', 'https://wa.me/2290197000045?text=Bonjour%20KSP');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
@@ -24,12 +24,12 @@ describe('bouton WhatsApp', () => {
 
   it('propose aussi un bouton intégré au contenu, avec le même message prérempli', async () => {
     vi.resetModules();
-    vi.stubEnv('NEXT_PUBLIC_WHATSAPP_NUMBER', '22990000000');
+    vi.stubEnv('NEXT_PUBLIC_WHATSAPP_NUMBER', '2290197000045');
     const { WhatsAppLink } = await import('./whatsapp-button');
     render(<WhatsAppLink message="Bonjour KSP" />);
     expect(screen.getByRole('link', { name: 'Nous écrire sur WhatsApp' })).toHaveAttribute(
       'href',
-      'https://wa.me/22990000000?text=Bonjour%20KSP',
+      'https://wa.me/2290197000045?text=Bonjour%20KSP',
     );
   });
 

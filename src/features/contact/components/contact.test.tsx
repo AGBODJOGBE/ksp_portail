@@ -51,7 +51,7 @@ describe('page Contact', () => {
   it('coordonnées non configurées : valeurs d’exemple signalées, liens directs', () => {
     render(<ContactChannels contact={examples} subject={null} />);
     expect(screen.getAllByText('Exemple, à remplacer').length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: 'Appeler' })).toHaveAttribute('href', 'tel:+22900000000');
+    expect(screen.getByRole('link', { name: 'Appeler' })).toHaveAttribute('href', 'tel:+2290100000000');
     expect(screen.getByText('Adresse à compléter, Cotonou, Bénin')).toBeInTheDocument();
     expect(screen.queryByRole('status')).toBeNull();
   });

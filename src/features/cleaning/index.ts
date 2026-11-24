@@ -1,21 +1,8 @@
-/** Nettoyage et assainissement (service cleaning) : page publique, demande de devis par lieu et « Mes prestations ». */
+/**
+ * Nettoyage et assainissement (service cleaning) pendant la préparation de sa nouvelle version (v2) :
+ * page publique statique et pages « Bientôt disponible » de Mon espace KSP. Aucune route de la gateway.
+ */
 export { CleaningServiceHero } from './components/service-hero';
-export { JourneyEntrySection } from './components/journey-entry';
-// Écrans client chargés à la demande (voir components/lazy.tsx).
-export {
-  CleaningJourney,
-  CleaningSpace,
-  CleaningTodo,
-  CleaningTracking,
-  CleaningTrackingSummary,
-  MissionDetail,
-  RequestDetail,
-  RequestGroupDetail,
-} from './components/lazy';
-export { JOURNEY_SECTION_ID, nettoyageContent, nettoyageFaq } from './content';
-export { journeyTexts } from './journey-texts';
-export { spaceTexts } from './space-texts';
-export { trackingTexts } from './tracking-texts';
+export { nettoyageContent } from './content';
 export { cleaningPaths } from './paths';
-export { cleaningTexts, serviceJourney } from './texts';
-export { zonesSentence } from './zones';
+export { cleaningTexts, trackingTexts } from './texts';

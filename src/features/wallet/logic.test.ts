@@ -45,8 +45,8 @@ describe('portefeuille : recharge', () => {
     expect(isResumePath('https://exemple.com/mon-espace/')).toBe(false);
     expect(isResumePath('//exemple.com')).toBe(false);
     expect(isResumePath('/mon-espace/\\exemple')).toBe(false);
-    rememberResume('/mon-espace/nettoyage/missions/m1');
-    expect(readResume()).toBe('/mon-espace/nettoyage/missions/m1');
+    rememberResume('/mon-espace/factures/f1');
+    expect(readResume()).toBe('/mon-espace/factures/f1');
     forgetResume();
     expect(readResume()).toBeNull();
     sessionStorage.setItem('ksp:portefeuille:reprise', 'https://exemple.com');
@@ -56,20 +56,16 @@ describe('portefeuille : recharge', () => {
 
 describe('portefeuille : relevé et refus', () => {
   it('objet payé → écran du portail', () => {
-    expect(objectPath({ objectType: 'cleaning_mission', objectId: 'm 1' })).toBe(
-      '/mon-espace/nettoyage/missions/m%201',
-    );
-    expect(objectPath({ objectType: 'billing_invoice', objectId: 'f1' })).toBe('/mon-espace/factures/f1');
+    expect(objectPath({ objectType: 'billing_invoice', objectId: 'f 1' })).toBe('/mon-espace/factures/f%201');
+    // Mission du Nettoyage v1 : plus d'écran.
+    expect(objectPath({ objectType: 'cleaning_mission', objectId: 'm1' })).toBeNull();
     expect(objectPath({ objectType: 'autre', objectId: 'x' })).toBeNull();
   });
 
-  it('crédit d’une mission arrêtée (ADR-049 §7) : libellé explicite, autres remboursements inchangés', () => {
-    expect(statementKindLabel({ kind: 'refund', reference: 'mission-credit:0192f1c4-7a2b' })).toBe(
-      'Crédit d’une prestation arrêtée',
-    );
-    expect(statementKindLabel({ kind: 'refund', reference: 'refund:0192f1c4-7a2b' })).toBe('Remboursement');
-    expect(statementKindLabel({ kind: 'service_payment', reference: 'mission-credit:x' })).toBe('Paiement');
-    expect(statementKindLabel({ kind: 'nouveau', reference: 'x' })).toBe('Opération');
+  it('libellé du type d’une ligne, neutre pour un type inconnu', () => {
+    expect(statementKindLabel({ kind: 'refund' })).toBe('Remboursement');
+    expect(statementKindLabel({ kind: 'service_payment' })).toBe('Paiement');
+    expect(statementKindLabel({ kind: 'nouveau' })).toBe('Opération');
   });
 
   it('codes du contrat : conséquence pour l’écran', () => {

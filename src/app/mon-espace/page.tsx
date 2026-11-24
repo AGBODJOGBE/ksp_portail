@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Badge } from '@/components/ui/badge';
 import { Container } from '@/components/ui/container';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Eyebrow } from '@/components/ui/eyebrow';
@@ -16,13 +17,7 @@ import {
 import { LinkCard } from '@/components/ui/link-card';
 import { navigation } from '@/config/navigation';
 import { InvoiceTodo, billingPaths, billingTexts } from '@/features/billing';
-import {
-  CleaningTodo,
-  CleaningTrackingSummary,
-  cleaningPaths,
-  cleaningTexts,
-  trackingTexts,
-} from '@/features/cleaning';
+import { cleaningPaths, cleaningTexts } from '@/features/cleaning';
 import { NotificationBell, notificationPaths, notificationTexts } from '@/features/notification';
 import { paymentPaths, paymentTexts } from '@/features/payment';
 import { WalletBalanceLink, walletPaths, walletTexts } from '@/features/wallet';
@@ -40,8 +35,9 @@ import { pageMetadata } from '@/lib/seo/metadata';
 /**
  * « Mon espace KSP », tableau de bord du compte (F-020) : coque statique ; la garde reprend la session
  * dans le navigateur (F-005, option A). Dans l'ordre : le compte (salutation, compte actif, portefeuille,
- * notifications), « À faire maintenant » (seulement ce qui attend le client), un résumé du suivi vers
- * « Suivre ma demande » (sans la liste détaillée), les raccourcis des services, puis « Bientôt ».
+ * notifications), « À faire maintenant » (seulement ce qui attend le client), les raccourcis des
+ * services, puis « Bientôt ». Le Nettoyage prépare sa nouvelle version (v2) : sa carte est « Bientôt »,
+ * et ses actions et son suivi reviendront avec elle.
  */
 
 export const metadata: Metadata = {
@@ -54,8 +50,15 @@ export default function AccountPage() {
   const services = [
     {
       href: cleaningPaths.space,
-      title: cleaningTexts.space.homeLink,
-      text: cleaningTexts.space.homeLinkText,
+      title: cleaningTexts.space.title,
+      text: (
+        <>
+          <Badge tone="accent" className="mr-2 align-middle">
+            {cleaningTexts.space.soon}
+          </Badge>
+          {cleaningTexts.space.homeLinkText}
+        </>
+      ),
       icon: <IconNettoyage className="size-5" />,
     },
     {
@@ -120,38 +123,22 @@ export default function AccountPage() {
             </div>
           </section>
 
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
-            {/* 2. Seulement ce qui attend une action du client. */}
-            <section
-              aria-labelledby="a-faire-titre"
-              className="rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-8"
-            >
-              <Heading as="h2" size="h2" id="a-faire-titre">
-                {t.account.todoTitle}
-              </Heading>
-              <p className="text-ink-muted mt-2">{t.account.todoLead}</p>
-              <div className="mt-8 grid gap-10">
-                <CleaningTodo />
-                <InvoiceTodo />
-                <ProfileTodo />
-              </div>
-            </section>
+          {/* 2. Seulement ce qui attend une action du client. */}
+          <section
+            aria-labelledby="a-faire-titre"
+            className="rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-8"
+          >
+            <Heading as="h2" size="h2" id="a-faire-titre">
+              {t.account.todoTitle}
+            </Heading>
+            <p className="text-ink-muted mt-2">{t.account.todoLead}</p>
+            <div className="mt-8 grid gap-10">
+              <InvoiceTodo />
+              <ProfileTodo />
+            </div>
+          </section>
 
-            {/* 3. Résumé du suivi : le détail vit dans « Suivre ma demande ». */}
-            <section
-              aria-labelledby="suivi-titre"
-              className="rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-6"
-            >
-              <Heading as="h2" size="h3" id="suivi-titre">
-                {trackingTexts.summaryTitle}
-              </Heading>
-              <div className="mt-4">
-                <CleaningTrackingSummary />
-              </div>
-            </section>
-          </div>
-
-          {/* 4. Raccourcis vers les services de l'espace. */}
+          {/* 3. Raccourcis vers les services de l'espace. */}
           <section aria-labelledby="prestations-titre">
             <Heading as="h2" size="h2" id="prestations-titre">
               {t.account.servicesTitle}
@@ -163,7 +150,7 @@ export default function AccountPage() {
             </ul>
           </section>
 
-          {/* 5. Bientôt. */}
+          {/* 4. Bientôt. */}
           <section
             aria-labelledby="bientot-titre"
             className="rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-6"

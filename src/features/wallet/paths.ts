@@ -7,12 +7,12 @@ export const walletPaths = {
 } as const;
 
 /**
- * Objet payé par le portefeuille → écran du portail. Adresses fixées par cleaning et billing, recopiées ici :
- * leurs fiches importent cette fonctionnalité (paiement par le portefeuille), l'inverse ferait un cycle.
+ * Objet payé par le portefeuille → écran du portail. Adresse fixée par billing, recopiée ici : la fiche
+ * d'une facture importe cette fonctionnalité (paiement par le portefeuille), l'inverse ferait un cycle.
+ * Les objets du Nettoyage v1 (missions) n'ont plus d'écran : pas de lien.
  */
 export function objectPath(object: { objectType: string; objectId: string }): string | null {
-  const id = encodeURIComponent(object.objectId);
-  if (object.objectType === 'cleaning_mission') return `/mon-espace/nettoyage/missions/${id}`;
-  if (object.objectType === 'billing_invoice') return `/mon-espace/factures/${id}`;
+  if (object.objectType === 'billing_invoice')
+    return `/mon-espace/factures/${encodeURIComponent(object.objectId)}`;
   return null;
 }

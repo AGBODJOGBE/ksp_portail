@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
 import { session, useSession } from '@/lib/api';
+import { formatPhone } from '@/lib/phone';
 import { useResource } from '@/lib/use-resource';
 import { changeEmail, confirmEmail, getProfile } from '@/features/identity/api';
 import { describeAccountError } from '@/features/identity/account-errors';
@@ -52,7 +53,12 @@ export function ProfileSpace() {
           <div className="grid gap-4">
             <dl className="grid gap-4 sm:grid-cols-2">
               <Fact label={t.profile.name} value={name || '—'} />
-              <Fact label={t.profile.phone} value={user.phone ?? '—'} hint={t.profile.phoneHint} numeric />
+              <Fact
+                label={t.profile.phone}
+                value={user.phone ? formatPhone(user.phone) : '—'}
+                hint={t.profile.phoneHint}
+                numeric
+              />
             </dl>
             <FormMessage tone="info">{saved ? t.profile.nameSaved : null}</FormMessage>
             <Button

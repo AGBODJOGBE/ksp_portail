@@ -39,6 +39,7 @@ import { Eyebrow } from '@/components/ui/eyebrow';
 import { Heading } from '@/components/ui/heading';
 import { ActionCard, ActionCardIcon } from '@/components/ui/action-card';
 import { Agenda } from '@/components/ui/agenda';
+import { BackendPending } from '@/components/ui/backend-pending';
 import { DateBadge } from '@/components/ui/date-badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CountUp, FigureTile } from '@/components/ui/figure-tile';
@@ -917,6 +918,34 @@ export default function ChartePage() {
           </div>
           <SkeletonCards label="Chargement (exemple)" />
         </div>
+
+        <SubTitle>État « en attente du back »</SubTitle>
+        <p className="text-small text-ink-muted max-w-reading mt-3">
+          Quand la route d’une section n’est pas encore servie (<code>isBackendPending</code> : 404{' '}
+          <code>GATEWAY_ROUTE_NOT_FOUND</code>, 501 ou <code>*_NOT_IMPLEMENTED</code>), la section dit «
+          Bientôt disponible » au lieu d’une erreur, et s’active seule dès que la route est livrée. Le bloc
+          des routes attendues n’apparaît jamais en production.
+        </p>
+        <BackendPending
+          id="charte-en-attente"
+          headingAs="h3"
+          title="Préférences de facturation"
+          className="mt-6 max-w-2xl"
+          needs={[
+            {
+              method: 'GET',
+              path: '/api/v1/billing/preferences',
+              purpose: 'Lire le réglage du prélèvement automatique des factures sur le portefeuille.',
+            },
+            {
+              method: 'PATCH',
+              path: '/api/v1/billing/preferences',
+              purpose: 'Activer ou couper le prélèvement automatique (administrateur de l’entreprise).',
+            },
+          ]}
+        >
+          Vous pourrez bientôt faire régler vos factures automatiquement par le portefeuille de l’entreprise.
+        </BackendPending>
 
         <SubTitle>Cartes-liens</SubTitle>
         <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

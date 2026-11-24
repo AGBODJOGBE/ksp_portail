@@ -12,11 +12,7 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(search),
 }));
 
-const GATEWAY = [
-  { code: 'window_cleaning', name: 'Nettoyage de vitres', description: 'Fenêtres et baies vitrées.' },
-  { code: 'deep_cleaning', name: 'Grand ménage', description: 'Nettoyage complet du sol au plafond.' },
-];
-const entries = buildServiceDirectory(GATEWAY);
+const entries = buildServiceDirectory();
 
 afterEach(() => {
   push.mockReset();
@@ -28,7 +24,7 @@ afterEach(() => {
 describe('page « Tous nos services »', () => {
   it('liste les services et lit la catégorie dans l’adresse', async () => {
     search = 'categorie=nettoyage';
-    render(await ServicesPage());
+    render(<ServicesPage />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tous nos services');
     // L'annuaire est chargé à la demande (components/lazy.tsx).
     const cards = await screen.findAllByRole('article');
@@ -42,11 +38,18 @@ describe('annuaire', () => {
   it('filtre par catégorie : seules les cartes de la catégorie, avec leur lien', () => {
     render(<ServicesView entries={entries} query={{ category: 'nettoyage', q: '', page: 1 }} />);
     const titles = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent);
-    expect(titles).toEqual(['Catégories de services', 'Nettoyage de vitres', 'Grand ménage']);
+    expect(titles).toEqual([
+      'Catégories de services',
+      'Nettoyage : bureaux',
+      'Nettoyage : domicile',
+      'Nettoyage : fin de chantier',
+      'Nettoyage : vidange',
+      'Nettoyage : désinsectisation',
+    ]);
     screen
       .getAllByRole('link', { name: /Afficher les détails/ })
-      .forEach((link) => expect(link).toHaveAttribute('href', '/nettoyage/demande'));
-    expect(screen.getByText('2 services')).toBeInTheDocument();
+      .forEach((link) => expect(link).toHaveAttribute('href', '/nettoyage#prestations'));
+    expect(screen.getByText('5 services')).toBeInTheDocument();
   });
 
   it('garde la recherche en changeant de catégorie', () => {
@@ -101,14 +104,14 @@ describe('recherche du premier écran', () => {
     render(<ServiceSearchBox entries={entries} labels={labels} />);
     const input = screen.getByRole('combobox', { name: 'Trouver un service' });
     fireEvent.focus(input);
-    fireEvent.change(input, { target: { value: 'menage' } });
+    fireEvent.change(input, { target: { value: 'desinsectisation' } });
     expect(input).toHaveAttribute('aria-expanded', 'true');
     const options = within(screen.getByRole('listbox')).getAllByRole('option');
-    expect(options[0]).toHaveTextContent('Grand ménage');
+    expect(options[0]).toHaveTextContent('Nettoyage : désinsectisation');
     fireEvent.keyDown(input, { key: 'ArrowDown' });
     expect(input).toHaveAttribute('aria-activedescendant', options[0]!.id);
     fireEvent.keyDown(input, { key: 'Enter' });
-    expect(push).toHaveBeenCalledWith('/nettoyage/demande');
+    expect(push).toHaveBeenCalledWith('/nettoyage#prestations');
   });
 
   it('mène à « Tous nos services » avec la recherche si aucune suggestion n’est choisie', () => {

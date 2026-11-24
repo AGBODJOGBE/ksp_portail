@@ -1,5 +1,5 @@
 /** Annuaire des services du portail (`/services`) : liste, recherche et filtre par catégorie. */
-export { buildServiceDirectory, type CleaningOffer } from './catalog';
+export { buildServiceDirectory } from './catalog';
 export { servicesTexts } from './content';
 export { ServiceCard } from './components/service-card';
 export type { SearchBoxLabels } from './components/service-search-box';

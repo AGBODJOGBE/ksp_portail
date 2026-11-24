@@ -110,9 +110,16 @@ describe('Supprimer mon compte (ADR-036)', () => {
             obligations: [
               {
                 service: 'cleaning',
-                kind: 'open_cleaning_mission',
-                reference: 'M-1',
-                description: 'La prestation du 12 novembre n’est pas terminée.',
+                kind: 'open_cleaning_program',
+                reference: 'PN-2026-000001',
+                description:
+                  'Le programme de nettoyage PN-2026-000001 n’est pas terminé : arrêtez-le ou attendez sa fin.',
+              },
+              {
+                service: 'cleaning',
+                kind: 'unpaid_cleaning_session',
+                reference: 'PN-2026-000001',
+                description: 'Une séance du programme PN-2026-000001 reste à payer.',
               },
               {
                 service: 'billing',
@@ -136,7 +143,12 @@ describe('Supprimer mon compte (ADR-036)', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Supprimer mon compte' }));
     fireEvent.click(screen.getByRole('button', { name: 'Oui, supprimer mon compte' }));
 
-    expect(await screen.findByText('Prestation de nettoyage en cours')).toBeInTheDocument();
+    expect(await screen.findByText('Programme de nettoyage en cours')).toBeInTheDocument();
+    expect(screen.getByText('Séance de nettoyage à payer')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Voir : programme de nettoyage en cours' })).toHaveAttribute(
+      'href',
+      '/mon-espace/nettoyage',
+    );
     expect(screen.getByRole('alert')).toHaveTextContent(/tant que des opérations sont en cours/);
     expect(screen.getByText(/FAC-2026-000042 \(150 000 FCFA\)/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Voir : facture à régler' })).toHaveAttribute(

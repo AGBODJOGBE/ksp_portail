@@ -9,6 +9,7 @@ export type NavItem = { label: string; href: string };
 export const contactSubjects = {
   'recouvrement-conseil': 'Recouvrement — demande de conseil',
   'recouvrement-formation': 'Recouvrement — formations',
+  nettoyage: 'Nettoyage et assainissement',
   'nettoyage-devis': 'Nettoyage et assainissement — demande de devis',
   'immobilier-rendez-vous': 'Immobilier clés en main — rendez-vous',
   livraison: 'Livraison et courses',

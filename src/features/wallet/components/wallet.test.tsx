@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { session } from '@/lib/api';
 import { TopUpResult } from './top-up-result';
 import { redirect } from './use-top-up';
@@ -132,6 +132,9 @@ beforeEach(() => {
   signIn();
 });
 afterEach(() => {
+  // Démonter avant de vider la session : sinon l'écran encore monté se relit sans session, avec le vrai
+  // `fetch`, et sa réponse tardive peut vider la session du test suivant (écran remonté en plein test).
+  cleanup();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   session.clear();
@@ -245,7 +248,7 @@ describe('Reversements', () => {
 });
 
 describe('Mon portefeuille', () => {
-  it('solde, relevé lisible avec lien vers la mission, page suivante', async () => {
+  it('solde, relevé lisible, lien vers une facture seulement, page suivante', async () => {
     const calls = stubGateway({
       [`GET ${WALLET}`]: { status: 200, body: wallet(9800) },
       [`GET ${WALLET}/statement`]: [
@@ -299,10 +302,8 @@ describe('Mon portefeuille', () => {
     expect(plain(within(statement).getAllByText(/Solde après/)[0]?.textContent)).toBe(
       'Solde après : 9 800 F CFA',
     );
-    expect(within(statement).getByRole('link', { name: 'Voir la prestation' })).toHaveAttribute(
-      'href',
-      `/mon-espace/nettoyage/missions/${MISSION_ID}`,
-    );
+    // Mission du Nettoyage v1 : plus d'écran, donc pas de lien.
+    expect(within(statement).queryAllByRole('link')).toHaveLength(0);
     expect(calls.find((call) => call.path === `${WALLET}/statement`)?.query).toMatchObject({
       account: 'prepaid',
     });
@@ -411,7 +412,7 @@ describe('Payer avec mon portefeuille', () => {
       <WalletPay
         pay={pay}
         amount={xof(10200)}
-        returnTo={`/mon-espace/nettoyage/missions/${MISSION_ID}`}
+        returnTo={`/mon-espace/factures/${INVOICE_ID}`}
         onPaid={vi.fn()}
       />,
     );
@@ -421,9 +422,7 @@ describe('Payer avec mon portefeuille', () => {
     fireEvent.click(screen.getByRole('button', { name: /Recharger 9\s200\sF\sCFA/ }));
     await waitFor(() => expect(to).toHaveBeenCalledWith(CHECKOUT));
     expect(pay).not.toHaveBeenCalled();
-    expect(sessionStorage.getItem('ksp:portefeuille:reprise')).toBe(
-      `/mon-espace/nettoyage/missions/${MISSION_ID}`,
-    );
+    expect(sessionStorage.getItem('ksp:portefeuille:reprise')).toBe(`/mon-espace/factures/${INVOICE_ID}`);
   });
 
   it('débit remboursé entre-temps : nouvelle clé au renvoi ; rien à payer : fiche relue', async () => {
@@ -460,11 +459,11 @@ describe('Payer avec mon portefeuille', () => {
 describe('Retour d’une recharge', () => {
   it('nouveau solde annoncé et reprise du paiement interrompu', async () => {
     stubGateway({ [`GET ${WALLET}`]: { status: 200, body: wallet(29200) } });
-    sessionStorage.setItem('ksp:portefeuille:reprise', `/mon-espace/nettoyage/missions/${MISSION_ID}`);
+    sessionStorage.setItem('ksp:portefeuille:reprise', `/mon-espace/factures/${INVOICE_ID}`);
     render(<TopUpResult />);
     expect(await screen.findByText(/Nouveau solde : 29\s200\sF\sCFA/)).toBeInTheDocument();
     const resume = screen.getByRole('link', { name: 'Reprendre mon paiement' });
-    expect(resume).toHaveAttribute('href', `/mon-espace/nettoyage/missions/${MISSION_ID}`);
+    expect(resume).toHaveAttribute('href', `/mon-espace/factures/${INVOICE_ID}`);
     fireEvent.click(resume);
     expect(sessionStorage.getItem('ksp:portefeuille:reprise')).toBeNull();
   });

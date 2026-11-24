@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { BandBack, BandHeader } from '@/components/ui/band-header';
-import { Button, ButtonLink } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Gauge } from '@/components/ui/gauge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FormMessage } from '@/components/ui/field';
@@ -16,10 +16,6 @@ import { WalletPay } from '@/features/wallet';
 import { getInvoice, payInvoice } from '@/features/billing/api';
 import { billingPaths, billingTexts as t, invoiceMethods, invoiceStatus } from '@/features/billing/texts';
 
-/** Contrat d'origine : pour le Nettoyage, la mission (adresse fixée par la fonctionnalité cleaning). */
-const SOURCE_PATHS: Record<string, (id: string) => string> = {
-  cleaning: (id) => `/mon-espace/nettoyage/missions/${encodeURIComponent(id)}`,
-};
 /** Factures payables avec le portefeuille (le reste dû est débité en entier par billing, ADR-046). */
 const PAYABLE = new Set(['pending_payment', 'overdue']);
 
@@ -81,7 +77,6 @@ export function InvoiceDetail({ id }: { id: string }) {
 
   const invoice = state.data;
   const status = invoiceStatus(invoice.status);
-  const sourcePath = SOURCE_PATHS[invoice.source];
   const facts: ReadonlyArray<readonly [string, string | null]> = [
     ['Origine', t.source[invoice.source] ?? invoice.source],
     ['Mois facturé', t.month(invoice.periodIndex)],
@@ -294,12 +289,6 @@ export function InvoiceDetail({ id }: { id: string }) {
           <p className="text-ink-muted">{t.noPayments}</p>
         )}
       </section>
-
-      {sourcePath ? (
-        <ButtonLink href={sourcePath(invoice.contractId)} variant="secondary" className="justify-self-start">
-          {t.seeMission}
-        </ButtonLink>
-      ) : null}
     </div>
   );
 }

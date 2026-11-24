@@ -55,8 +55,13 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    // Ancienne demande de devis à une seule prestation : remplacée par la demande par lieu (ADR-034).
-    return [{ source: '/nettoyage/devis', destination: '/nettoyage/demande', permanent: true }];
+    // Demandes de devis du Nettoyage v1 (assistant par lieu, ancien formulaire) : retirées avec la v1. Le
+    // temps que la v2 arrive, elles mènent à la page du Nettoyage (redirection temporaire, 307).
+    return ['/nettoyage/demande', '/nettoyage/devis'].map((source) => ({
+      source,
+      destination: '/nettoyage',
+      permanent: false,
+    }));
   },
 };
 
