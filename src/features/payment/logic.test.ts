@@ -39,6 +39,15 @@ describe('paiement : règles d’affichage', () => {
       'Recharge du portefeuille',
     );
     expect(subjectPath({ type: 'wallet_top_up', id: 'x' })).toBe('/mon-espace/portefeuille');
+    // Nettoyage v2 : frais de visite d'une demande, séance (redirigée vers son programme).
+    expect(subjectPath({ type: 'cleaning_request', id: 'r1' })).toBe('/mon-espace/nettoyage/demandes/r1');
+    expect(subjectPath({ type: 'cleaning_session', id: 's1' })).toBe('/mon-espace/nettoyage/seances/s1');
+    expect(subjectLabel({ type: 'cleaning_request', part: 'visit_fee', reference: 'DN-000124' })).toBe(
+      'Frais de visite du nettoyage, demande DN-000124',
+    );
+    expect(subjectLabel({ type: 'cleaning_session', part: null, reference: 'séance 3/12' })).toBe(
+      'Nettoyage, séance 3/12',
+    );
   });
 
   it('`underReview` prime sur le statut ; un écart traité n’est plus « en vérification »', () => {

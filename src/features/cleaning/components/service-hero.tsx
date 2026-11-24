@@ -14,9 +14,9 @@ import { cleaningTexts } from '@/features/cleaning/texts';
 const TITLE_ID = 'nettoyage-titre';
 
 /**
- * Premier écran du Nettoyage (direction « Signature ») pendant la préparation de sa nouvelle version :
- * état du service en étiquette, prise de contact en action principale, et un panneau qui dit ce qui se
- * prépare. Contenu statique, rendu par le serveur ; le titre n'est pas animé (premier affichage).
+ * Premier écran du Nettoyage (direction « Signature ») : « Simuler un prix » et « Demander un devis » en
+ * actions, et un panneau qui résume le parcours en trois temps. Contenu statique, rendu par le serveur ;
+ * le titre n'est pas animé (premier affichage).
  */
 export function CleaningServiceHero({ content }: { content: MetierHeroContent }) {
   const t = getDictionary();
@@ -72,14 +72,24 @@ export function CleaningServiceHero({ content }: { content: MetierHeroContent })
 
         <div className="lg:col-span-5">
           <div className="rounded-panel border-line bg-brand-soft relative p-6 backdrop-blur-sm sm:p-8">
-            <Eyebrow>{h.preparationEyebrow}</Eyebrow>
-            <p className="font-display text-h3 text-ink mt-4 font-semibold">
-              {frenchSpacing(h.preparationTitle)}
-            </p>
-            <p className="text-ink-muted mt-4">{frenchSpacing(h.preparationText)}</p>
+            <Eyebrow>{h.panelEyebrow}</Eyebrow>
+            <p className="font-display text-h3 text-ink mt-4 font-semibold">{frenchSpacing(h.panelTitle)}</p>
+            <ol className="mt-5 grid gap-3">
+              {h.panelSteps.map((step, index) => (
+                <li key={step} className="text-ink flex items-start gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="bg-brand text-on-brand grid size-7 shrink-0 place-items-center rounded-full text-sm font-bold"
+                  >
+                    {index + 1}
+                  </span>
+                  <span className="pt-0.5">{frenchSpacing(step)}</span>
+                </li>
+              ))}
+            </ol>
             <p className="text-small text-ink-muted border-line mt-6 flex gap-2 border-t pt-4">
               <IconClock className="text-accent-ink mt-0.5 size-4 shrink-0" />
-              {frenchSpacing(h.preparationContact)}
+              {frenchSpacing(h.panelNote)}
             </p>
           </div>
         </div>

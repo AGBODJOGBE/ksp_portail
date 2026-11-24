@@ -1,33 +1,46 @@
 /*
- * Textes de l'interface du Nettoyage, pendant la préparation de sa nouvelle version (v2) : page
- * publique, « Mes prestations de nettoyage » et « Suivre mes demandes » en attente. Textes provisoires
- * (à valider). Aucune zone, aucun prix ni aucune prestation de la gateway n'est cité ici.
+ * Textes communs du Nettoyage, sans zod ni appel : page publique, carte et pages de Mon espace KSP
+ * rendues par le serveur, « Suivre mes demandes ». Les écrans ont leurs propres fichiers de textes
+ * (`simulator-texts.ts`, `request-texts.ts`, `place-texts.ts`), chargés avec eux. Textes provisoires (à
+ * valider). Aucun prix, aucune zone ni aucun délai n'est écrit ici.
  */
 
 export const cleaningTexts = {
   hero: {
-    preparationEyebrow: 'Nouvelle version en préparation',
-    preparationTitle: 'Le Nettoyage en ligne fait peau neuve',
-    preparationText:
-      'La demande de devis en ligne et le suivi depuis Mon espace KSP reviennent bientôt, dans une nouvelle version.',
-    preparationContact:
-      'En attendant, notre équipe prend vos demandes directement, par WhatsApp, par téléphone ou par e-mail.',
+    panelEyebrow: 'Votre devis en ligne',
+    panelTitle: 'Trois temps, un seul dossier',
+    panelSteps: [
+      'Une estimation immédiate, sans compte',
+      'La visite des lieux, sur le créneau de votre choix',
+      'Le devis, puis le programme de séances dans votre espace',
+    ],
+    panelNote: 'Estimation non contractuelle : le prix est confirmé par le devis, après la visite.',
   },
   space: {
     eyebrow: 'Nettoyage et assainissement',
     title: 'Mes prestations de nettoyage',
+    lead: 'Vos demandes de devis, vos lieux et, bientôt, vos programmes et vos séances.',
     /** Carte de l'accueil de Mon espace KSP. */
-    homeLinkText: 'Nouvelle version en préparation : demandes, devis et passages.',
+    homeLinkText: 'Demandes de devis, visites, devis et lieux enregistrés.',
+    back: 'Mes prestations de nettoyage',
+    newRequest: 'Demander un devis',
     soon: 'Bientôt',
     soonTitle: 'Bientôt disponible',
     soonText:
-      'Le suivi de vos demandes de nettoyage, de vos devis et de vos passages arrive avec la nouvelle version du service. Les messages que vous recevez mèneront directement ici.',
+      'Cette page arrive avec la prochaine étape du service en ligne. Vos demandes et vos devis sont déjà dans « Mes prestations de nettoyage ».',
+    soonProgram: 'Votre programme de nettoyage',
+    soonSession: 'Votre séance de nettoyage',
+    soonReorder: 'Commander à nouveau',
+    soonClaim: 'Votre réclamation',
+    soonSessionRedirect: 'Votre séance de nettoyage',
     discover: 'Découvrir le Nettoyage',
     contact: 'Nous contacter',
+    requestsTitle: 'Mes demandes de devis',
+    placesTitle: 'Mes lieux',
   },
 } as const;
 
-/** « Suivre mes demandes » (`/mon-espace/suivi`) : le suivi du Nettoyage revient avec sa nouvelle version. */
+/** « Suivre mes demandes » (`/mon-espace/suivi`) : le suivi des programmes arrive avec la prochaine étape. */
 export const trackingTexts = {
   eyebrow: 'Mon espace KSP',
   title: 'Suivre mes demandes',
@@ -35,6 +48,6 @@ export const trackingTexts = {
   back: 'Mon espace KSP',
   emptyTitle: 'Aucune demande à suivre pour le moment',
   emptyText:
-    'Le suivi de vos demandes de nettoyage reviendra ici avec la nouvelle version du service. Vos factures et vos paiements restent dans Mon espace KSP.',
+    'Vos demandes de nettoyage se suivent dans « Mes prestations de nettoyage ». Vos factures et vos paiements restent dans Mon espace KSP.',
   emptyAction: 'Mes factures et paiements',
 } as const;

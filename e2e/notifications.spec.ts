@@ -10,7 +10,7 @@ const PROGRAM_ID = '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1002';
 test('pastille de Mon espace, liste, marquer lu, préférences', async ({ page }) => {
   let unread = 2;
   let preferences = { whatsapp: true, email: true, updatedAt: null as string | null };
-  // Liens du Nettoyage v2 : la page « Bientôt disponible » de Mon espace les reçoit.
+  // Liens du Nettoyage v2 (demande, programme) tels qu'envoyés par le service notification.
   const notification = (
     id: string,
     title: string,
@@ -97,15 +97,15 @@ test('pastille de Mon espace, liste, marquer lu, préférences', async ({ page }
   });
   expect(gateway.forbiddenHeaders).toEqual([]);
 
-  // Le lien d'une notification du Nettoyage mène à « Bientôt disponible », sans erreur.
+  // Le lien d'une notification d'un programme du Nettoyage mène à la page provisoire, sans erreur.
   await page
     .getByRole('listitem', { name: 'Programme de nettoyage confirmé' })
     .getByRole('button', { name: 'Voir' })
     .click();
   await expect(page).toHaveURL(new RegExp(`/mon-espace/nettoyage/programmes/${PROGRAM_ID}$`));
-  await expect(page.getByRole('heading', { level: 1, name: 'Mes prestations de nettoyage' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Votre programme de nettoyage' })).toBeVisible();
   await expect(page.getByRole('heading', { level: 2, name: 'Bientôt disponible' })).toBeVisible();
-  expect(gateway.calls.filter((call) => call.path.startsWith('/api/v1/cleaning/'))).toEqual([]);
+  expect(gateway.calls.filter((call) => call.path.startsWith('/api/v1/cleaning/programs'))).toEqual([]);
 });
 
 test('page Contact : sujet prérempli depuis un lien « support », sans compte', async ({ page }) => {

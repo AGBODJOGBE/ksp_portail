@@ -31,8 +31,8 @@ export type Need = { metierId: MetierId; title: string; text: string; href: stri
 export const homeContent = {
   banner: {
     /** Phrase du bandeau d'information. */
-    text: 'Le Nettoyage prépare sa nouvelle version en ligne : notre équipe prend vos demandes en attendant.',
-    action: { label: 'Découvrir le Nettoyage', href: '/nettoyage' },
+    text: 'Nouveau : estimez le prix de votre nettoyage en ligne, puis demandez votre devis.',
+    action: { label: 'Simuler un prix', href: '/nettoyage#simulateur' },
     close: 'Fermer le message d’information',
   },
   hero: {
@@ -65,8 +65,8 @@ export const homeContent = {
       {
         id: 'nettoyage',
         title: 'Le Nettoyage fait peau neuve',
-        text: 'Une nouvelle version de la demande et du suivi en ligne se prépare. Bureaux, domicile, fin de chantier : notre équipe vous répond déjà.',
-        action: { label: 'Découvrir le Nettoyage', href: '/nettoyage' },
+        text: 'Estimez le prix en ligne, demandez votre devis après une visite des lieux, puis suivez votre demande depuis Mon espace KSP.',
+        action: { label: 'Simuler un prix', href: '/nettoyage#simulateur' },
         illustration: 'cleaning',
       },
       {

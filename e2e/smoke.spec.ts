@@ -106,7 +106,7 @@ const METIER_PAGES = [
   },
   {
     path: '/nettoyage',
-    links: { 'Nous contacter': '/contact?sujet=nettoyage' },
+    links: { 'Simuler un prix': '#simulateur', 'Demander un devis': '/nettoyage/demande' },
   },
   {
     path: '/immobilier',
@@ -167,41 +167,30 @@ test('les liens vers KSP Print et KSP Shop pointent vers les sites de l’écosy
   ).toHaveAttribute('href', /^https?:\/\//);
 });
 
-/* ——— Nettoyage : la v1 est retirée, la v2 est en préparation ——— */
+/* ——— Nettoyage v2 : adresses ——— */
 
-test('Nettoyage : la page annonce la nouvelle version et mène au contact', async ({ page }) => {
-  await page.goto('/nettoyage');
-  const hero = page.getByRole('main').getByRole('region').first();
-  await expect(hero.getByText('Nouvelle version en préparation').first()).toBeVisible();
-  await hero.getByRole('link', { name: /Nous contacter/ }).click();
-  await expect(page).toHaveURL(/\/contact\?sujet=nettoyage$/);
-  await expect(
-    page.getByRole('main').getByText('Nettoyage et assainissement', { exact: true }),
-  ).toBeVisible();
+test('Nettoyage : l’ancien formulaire de devis mène à la demande (307)', async ({ request }) => {
+  const response = await request.get('/nettoyage/devis', { maxRedirects: 0 });
+  expect(response.status()).toBe(307);
+  expect(new URL(response.headers().location ?? '', 'http://localhost').pathname).toBe('/nettoyage/demande');
+  expect((await request.get('/nettoyage/demande')).status()).toBe(200);
+  expect((await request.get('/conditions/nettoyage/cg-2026-11')).status()).toBe(200);
+  expect((await request.get('/conditions/nettoyage/cg-1900-01')).status()).toBe(404);
 });
 
-test('Nettoyage : les anciennes demandes de devis redirigent vers la page (307)', async ({ request }) => {
-  for (const path of ['/nettoyage/demande', '/nettoyage/devis']) {
-    const response = await request.get(path, { maxRedirects: 0 });
-    expect(response.status()).toBe(307);
-    expect(new URL(response.headers().location ?? '', 'http://localhost').pathname).toBe('/nettoyage');
-  }
-});
-
-test('Nettoyage : Mon espace dit « Bientôt disponible » pour tout lien de la v1 ou de la v2', async ({
+test('Nettoyage : les adresses des notifications répondent (pages provisoires comprises)', async ({
   page,
 }) => {
-  const gateway = await mockGateway(page, { signedIn: true });
+  await mockGateway(page, { signedIn: true });
   for (const path of [
-    '/mon-espace/nettoyage',
-    '/mon-espace/nettoyage/demandes/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1001',
+    '/mon-espace/nettoyage/programmes/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1002',
     '/mon-espace/nettoyage/programmes/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1002/seances/s-1',
+    '/mon-espace/nettoyage/programmes/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1002/commander-a-nouveau',
     '/mon-espace/nettoyage/reclamations/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1003',
-    '/mon-espace/nettoyage/missions/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1000',
+    '/mon-espace/nettoyage/seances/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1004',
   ]) {
     const response = await page.goto(path);
     expect(response?.status()).toBe(200);
     await expect(page.getByRole('heading', { level: 2, name: 'Bientôt disponible' })).toBeVisible();
   }
-  expect(gateway.calls.filter((call) => call.path.startsWith('/api/v1/cleaning/'))).toEqual([]);
 });
