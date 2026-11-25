@@ -24,6 +24,7 @@ import {
   paymentTexts as t,
   paymentView,
   subjectLabel,
+  subjectLinkLabel,
   subjectPath,
 } from '@/features/payment/texts';
 
@@ -284,7 +285,7 @@ export function PaymentReturn({ id, topUpResult }: { id: string; topUpResult?: R
         ) : null}
         {subject && !toppedUp ? (
           <ButtonLink href={subject} variant={checkout || payment.underReview ? 'secondary' : 'primary'}>
-            {isTopUp ? t.seeWallet : t.seeInvoice}
+            {subjectLinkLabel(payment.subject.type)}
           </ButtonLink>
         ) : null}
         <ButtonLink href={paymentPaths.list} variant="ghost">

@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { Badge } from '@/components/ui/badge';
 import { Container } from '@/components/ui/container';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Eyebrow } from '@/components/ui/eyebrow';
@@ -17,7 +16,7 @@ import {
 import { LinkCard } from '@/components/ui/link-card';
 import { navigation } from '@/config/navigation';
 import { InvoiceTodo, billingPaths, billingTexts } from '@/features/billing';
-import { cleaningPaths, cleaningTexts } from '@/features/cleaning';
+import { CleaningTodo, cleaningPaths, cleaningTexts } from '@/features/cleaning';
 import { NotificationBell, notificationPaths, notificationTexts } from '@/features/notification';
 import { paymentPaths, paymentTexts } from '@/features/payment';
 import { WalletBalanceLink, walletPaths, walletTexts } from '@/features/wallet';
@@ -36,8 +35,8 @@ import { pageMetadata } from '@/lib/seo/metadata';
  * « Mon espace KSP », tableau de bord du compte (F-020) : coque statique ; la garde reprend la session
  * dans le navigateur (F-005, option A). Dans l'ordre : le compte (salutation, compte actif, portefeuille,
  * notifications), « À faire maintenant » (seulement ce qui attend le client), les raccourcis des
- * services, puis « Bientôt ». Le Nettoyage prépare sa nouvelle version (v2) : sa carte est « Bientôt »,
- * et ses actions et son suivi reviendront avec elle.
+ * services, puis « Bientôt ». Le Nettoyage (v2) y met ses frais de visite à régler et ses devis à
+ * accepter.
  */
 
 export const metadata: Metadata = {
@@ -51,14 +50,7 @@ export default function AccountPage() {
     {
       href: cleaningPaths.space,
       title: cleaningTexts.space.title,
-      text: (
-        <>
-          <Badge tone="accent" className="mr-2 align-middle">
-            {cleaningTexts.space.soon}
-          </Badge>
-          {cleaningTexts.space.homeLinkText}
-        </>
-      ),
+      text: cleaningTexts.space.homeLinkText,
       icon: <IconNettoyage className="size-5" />,
     },
     {
@@ -133,6 +125,7 @@ export default function AccountPage() {
             </Heading>
             <p className="text-ink-muted mt-2">{t.account.todoLead}</p>
             <div className="mt-8 grid gap-10">
+              <CleaningTodo />
               <InvoiceTodo />
               <ProfileTodo />
             </div>

@@ -41,12 +41,12 @@ describe('accueil', () => {
     ]);
   });
 
-  it('annonce la nouvelle version du Nettoyage et mène à sa page, puis se referme', async () => {
+  it('annonce le Nettoyage en ligne et mène à son simulateur, puis se referme', async () => {
     render(<HomePage />);
     expect(screen.getByText(homeContent.banner.text)).toBeInTheDocument();
-    const links = screen.getAllByRole('link', { name: 'Découvrir le Nettoyage' });
+    const links = screen.getAllByRole('link', { name: 'Simuler un prix' });
     expect(links.length).toBeGreaterThan(0);
-    links.forEach((link) => expect(link).toHaveAttribute('href', '/nettoyage'));
+    links.forEach((link) => expect(link).toHaveAttribute('href', '/nettoyage#simulateur'));
     fireEvent.click(screen.getByRole('button', { name: homeContent.banner.close }));
     expect(screen.queryByRole('button', { name: homeContent.banner.close })).toBeNull();
   });

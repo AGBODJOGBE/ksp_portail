@@ -6,11 +6,44 @@ import { mockGateway } from './support/gateway';
 const NOTIFICATION_ID = '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d6001';
 const REQUEST_ID = '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1001';
 const PROGRAM_ID = '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1002';
+/** Programme du Nettoyage (`CleaningProgram`) ouvert depuis sa notification. */
+const PROGRAM = {
+  id: PROGRAM_ID,
+  number: 'PN-000057',
+  status: 'confirmed',
+  requestId: REQUEST_ID,
+  quoteId: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1009',
+  customerKind: 'individual',
+  customerId: 'u-1',
+  organizationId: null,
+  payerKind: 'individual',
+  place: {
+    placeId: 'pl-1',
+    name: 'Maison de Calavi',
+    placeTypeId: 'pt-1',
+    placeTypeName: 'Villa',
+    communeKey: 'abomey-calavi',
+    communeName: 'Abomey-Calavi',
+    location: null,
+  },
+  cleaningTypes: [],
+  schedule: { kind: 'one_off', startTime: '08:00', dates: ['2027-01-05'] },
+  sessionsCount: 1,
+  sessionsCompleted: 0,
+  firstSessionAt: '2027-01-05T07:00:00Z',
+  lastSessionAt: '2027-01-05T07:00:00Z',
+  suspensionCauses: [],
+  renewal: null,
+  createdAt: '2026-11-25T09:00:00Z',
+  pendingCancellation: null,
+  customerName: null,
+  organizationName: null,
+};
 
 test('pastille de Mon espace, liste, marquer lu, préférences', async ({ page }) => {
   let unread = 2;
   let preferences = { whatsapp: true, email: true, updatedAt: null as string | null };
-  // Liens du Nettoyage v2 : la page « Bientôt disponible » de Mon espace les reçoit.
+  // Liens du Nettoyage v2 (demande, programme) tels qu'envoyés par le service notification.
   const notification = (
     id: string,
     title: string,
@@ -28,6 +61,12 @@ test('pastille de Mon espace, liste, marquer lu, préférences', async ({ page }
   const gateway = await mockGateway(page, {
     signedIn: true,
     routes: ({ method, path, body, authorized }) => {
+      if (method === 'GET' && path === `/api/v1/cleaning/programs/${PROGRAM_ID}`) {
+        return { status: 200, body: PROGRAM };
+      }
+      if (method === 'GET' && path === `/api/v1/cleaning/programs/${PROGRAM_ID}/sessions`) {
+        return { status: 200, body: { data: [], nextCursor: null, total: 0 } };
+      }
       if (!path.startsWith('/api/v1/notification/')) return undefined;
       if (!authorized)
         return { status: 401, body: { error: { code: 'GATEWAY_TOKEN_MISSING', message: 'Non' } } };
@@ -97,15 +136,15 @@ test('pastille de Mon espace, liste, marquer lu, préférences', async ({ page }
   });
   expect(gateway.forbiddenHeaders).toEqual([]);
 
-  // Le lien d'une notification du Nettoyage mène à « Bientôt disponible », sans erreur.
+  // Le lien d'une notification d'un programme du Nettoyage mène à la page du programme.
   await page
     .getByRole('listitem', { name: 'Programme de nettoyage confirmé' })
     .getByRole('button', { name: 'Voir' })
     .click();
   await expect(page).toHaveURL(new RegExp(`/mon-espace/nettoyage/programmes/${PROGRAM_ID}$`));
-  await expect(page.getByRole('heading', { level: 1, name: 'Mes prestations de nettoyage' })).toBeVisible();
-  await expect(page.getByRole('heading', { level: 2, name: 'Bientôt disponible' })).toBeVisible();
-  expect(gateway.calls.filter((call) => call.path.startsWith('/api/v1/cleaning/'))).toEqual([]);
+  await expect(page.getByRole('heading', { level: 1, name: 'Maison de Calavi' })).toBeVisible();
+  await expect(page.getByText('Programme PN-000057')).toBeVisible();
+  expect(gateway.calls.map((call) => call.path)).toContain(`/api/v1/cleaning/programs/${PROGRAM_ID}`);
 });
 
 test('page Contact : sujet prérempli depuis un lien « support », sans compte', async ({ page }) => {

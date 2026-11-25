@@ -2,6 +2,11 @@ import type { NextConfig } from 'next';
 
 const isDev = process.env.NODE_ENV !== 'production';
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+/**
+ * Stockage des fichiers (service file, ADR-038) : les photos y sont envoyées directement, à une adresse
+ * présignée. Origine fixée au build, facultative : sans elle, l'envoi des photos est refusé par la CSP.
+ */
+const fileStorageOrigin = process.env.NEXT_PUBLIC_FILE_STORAGE_ORIGIN?.trim() ?? '';
 
 /**
  * Politique de sécurité du contenu : le navigateur ne parle qu'au site lui-même et à la gateway.
@@ -13,7 +18,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  `connect-src 'self' ${apiUrl}${isDev ? ' ws:' : ''}`,
+  `connect-src 'self' ${apiUrl}${fileStorageOrigin ? ` ${fileStorageOrigin}` : ''}${isDev ? ' ws:' : ''}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -55,13 +60,9 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    // Demandes de devis du Nettoyage v1 (assistant par lieu, ancien formulaire) : retirées avec la v1. Le
-    // temps que la v2 arrive, elles mènent à la page du Nettoyage (redirection temporaire, 307).
-    return ['/nettoyage/demande', '/nettoyage/devis'].map((source) => ({
-      source,
-      destination: '/nettoyage',
-      permanent: false,
-    }));
+    // Ancien formulaire de devis du Nettoyage v1 : la demande v2 est sur `/nettoyage/demande`
+    // (redirection temporaire, 307).
+    return [{ source: '/nettoyage/devis', destination: '/nettoyage/demande', permanent: false }];
   },
 };
 

@@ -30,7 +30,10 @@ const PAGES: ReadonlyArray<{ path: string; Page: PageComponent; h1: RegExp; acti
     path: '/nettoyage',
     Page: NettoyagePage,
     h1: /Des locaux propres et sains/,
-    actions: [{ name: 'Nous contacter', href: '/contact?sujet=nettoyage' }],
+    actions: [
+      { name: 'Simuler un prix', href: '#simulateur' },
+      { name: 'Demander un devis', href: '/nettoyage/demande' },
+    ],
   },
   {
     path: '/immobilier',
@@ -111,17 +114,16 @@ describe.each(PAGES)('page métier $path', ({ path, Page, h1, actions }) => {
   });
 });
 
-describe('page Nettoyage, pendant la préparation de la v2', () => {
-  it('annonce la nouvelle version, sans appel à la gateway ni lien vers la v1', () => {
+describe('page Nettoyage (v2)', () => {
+  it('ouvre le simulateur et la demande de devis, sans appel à la gateway au rendu du serveur', () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    const { container } = render(<NettoyagePage />);
-    const hero = screen.getByRole('region', { name: /Des locaux propres et sains/ });
-    expect(hero).toHaveTextContent('Nouvelle version en préparation');
+    render(<NettoyagePage />);
+    expect(screen.getByRole('region', { name: /Combien coûtera votre nettoyage/ })).toHaveAttribute(
+      'id',
+      'simulateur',
+    );
+    expect(screen.getByRole('region', { name: /De l’estimation à chaque séance/ })).toBeInTheDocument();
     expect(fetchSpy).not.toHaveBeenCalled();
-    const hrefs = [...container.querySelectorAll('a')].map((link) => link.getAttribute('href') ?? '');
-    expect(
-      hrefs.filter((href) => href.startsWith('/nettoyage/') || href.startsWith('/mon-espace/nettoyage')),
-    ).toEqual([]);
     fetchSpy.mockRestore();
   });
 });

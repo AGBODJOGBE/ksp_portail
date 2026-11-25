@@ -3,11 +3,12 @@ export { AccountOverview } from './components/account-overview';
 export { LoginFlow } from './components/login-flow';
 export { ProfileForm } from './components/profile-form';
 export { RequireSession } from './components/require-session';
-export { useReadOnly } from './components/use-read-only';
+export { useOrganizationRole, useReadOnly, type OrganizationRole } from './components/use-read-only';
 // Écrans client chargés à la demande (voir components/lazy.tsx).
 export {
   AccountDeletion,
   ContextSwitcher,
+  OrganizationContextFromSearch,
   OrganizationContextGate,
   OrganizationDetail,
   OrganizationSpace,

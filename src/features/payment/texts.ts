@@ -13,16 +13,33 @@ export const paymentPaths = {
 /** Recharge du portefeuille prépayé (ADR-046) : objet `wallet_top_up`, identifiant = titulaire. */
 export const TOP_UP = 'wallet_top_up';
 
+/** Frais de visite d'une demande du Nettoyage v2 (`part: visit_fee`, ADR-055 §3). */
+export const CLEANING_REQUEST = 'cleaning_request';
+/** Séance d'un programme du Nettoyage v2 (ADR-055 §4). */
+export const CLEANING_SESSION = 'cleaning_session';
+
 /**
- * Objet payé → écran du portail. Adresses fixées par billing et wallet, recopiées ici : billing importe
- * cette fonctionnalité (historique) et wallet aussi (redirection), l'inverse ferait un cycle. Les objets
- * du Nettoyage v1 (missions) n'ont plus d'écran : pas de lien.
+ * Objet payé → écran du portail. Adresses fixées par billing, wallet et cleaning, recopiées ici : billing
+ * importe cette fonctionnalité (historique) et wallet aussi (redirection), l'inverse ferait un cycle. Une
+ * séance du Nettoyage s'ouvre par `/mon-espace/nettoyage/seances/{id}` (le paiement ne connaît pas son
+ * programme). Les objets du Nettoyage v1 (missions) n'ont plus d'écran : pas de lien.
  */
 export function subjectPath(subject: { type: string; id: string }): string | null {
   const id = encodeURIComponent(subject.id);
   if (subject.type === 'billing_invoice') return `/mon-espace/factures/${id}`;
   if (subject.type === TOP_UP) return '/mon-espace/portefeuille';
+  if (subject.type === CLEANING_REQUEST) return `/mon-espace/nettoyage/demandes/${id}`;
+  if (subject.type === CLEANING_SESSION) return `/mon-espace/nettoyage/seances/${id}`;
   return null;
+}
+
+/** Libellé du lien vers l'objet payé (page de retour d'un paiement). */
+export function subjectLinkLabel(type: string): string {
+  const t = paymentTexts;
+  if (type === TOP_UP) return t.seeWallet;
+  if (type === CLEANING_REQUEST) return t.seeCleaningRequest;
+  if (type === CLEANING_SESSION) return t.seeCleaningSession;
+  return t.seeInvoice;
 }
 
 export const paymentTexts = {
@@ -68,7 +85,13 @@ export const paymentTexts = {
     balance: 'Solde de la prestation',
     invoice: (reference: string | null) => (reference ? `Facture ${reference}` : 'Facture'),
     topUp: 'Recharge du portefeuille',
+    visitFee: (reference: string | null) =>
+      reference ? `Frais de visite du nettoyage, demande ${reference}` : 'Frais de visite du nettoyage',
+    cleaningSession: (reference: string | null) =>
+      reference ? `Nettoyage, ${reference}` : 'Séance de nettoyage',
   },
+  seeCleaningRequest: 'Voir ma demande de nettoyage',
+  seeCleaningSession: 'Voir la séance',
   seeInvoice: 'Voir la facture',
   seeWallet: 'Voir mon portefeuille',
   seeAll: 'Voir mes paiements',
@@ -193,5 +216,7 @@ export function subjectLabel(subject: {
   const t = paymentTexts.paymentOf;
   if (subject.type === 'billing_invoice') return t.invoice(subject.reference);
   if (subject.type === TOP_UP) return t.topUp;
+  if (subject.type === CLEANING_REQUEST) return t.visitFee(subject.reference);
+  if (subject.type === CLEANING_SESSION) return t.cleaningSession(subject.reference);
   return subject.part === 'deposit' ? t.deposit : t.balance;
 }

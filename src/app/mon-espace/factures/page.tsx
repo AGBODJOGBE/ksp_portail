@@ -2,12 +2,13 @@ import { navigation } from '@/config/navigation';
 import { BandHeader, BandTitle } from '@/components/ui/band-header';
 import { Suspense } from 'react';
 import { InvoiceList, billingTexts } from '@/features/billing';
-import { ContextSwitcher } from '@/features/identity';
+import { ContextSwitcher, OrganizationContextFromSearch } from '@/features/identity';
 import { frenchSpacing } from '@/lib/typography';
 
 /**
  * Liste des factures du client (adresse attendue par les notifications de facturation). Le filtre par
- * état est lu dans l'adresse sous Suspense : la page reste statique.
+ * état et l'organisation du lien (`?organisation=`) sont lus dans l'adresse sous Suspense : la page reste
+ * statique.
  */
 export default function InvoicesPage() {
   return (
@@ -29,7 +30,11 @@ export default function InvoicesPage() {
           </p>
         }
       >
-        <InvoiceList />
+        <OrganizationContextFromSearch
+          back={{ href: navigation.account.href, label: navigation.account.label }}
+        >
+          <InvoiceList />
+        </OrganizationContextFromSearch>
       </Suspense>
     </div>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 /*
@@ -87,6 +88,26 @@ export function OrganizationContextGate({
   if (!organizationId) return children;
   return (
     <ContextGate organizationId={organizationId} back={back}>
+      {children}
+    </ContextGate>
+  );
+}
+
+/**
+ * Même passage de contexte pour une page statique dont l'adresse est lue dans le navigateur, sous
+ * `<Suspense>` (liste des factures ouverte par `/mon-espace/factures?organisation=<id>`).
+ */
+export function OrganizationContextFromSearch({
+  back,
+  children,
+}: {
+  back: { href: string; label: string };
+  children: ReactNode;
+}) {
+  const organizationId = useSearchParams().get('organisation')?.trim();
+  if (!organizationId) return children;
+  return (
+    <ContextGate organizationId={organizationId} back={back} inline>
       {children}
     </ContextGate>
   );
