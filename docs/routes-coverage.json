@@ -1,0 +1,19 @@
+{
+  "$comment": "Routes du contrat volontairement non branchées dans le portail, avec leur raison (pnpm routes:coverage). Un chemin qui finit par * couvre toutes les routes qui commencent ainsi ; sans méthode, toutes les méthodes. Le back-office (/admin/*) et l'espace pro (F-021) sont exclus par le script lui-même.",
+  "exclusions": [
+    {
+      "method": "POST",
+      "path": "/api/v1/payment/webhooks/fedapay",
+      "reason": "Serveur à serveur : appelée par le prestataire de paiement, jamais par un navigateur."
+    },
+    {
+      "method": "GET",
+      "path": "/.well-known/jwks.json",
+      "reason": "Clés publiques des jetons, lues par les services, pas par un écran."
+    },
+    {
+      "path": "/api/v1/recovery/*",
+      "reason": "Recouvrement : lots 3 et 4, à venir."
+    }
+  ]
+}

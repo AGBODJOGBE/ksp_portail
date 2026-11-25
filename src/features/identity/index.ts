@@ -8,6 +8,7 @@ export { useOrganizationRole, useReadOnly, type OrganizationRole } from './compo
 export {
   AccountDeletion,
   ContextSwitcher,
+  OrganizationContextFromSearch,
   OrganizationContextGate,
   OrganizationDetail,
   OrganizationSpace,

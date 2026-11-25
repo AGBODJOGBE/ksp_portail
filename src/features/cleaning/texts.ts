@@ -19,35 +19,32 @@ export const cleaningTexts = {
   space: {
     eyebrow: 'Nettoyage et assainissement',
     title: 'Mes prestations de nettoyage',
-    lead: 'Vos demandes de devis, vos lieux et, bientôt, vos programmes et vos séances.',
+    lead: 'Vos demandes de devis, vos programmes et leurs séances, vos réclamations et vos lieux.',
     /** Carte de l'accueil de Mon espace KSP. */
-    homeLinkText: 'Demandes de devis, visites, devis et lieux enregistrés.',
+    homeLinkText: 'Demandes de devis, programmes, séances à payer, réclamations et lieux enregistrés.',
     back: 'Mes prestations de nettoyage',
     newRequest: 'Demander un devis',
-    soon: 'Bientôt',
-    soonTitle: 'Bientôt disponible',
-    soonText:
-      'Cette page arrive avec la prochaine étape du service en ligne. Vos demandes et vos devis sont déjà dans « Mes prestations de nettoyage ».',
-    soonProgram: 'Votre programme de nettoyage',
-    soonSession: 'Votre séance de nettoyage',
-    soonReorder: 'Commander à nouveau',
-    soonClaim: 'Votre réclamation',
-    soonSessionRedirect: 'Votre séance de nettoyage',
     discover: 'Découvrir le Nettoyage',
     contact: 'Nous contacter',
     requestsTitle: 'Mes demandes de devis',
     placesTitle: 'Mes lieux',
+    programsTitle: 'Mes programmes',
+    programsLead: 'Vos programmes de séances, nés d’un devis accepté, et leur calendrier.',
+    claimsTitle: 'Mes réclamations',
+    claimsLead: 'Les problèmes signalés après une séance, et la réponse de KSP.',
+    programsBack: 'Mes programmes',
+    claimsBack: 'Mes réclamations',
+    loading: 'Chargement…',
   },
 } as const;
 
-/** « Suivre mes demandes » (`/mon-espace/suivi`) : le suivi des programmes arrive avec la prochaine étape. */
+/** « Suivre mes demandes » (`/mon-espace/suivi`) : le Nettoyage en cours, demandes et programmes. */
 export const trackingTexts = {
   eyebrow: 'Mon espace KSP',
   title: 'Suivre mes demandes',
   lead: 'Toutes vos demandes, tous services confondus : où en est chacune, et qui doit agir.',
   back: 'Mon espace KSP',
-  emptyTitle: 'Aucune demande à suivre pour le moment',
-  emptyText:
-    'Vos demandes de nettoyage se suivent dans « Mes prestations de nettoyage ». Vos factures et vos paiements restent dans Mon espace KSP.',
-  emptyAction: 'Mes factures et paiements',
+  otherTitle: 'Factures et paiements',
+  otherText: 'Vos factures et vos paiements, tous services confondus, restent dans Mon espace KSP.',
+  otherAction: 'Mes factures et paiements',
 } as const;

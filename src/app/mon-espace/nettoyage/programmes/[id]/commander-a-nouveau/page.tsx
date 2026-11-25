@@ -1,6 +1,20 @@
-import { CleaningSoon, cleaningTexts } from '@/features/cleaning';
+import { ReorderProgram, cleaningPaths, cleaningTexts } from '@/features/cleaning';
+import { OrganizationContextGate } from '@/features/identity';
 
-/** Nouvelle commande après un programme ponctuel (adresse des notifications), remplie à l'étape suivante. */
-export default function CleaningReorderPage() {
-  return <CleaningSoon title={cleaningTexts.space.soonReorder} />;
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ organisation?: string | string[] }>;
+};
+
+/** Commander à nouveau un programme ponctuel terminé (adresse des notifications, R-PG-08). */
+export default async function CleaningReorderPage({ params, searchParams }: Props) {
+  const [{ id }, { organisation }] = await Promise.all([params, searchParams]);
+  return (
+    <OrganizationContextGate
+      organisation={organisation}
+      back={{ href: cleaningPaths.programs, label: cleaningTexts.space.programsBack }}
+    >
+      <ReorderProgram id={id} />
+    </OrganizationContextGate>
+  );
 }

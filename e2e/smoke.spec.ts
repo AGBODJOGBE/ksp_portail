@@ -178,10 +178,22 @@ test('Nettoyage : l’ancien formulaire de devis mène à la demande (307)', asy
   expect((await request.get('/conditions/nettoyage/cg-1900-01')).status()).toBe(404);
 });
 
-test('Nettoyage : les adresses des notifications répondent (pages provisoires comprises)', async ({
+test('Nettoyage : les adresses des notifications répondent, même pour un dossier introuvable', async ({
   page,
 }) => {
-  await mockGateway(page, { signedIn: true });
+  const missing = (code: string) => ({
+    status: 404,
+    body: { error: { code, message: 'Introuvable.', details: {}, correlationId: 'c-1' } },
+  });
+  await mockGateway(page, {
+    signedIn: true,
+    routes: ({ path }) => {
+      if (path.startsWith('/api/v1/cleaning/programs/')) return missing('CLEANING_PROGRAM_NOT_FOUND');
+      if (path.startsWith('/api/v1/cleaning/sessions/')) return missing('CLEANING_SESSION_NOT_FOUND');
+      if (path.startsWith('/api/v1/cleaning/claims/')) return missing('CLEANING_CLAIM_NOT_FOUND');
+      return undefined;
+    },
+  });
   for (const path of [
     '/mon-espace/nettoyage/programmes/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1002',
     '/mon-espace/nettoyage/programmes/0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d1002/seances/s-1',
@@ -191,6 +203,7 @@ test('Nettoyage : les adresses des notifications répondent (pages provisoires c
   ]) {
     const response = await page.goto(path);
     expect(response?.status()).toBe(200);
-    await expect(page.getByRole('heading', { level: 2, name: 'Bientôt disponible' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(page.getByText(/est introuvable, ou n’appartient pas au compte actif/)).toBeVisible();
   }
 });

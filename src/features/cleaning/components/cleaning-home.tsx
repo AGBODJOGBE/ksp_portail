@@ -1,56 +1,102 @@
 'use client';
 
-import Link from 'next/link';
+import { Agenda, type AgendaEntry } from '@/components/ui/agenda';
 import { Badge } from '@/components/ui/badge';
-import { EmptyState } from '@/components/ui/empty-state';
+import { FormMessage } from '@/components/ui/field';
 import { IconNettoyage } from '@/components/ui/icons';
 import { TodoItem, TodoNone, TodoPanel, TodoState } from '@/components/ui/todo-panel';
 import { contextKey, isBackendPending, useSession } from '@/lib/api';
+import { formatDateTime, formatTime, formatXof } from '@/lib/format';
 import { useResource } from '@/lib/use-resource';
-import { listPlaces, listRequests } from '@/features/cleaning/api';
 import { describeCleaningError } from '@/features/cleaning/errors';
+import {
+  type CleaningOverview,
+  type ProgramSession,
+  loadCleaningOverview,
+  loadCleaningTodo,
+} from '@/features/cleaning/overview';
 import { cleaningPaths } from '@/features/cleaning/paths';
+import { dashboardTexts as d } from '@/features/cleaning/program-texts';
 import { homeTexts as t } from '@/features/cleaning/request-texts';
-import type { RequestSummary } from '@/features/cleaning/schemas';
-import { requestStatus } from '@/features/cleaning/status-texts';
+import type { ProgramDetail, RequestSummary } from '@/features/cleaning/schemas';
+import {
+  programStatus,
+  requestStatus,
+  sessionPaymentStatus,
+  suspensionCause,
+} from '@/features/cleaning/status-texts';
+import { CleaningTabs } from './cleaning-tabs';
 import { Panel } from './fields';
-import { PlaceRow } from './places';
-import { RequestRow } from './request-list';
 
-const RECENT = 5;
+type Todo = Pick<CleaningOverview, 'requests' | 'sessionsToPay' | 'suspended'>;
 
-/** Demandes qui attendent le client : frais de visite à payer, devis à accepter (filtrés par la gateway). */
-async function loadTodo(): Promise<RequestSummary[]> {
-  const [fees, quotes] = await Promise.all([
-    listRequests({ status: 'awaiting_visit_fee', limit: 10 }),
-    listRequests({ status: 'quote_sent', limit: 10 }),
-  ]);
-  return [...fees.data, ...quotes.data];
+const todoCount = (todo: Todo) => todo.requests.length + todo.sessionsToPay.length + todo.suspended.length;
+
+function RequestTodo({ request }: { request: RequestSummary }) {
+  const status = requestStatus(request.status);
+  const fee = request.status === 'awaiting_visit_fee';
+  return (
+    <TodoItem
+      title={fee ? t.dashboardFee(request.number) : t.dashboardQuote(request.number)}
+      badge={
+        <Badge tone={status.tone} dot>
+          {status.label}
+        </Badge>
+      }
+      text={`${request.placeTypeName} · ${request.communeName} — ${fee ? t.dashboardFeeText(null) : t.dashboardQuoteText}`}
+      action={{ href: cleaningPaths.requestDetail(request.id), label: t.dashboardAction }}
+    />
+  );
 }
 
-const loadRecent = () => listRequests({ limit: RECENT });
-const loadPlaces = () => listPlaces({ limit: RECENT });
+function SessionTodo({ item }: { item: ProgramSession }) {
+  const { session, program } = item;
+  const overdue = session.paymentStatus === 'overdue';
+  const payment = sessionPaymentStatus(session.paymentStatus ?? '');
+  return (
+    <TodoItem
+      title={(overdue ? d.sessionOverdue : d.sessionDue)(session.rank, session.sessionsCount, program.number)}
+      badge={
+        <Badge tone={payment.tone} dot>
+          {payment.label}
+        </Badge>
+      }
+      text={`${program.place.name} — ${overdue ? d.sessionOverdueText : d.sessionDueText(session.dueBy ? formatDateTime(session.dueBy) : null)}`}
+      figure={session.amountDue ? { label: d.amount, value: formatXof(session.amountDue) } : undefined}
+      action={{ href: cleaningPaths.session(program.id, session.id), label: d.sessionAction }}
+    />
+  );
+}
 
-function TodoList({ requests }: { requests: RequestSummary[] }) {
+function SuspendedTodo({ program }: { program: ProgramDetail }) {
+  const status = programStatus(program.status);
+  return (
+    <TodoItem
+      title={d.programSuspended(program.number)}
+      badge={
+        <Badge tone={status.tone} dot>
+          {status.label}
+        </Badge>
+      }
+      text={`${program.place.name} — ${program.suspensionCauses.map((item) => suspensionCause(item.cause).fix).join(' ')}`}
+      action={{ href: cleaningPaths.program(program.id), label: d.programAction }}
+    />
+  );
+}
+
+/** Ce qui attend le client : séances à payer d'abord, puis frais, devis et programmes suspendus. */
+function TodoList({ todo }: { todo: Todo }) {
   return (
     <ul className="grid gap-3">
-      {requests.map((request) => {
-        const status = requestStatus(request.status);
-        const fee = request.status === 'awaiting_visit_fee';
-        return (
-          <TodoItem
-            key={request.id}
-            title={fee ? t.dashboardFee(request.number) : t.dashboardQuote(request.number)}
-            badge={
-              <Badge tone={status.tone} dot>
-                {status.label}
-              </Badge>
-            }
-            text={`${request.placeTypeName} · ${request.communeName} — ${fee ? t.dashboardFeeText(null) : t.dashboardQuoteText}`}
-            action={{ href: cleaningPaths.requestDetail(request.id), label: t.dashboardAction }}
-          />
-        );
-      })}
+      {todo.sessionsToPay.map((item) => (
+        <SessionTodo key={item.session.id} item={item} />
+      ))}
+      {todo.requests.map((request) => (
+        <RequestTodo key={request.id} request={request} />
+      ))}
+      {todo.suspended.map((program) => (
+        <SuspendedTodo key={program.id} program={program} />
+      ))}
     </ul>
   );
 }
@@ -58,10 +104,13 @@ function TodoList({ requests }: { requests: RequestSummary[] }) {
 /** Panneau « Nettoyage » de l'accueil de Mon espace KSP : seulement ce qui attend le client. */
 export function CleaningTodo() {
   const key = contextKey(useSession()) ?? 'none';
-  return <Todo key={key} />;
+  return <MySpaceTodo key={key} />;
 }
 
-function Todo() {
+const loadTodo = () => loadCleaningTodo();
+const loadOverview = () => loadCleaningOverview();
+
+function MySpaceTodo() {
   const { state, reload } = useResource(loadTodo);
   // Service pas encore servi par la gateway : pas de panneau.
   if (state.status === 'error' && isBackendPending(state.error)) return null;
@@ -71,11 +120,11 @@ function Todo() {
       title={t.dashboardTitle}
       icon={<IconNettoyage className="size-5" />}
       link={{ href: cleaningPaths.space, label: t.dashboardSeeAll }}
-      count={state.status === 'ready' ? state.data.length : undefined}
+      count={state.status === 'ready' ? todoCount(state.data) : undefined}
     >
       {state.status === 'ready' ? (
-        state.data.length ? (
-          <TodoList requests={state.data} />
+        todoCount(state.data) ? (
+          <TodoList todo={state.data} />
         ) : (
           <TodoNone>{t.dashboardNone}</TodoNone>
         )
@@ -92,9 +141,33 @@ function Todo() {
   );
 }
 
+/** Prochains rendez-vous : visites des lieux et prochaine séance de chaque programme, la plus proche d'abord. */
+function upcomingEntries(overview: CleaningOverview): AgendaEntry[] {
+  const visits = overview.upcomingVisits.map((request) => ({
+    key: `visite-${request.id}`,
+    date: request.nextVisitAt!,
+    when: formatDateTime(request.nextVisitAt!),
+    title: d.upcomingVisit(request.number),
+    text: d.upcomingVisitText(`${request.placeTypeName} · ${request.communeName}`),
+    link: { href: cleaningPaths.requestDetail(request.id), label: d.openRequest },
+  }));
+  const sessions = overview.upcomingSessions.map(({ session, program }) => ({
+    key: `seance-${session.id}`,
+    date: session.scheduledStart,
+    when: formatDateTime(session.scheduledStart),
+    title: d.upcomingSession(session.rank, session.sessionsCount, program.number),
+    text: `${program.place.name} · ${d.upcomingSessionText(formatTime(session.scheduledStart), formatTime(session.scheduledEnd))}`,
+    link: { href: cleaningPaths.session(program.id, session.id), label: d.openSession },
+  }));
+  return [...visits, ...sessions]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((entry, index) => ({ ...entry, state: index === 0 ? ('next' as const) : ('default' as const) }));
+}
+
 /**
- * Tableau du Nettoyage (`/mon-espace/nettoyage`), version simple : ce qui attend le client, dernières
- * demandes, lieux enregistrés. Programmes, séances et réclamations arrivent avec l'étape suivante.
+ * Tableau du Nettoyage (`/mon-espace/nettoyage`) : « À faire » (séances à payer, frais de visite, devis,
+ * programmes suspendus), « Prochains rendez-vous » (visites et séances), puis les onglets Demandes,
+ * Programmes, Réclamations et Mes lieux.
  */
 export function CleaningHome() {
   const key = contextKey(useSession()) ?? 'none';
@@ -102,108 +175,46 @@ export function CleaningHome() {
 }
 
 function Home() {
-  const todo = useResource(loadTodo);
-  const recent = useResource(loadRecent);
-  const places = useResource(loadPlaces);
+  const { state, reload } = useResource(loadOverview);
+  const entries = state.status === 'ready' ? upcomingEntries(state.data) : [];
   return (
     <div className="grid gap-8">
-      <Panel id="nettoyage-a-faire" title={t.todoTitle}>
-        {todo.state.status === 'ready' ? (
-          todo.state.data.length ? (
-            <TodoList requests={todo.state.data} />
-          ) : (
-            <TodoNone>{t.todoNone}</TodoNone>
-          )
-        ) : (
-          <TodoState
-            loading={todo.state.status === 'loading'}
-            error={todo.state.status === 'error' ? describeCleaningError(todo.state.error).message : null}
-            loadingLabel={t.todoLoading}
-            retryLabel="Réessayer"
-            onRetry={todo.reload}
-          />
-        )}
-      </Panel>
-
-      <div className="grid gap-8 lg:grid-cols-2">
-        <Panel
-          id="nettoyage-demandes"
-          title={t.recentRequests}
-          action={
-            <Link
-              href={cleaningPaths.requests}
-              className="text-action-ink inline-flex min-h-11 items-center text-sm font-semibold underline-offset-4 hover:underline"
-            >
-              {t.allRequests}
-            </Link>
-          }
-        >
-          {recent.state.status === 'ready' ? (
-            recent.state.data.data.length ? (
-              <ul className="grid gap-3">
-                {recent.state.data.data.map((request) => (
-                  <RequestRow key={request.id} request={request} />
-                ))}
-              </ul>
-            ) : (
-              <p className="text-ink-muted">{t.noRequest}</p>
-            )
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-start">
+        <Panel id="nettoyage-a-faire" title={t.todoTitle}>
+          {state.status === 'ready' ? (
+            <div className="grid gap-4">
+              {todoCount(state.data) ? <TodoList todo={state.data} /> : <TodoNone>{t.todoNone}</TodoNone>}
+              {state.data.partial ? <FormMessage tone="info">{d.partial}</FormMessage> : null}
+            </div>
           ) : (
             <TodoState
-              loading={recent.state.status === 'loading'}
-              error={
-                recent.state.status === 'error' ? describeCleaningError(recent.state.error).message : null
-              }
+              loading={state.status === 'loading'}
+              error={state.status === 'error' ? describeCleaningError(state.error).message : null}
               loadingLabel={t.todoLoading}
               retryLabel="Réessayer"
-              onRetry={recent.reload}
+              onRetry={reload}
             />
           )}
         </Panel>
-        <Panel
-          id="nettoyage-lieux"
-          title={t.places}
-          action={
-            <Link
-              href={cleaningPaths.places}
-              className="text-action-ink inline-flex min-h-11 items-center text-sm font-semibold underline-offset-4 hover:underline"
-            >
-              {t.allPlaces}
-            </Link>
-          }
-        >
-          {places.state.status === 'ready' ? (
-            places.state.data.data.length ? (
-              <ul className="grid gap-3">
-                {places.state.data.data.map((place) => (
-                  <PlaceRow key={place.id} place={place} />
-                ))}
-              </ul>
+        <Panel id="nettoyage-rendez-vous" title={d.upcomingTitle}>
+          {state.status === 'ready' ? (
+            entries.length ? (
+              <Agenda entries={entries} label={d.upcomingLabel} />
             ) : (
-              <p className="text-ink-muted">{t.noPlace}</p>
+              <p className="text-ink-muted">{d.upcomingNone}</p>
             )
           ) : (
             <TodoState
-              loading={places.state.status === 'loading'}
-              error={
-                places.state.status === 'error' ? describeCleaningError(places.state.error).message : null
-              }
+              loading={state.status === 'loading'}
+              error={state.status === 'error' ? describeCleaningError(state.error).message : null}
               loadingLabel={t.todoLoading}
               retryLabel="Réessayer"
-              onRetry={places.reload}
+              onRetry={reload}
             />
           )}
         </Panel>
       </div>
-
-      <section
-        aria-labelledby="nettoyage-bientot"
-        className="rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-6"
-      >
-        <EmptyState compact illustration="soon" title={t.soonTitle} titleAs="h2" titleId="nettoyage-bientot">
-          {t.soonText}
-        </EmptyState>
-      </section>
+      <CleaningTabs />
     </div>
   );
 }

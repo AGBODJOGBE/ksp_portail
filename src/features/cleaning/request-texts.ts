@@ -324,9 +324,6 @@ export const homeTexts = {
   noRequest:
     'Aucune demande pour le moment : décrivez votre lieu pour obtenir une estimation, puis un devis.',
   noPlace: 'Aucun lieu enregistré : il s’ajoute pendant votre première demande.',
-  soonTitle: 'Programmes, séances et réclamations',
-  soonText:
-    'Le suivi de vos programmes, de chaque séance et de vos réclamations arrive avec la prochaine étape.',
   /** Accueil de Mon espace KSP : panneau « Nettoyage ». */
   dashboardTitle: 'Nettoyage',
   dashboardSeeAll: 'Mes prestations',

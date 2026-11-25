@@ -4,28 +4,40 @@ import { api, parseResponse } from '@/lib/api';
 import {
   type AcceptResult,
   type Catalog,
+  type Claim,
+  type ClaimList,
   type CleaningRequest,
   type PaymentOutcome,
   type Place,
   type PlaceList,
   type PlaceTypeDetail,
   type PointLocation,
+  type ProgramDetail,
+  type ProgramList,
   type Quote,
   type RequestList,
   type SchedulePreview,
+  type Session,
+  type SessionList,
   type Simulation,
   type Zone,
   acceptResultSchema,
   catalogSchema,
+  claimListSchema,
+  claimSchema,
   paymentOutcomeSchema,
   placeListSchema,
   placeSchema,
   placeTypeDetailSchema,
   pointLocationSchema,
+  programDetailSchema,
+  programListSchema,
   quoteSchema,
   requestListSchema,
   requestSchema,
   schedulePreviewSchema,
+  sessionListSchema,
+  sessionSchema,
   simulationSchema,
   zonesSchema,
 } from './schemas';
@@ -106,6 +118,14 @@ export interface SubmitRequestBody {
 
 export type CancelReason = 'no_longer_needed' | 'found_other_provider' | 'visit_fee' | 'other';
 export type DeclineReason = 'price' | 'schedule' | 'no_longer_needed' | 'other';
+export type PayMethod = 'wallet' | 'mobile_money';
+export type ClaimCategory = 'incomplete_work' | 'damage' | 'behavior' | 'missing_item' | 'other';
+
+export interface OpenClaimBody {
+  category: ClaimCategory;
+  text: string;
+  photoFileIds?: string[];
+}
 
 /* ——— Public ——— */
 
@@ -205,7 +225,7 @@ export async function getRequest(requestId: string): Promise<CleaningRequest> {
 
 export async function payVisitFee(
   requestId: string,
-  method: 'wallet' | 'mobile_money',
+  method: PayMethod,
   idempotencyKey: string,
 ): Promise<PaymentOutcome> {
   return parseResponse(
@@ -278,4 +298,167 @@ export async function declineQuote(
 /** Transmission aux administrateurs de l'organisation : sans corps ni clé, rejouable. */
 export async function forwardQuote(quoteId: string): Promise<Quote> {
   return parseResponse(quoteSchema, await api.post(`${BASE}/quotes/${id(quoteId)}/forward`));
+}
+
+/* ——— Programmes (partie 8) ——— */
+
+export async function listPrograms(
+  options: { cursor?: string; status?: string; sort?: '-createdAt' | 'nextSession'; limit?: number } = {},
+): Promise<ProgramList> {
+  return parseResponse(
+    programListSchema,
+    await api.get(`${BASE}/programs`, {
+      query: {
+        limit: options.limit ?? PAGE_SIZE,
+        cursor: options.cursor,
+        status: options.status,
+        sort: options.sort,
+      },
+    }),
+  );
+}
+
+export async function getProgram(programId: string): Promise<ProgramDetail> {
+  return parseResponse(programDetailSchema, await api.get(`${BASE}/programs/${id(programId)}`));
+}
+
+/** Séances d'un programme ; `from` inclus, `to` exclu (ISO 8601). */
+export async function listProgramSessions(
+  programId: string,
+  options: {
+    from?: string;
+    to?: string;
+    status?: string;
+    cursor?: string;
+    limit?: number;
+    sort?: 'scheduledStart' | '-scheduledStart';
+  } = {},
+): Promise<SessionList> {
+  return parseResponse(
+    sessionListSchema,
+    await api.get(`${BASE}/programs/${id(programId)}/sessions`, {
+      query: {
+        limit: options.limit ?? PAGE_SIZE,
+        cursor: options.cursor,
+        status: options.status,
+        from: options.from,
+        to: options.to,
+        sort: options.sort,
+      },
+    }),
+  );
+}
+
+/** Arrêt du programme (R-PG-06) : sans corps. */
+export async function stopProgram(programId: string, idempotencyKey: string): Promise<ProgramDetail> {
+  return parseResponse(
+    programDetailSchema,
+    await api.post(`${BASE}/programs/${id(programId)}/stop`, undefined, { idempotencyKey }),
+  );
+}
+
+/** Renouvellement (R-PG-07) : renvoie la demande qui porte le devis de renouvellement. */
+export async function renewProgram(
+  programId: string,
+  body: { startDate?: string },
+  idempotencyKey: string,
+): Promise<CleaningRequest> {
+  return parseResponse(
+    requestSchema,
+    await api.post(`${BASE}/programs/${id(programId)}/renew`, body, { idempotencyKey }),
+  );
+}
+
+/** Nouvelle commande d'un programme ponctuel terminé (R-PG-08) : renvoie la nouvelle demande. */
+export async function reorderProgram(
+  programId: string,
+  schedule: SchedulePlan,
+  idempotencyKey: string,
+): Promise<CleaningRequest> {
+  return parseResponse(
+    requestSchema,
+    await api.post(`${BASE}/programs/${id(programId)}/reorder`, { schedule }, { idempotencyKey }),
+  );
+}
+
+/* ——— Séances (parties 10 et 12) ——— */
+
+export async function getSession(sessionId: string): Promise<Session> {
+  return parseResponse(sessionSchema, await api.get(`${BASE}/sessions/${id(sessionId)}`));
+}
+
+export async function rescheduleSession(
+  sessionId: string,
+  newStart: string,
+  idempotencyKey: string,
+): Promise<Session> {
+  return parseResponse(
+    sessionSchema,
+    await api.post(`${BASE}/sessions/${id(sessionId)}/reschedule`, { newStart }, { idempotencyKey }),
+  );
+}
+
+/** Annulation par le client : sans corps. */
+export async function cancelSession(sessionId: string, idempotencyKey: string): Promise<Session> {
+  return parseResponse(
+    sessionSchema,
+    await api.post(`${BASE}/sessions/${id(sessionId)}/cancel`, undefined, { idempotencyKey }),
+  );
+}
+
+export async function paySession(
+  sessionId: string,
+  method: PayMethod,
+  idempotencyKey: string,
+): Promise<PaymentOutcome> {
+  return parseResponse(
+    paymentOutcomeSchema,
+    await api.post(`${BASE}/sessions/${id(sessionId)}/pay`, { method }, { idempotencyKey }),
+  );
+}
+
+export async function rateSession(
+  sessionId: string,
+  body: { stars: number; comment?: string },
+  idempotencyKey: string,
+): Promise<Session> {
+  return parseResponse(
+    sessionSchema,
+    await api.post(`${BASE}/sessions/${id(sessionId)}/rating`, body, { idempotencyKey }),
+  );
+}
+
+/* ——— Réclamations (partie 12) ——— */
+
+export async function openClaim(
+  sessionId: string,
+  body: OpenClaimBody,
+  idempotencyKey: string,
+): Promise<Claim> {
+  return parseResponse(
+    claimSchema,
+    await api.post(`${BASE}/sessions/${id(sessionId)}/claims`, body, { idempotencyKey }),
+  );
+}
+
+export async function listClaims(
+  options: { cursor?: string; status?: string; limit?: number } = {},
+): Promise<ClaimList> {
+  return parseResponse(
+    claimListSchema,
+    await api.get(`${BASE}/claims`, {
+      query: { limit: options.limit ?? PAGE_SIZE, cursor: options.cursor, status: options.status },
+    }),
+  );
+}
+
+export async function getClaim(claimId: string): Promise<Claim> {
+  return parseResponse(claimSchema, await api.get(`${BASE}/claims/${id(claimId)}`));
+}
+
+export async function addClaimMessage(claimId: string, text: string, idempotencyKey: string): Promise<Claim> {
+  return parseResponse(
+    claimSchema,
+    await api.post(`${BASE}/claims/${id(claimId)}/messages`, { text }, { idempotencyKey }),
+  );
 }

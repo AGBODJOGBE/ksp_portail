@@ -75,3 +75,42 @@ export const NewPlace = dynamic(() => import('./places').then((module_) => modul
   ssr: false,
   loading: Loading,
 });
+
+/** « Suivre ma demande » : demandes et programmes en cours. */
+export const CleaningTracking = dynamic(
+  () => import('./cleaning-tracking').then((module_) => module_.CleaningTracking),
+  { loading: Loading },
+);
+
+export const ProgramList = dynamic(() => import('./program-list').then((module_) => module_.ProgramList), {
+  loading: Loading,
+});
+
+export const ProgramDetail = dynamic(
+  () => import('./program-detail').then((module_) => module_.ProgramDetail),
+  { loading: Loading },
+);
+
+/** Nouvelle commande : le rythme et son aperçu ne sont téléchargés qu'ici. */
+export const ReorderProgram = dynamic(
+  () => import('./program-reorder').then((module_) => module_.ReorderProgram),
+  { loading: Loading },
+);
+
+export const SessionDetail = dynamic(
+  () => import('./session-detail').then((module_) => module_.SessionDetail),
+  { loading: Loading },
+);
+
+export const SessionRedirect = dynamic(
+  () => import('./session-redirect').then((module_) => module_.SessionRedirect),
+  { loading: Loading },
+);
+
+export const ClaimList = dynamic(() => import('./claim-list').then((module_) => module_.ClaimList), {
+  loading: Loading,
+});
+
+export const ClaimDetail = dynamic(() => import('./claim-detail').then((module_) => module_.ClaimDetail), {
+  loading: Loading,
+});

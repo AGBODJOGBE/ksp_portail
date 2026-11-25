@@ -27,11 +27,18 @@ export const cleaningPaths = {
   place: (placeId: string) => `${SPACE}/lieux/${id(placeId)}`,
   requests: `${SPACE}/demandes`,
   requestDetail: (requestId: string) => `${SPACE}/demandes/${id(requestId)}`,
+  programs: `${SPACE}/programmes`,
   program: (programId: string) => `${SPACE}/programmes/${id(programId)}`,
   session: (programId: string, sessionId: string) =>
     `${SPACE}/programmes/${id(programId)}/seances/${id(sessionId)}`,
   reorder: (programId: string) => `${SPACE}/programmes/${id(programId)}/commander-a-nouveau`,
+  claims: `${SPACE}/reclamations`,
   claim: (claimId: string) => `${SPACE}/reclamations/${id(claimId)}`,
   /** Séance ouverte sans son programme (retour d'un paiement). */
   sessionRedirect: (sessionId: string) => `${SPACE}/seances/${id(sessionId)}`,
+  /** Factures impayées et facture d'une séance (Mes factures, service billing). */
+  unpaidInvoices: '/mon-espace/factures?etat=impayee',
+  invoice: (invoiceId: string) => `/mon-espace/factures/${id(invoiceId)}`,
+  /** Support du Nettoyage (page Contact, sujet présélectionné). */
+  support: '/contact?sujet=nettoyage',
 } as const;

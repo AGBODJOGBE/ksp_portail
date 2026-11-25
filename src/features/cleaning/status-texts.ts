@@ -124,3 +124,155 @@ export const REQUEST_STATUS_PARAMS: Record<string, string> = {
 export function statusFromParam(value: string | null): string | undefined {
   return Object.keys(REQUEST_STATUS_PARAMS).find((status) => REQUEST_STATUS_PARAMS[status] === value);
 }
+
+/** Libellé et teinte d'un état, avec son équivalent français dans l'adresse d'une liste (`?statut=`). */
+type Filterable = Labelled & { param: string };
+
+function filterOf(statuses: Record<string, Filterable>) {
+  return {
+    /** État de la gateway lu dans l'adresse ; un autre texte ne filtre rien. */
+    fromParam: (value: string | null) =>
+      Object.keys(statuses).find((status) => statuses[status]!.param === value),
+    keys: Object.keys(statuses),
+  };
+}
+
+/** Programme (`CleaningProgram.status`). */
+export const PROGRAM_STATUSES: Record<string, Filterable> = {
+  confirmed: { label: 'Confirmé', tone: 'brand', param: 'confirme' },
+  in_progress: { label: 'En cours', tone: 'action', param: 'en-cours' },
+  suspended: { label: 'Suspendu', tone: 'warning', param: 'suspendu' },
+  completed: { label: 'Terminé', tone: 'success', param: 'termine' },
+  cancelled: { label: 'Arrêté', tone: 'neutral', param: 'arrete' },
+};
+export const programStatus = (status: string): Labelled => PROGRAM_STATUSES[status] ?? unknown(status);
+export const programFilter = filterOf(PROGRAM_STATUSES);
+
+/** Programme encore vivant : séances à venir ou à régler. */
+export const ACTIVE_PROGRAM_STATUSES: ReadonlySet<string> = new Set([
+  'confirmed',
+  'in_progress',
+  'suspended',
+]);
+
+/**
+ * Causes de suspension (R-SU-01) : ce qui s'est passé, et comment la lever. Le texte ne donne ni délai
+ * ni montant : ils sont lus sur les séances et les factures.
+ */
+export const SUSPENSION_CAUSES: Record<string, { label: string; fix: string }> = {
+  overdue_sessions: {
+    label: 'Une séance réalisée n’est pas payée dans le délai.',
+    fix: 'Payez la séance en retard : le programme reprend dès le paiement enregistré.',
+  },
+  unpaid_invoices: {
+    label: 'Des factures de l’entreprise restent impayées.',
+    fix: 'Réglez les factures en attente : le programme reprend une fois les impayés soldés.',
+  },
+  ksp_decision: {
+    label: 'KSP a suspendu le programme.',
+    fix: 'Contactez le support pour connaître la suite.',
+  },
+  organization_suspended: {
+    label: 'Le compte de l’entreprise est suspendu.',
+    fix: 'Un administrateur de l’entreprise doit contacter KSP pour réactiver le compte.',
+  },
+};
+export const suspensionCause = (cause: string) =>
+  SUSPENSION_CAUSES[cause] ?? { label: cause.replaceAll('_', ' '), fix: 'Contactez le support.' };
+
+/** Séance (`CleaningSession.status`). Un report n'est pas un état. */
+const SESSION_STATUSES: Record<string, Labelled> = {
+  to_assign: { label: 'Prévue', tone: 'brand' },
+  assigned: { label: 'Équipe désignée', tone: 'brand' },
+  in_progress: { label: 'En cours', tone: 'action' },
+  interrupted: { label: 'Interrompue', tone: 'warning' },
+  completed: { label: 'Réalisée', tone: 'success' },
+  missed: { label: 'Manquée (absence)', tone: 'danger' },
+  suspended: { label: 'Suspendue', tone: 'warning' },
+  cancelled: { label: 'Annulée', tone: 'neutral' },
+};
+export const sessionStatus = (status: string): Labelled => SESSION_STATUSES[status] ?? unknown(status);
+
+/** Séance pas encore commencée : seule à pouvoir être reportée ou annulée par le client. */
+export const UPCOMING_SESSION_STATUSES: ReadonlySet<string> = new Set(['to_assign', 'assigned']);
+
+/** Teinte d'une séance dans le calendrier du programme. */
+export function sessionCalendarTone(status: string): 'brand' | 'action' | 'pending' | 'muted' {
+  if (status === 'completed') return 'brand';
+  if (status === 'to_assign' || status === 'assigned') return 'action';
+  if (status === 'missed' || status === 'cancelled') return 'muted';
+  return 'pending';
+}
+
+/** Paiement d'une séance de particulier (`paymentStatus`). */
+const PAYMENT_STATUSES: Record<string, Labelled> = {
+  not_due: { label: 'Rien à payer pour l’instant', tone: 'neutral' },
+  due: { label: 'À payer', tone: 'warning' },
+  paid: { label: 'Payée', tone: 'success' },
+  overdue: { label: 'Paiement en retard', tone: 'danger' },
+  waived: { label: 'Offerte', tone: 'success' },
+};
+export const sessionPaymentStatus = (status: string): Labelled => PAYMENT_STATUSES[status] ?? unknown(status);
+
+/** Séance à payer maintenant par le client. */
+export const isPayable = (paymentStatus: string | null) =>
+  paymentStatus === 'due' || paymentStatus === 'overdue';
+
+const CANCELLATION_CAUSES: Record<string, string> = {
+  customer: 'annulée à votre demande',
+  customer_late: 'annulée tard, par le support',
+  ksp: 'annulée par KSP',
+  no_agent: 'annulée faute d’agent disponible',
+  program_stopped: 'programme arrêté',
+};
+export const sessionCancellationCause = (cause: string) =>
+  CANCELLATION_CAUSES[cause] ?? cause.replaceAll('_', ' ');
+
+const INCIDENT_CATEGORIES: Record<string, string> = {
+  equipment: 'Matériel',
+  access: 'Accès au lieu',
+  safety: 'Sécurité',
+  out_of_scope_request: 'Demande hors devis',
+  other: 'Autre',
+};
+export const incidentCategory = (category: string) =>
+  INCIDENT_CATEGORIES[category] ?? category.replaceAll('_', ' ');
+
+const INCIDENT_DECISIONS: Record<string, string> = {
+  pending: 'En attente d’une décision de KSP',
+  resumed: 'Séance reprise',
+  rescheduled: 'Séance reportée',
+  cancelled: 'Séance annulée',
+};
+export const incidentDecision = (decision: string) =>
+  INCIDENT_DECISIONS[decision] ?? decision.replaceAll('_', ' ');
+
+/** Réclamation (`CleaningClaim.status`). */
+export const CLAIM_STATUSES: Record<string, Filterable> = {
+  open: { label: 'Ouverte', tone: 'warning', param: 'ouverte' },
+  in_progress: { label: 'En cours de traitement', tone: 'brand', param: 'en-cours' },
+  resolved: { label: 'Résolue', tone: 'success', param: 'resolue' },
+  rejected: { label: 'Rejetée', tone: 'neutral', param: 'rejetee' },
+};
+export const claimStatus = (status: string): Labelled => CLAIM_STATUSES[status] ?? unknown(status);
+export const claimFilter = filterOf(CLAIM_STATUSES);
+
+/** Réclamation encore ouverte aux messages du client. */
+export const OPEN_CLAIM_STATUSES: ReadonlySet<string> = new Set(['open', 'in_progress']);
+
+export const CLAIM_CATEGORIES: Record<string, string> = {
+  incomplete_work: 'Travail incomplet',
+  damage: 'Dégât',
+  behavior: 'Comportement de l’équipe',
+  missing_item: 'Objet manquant',
+  other: 'Autre problème',
+};
+export const claimCategory = (category: string) =>
+  CLAIM_CATEGORIES[category] ?? category.replaceAll('_', ' ');
+
+const CLAIM_OUTCOMES: Record<string, string> = {
+  free_redo: 'Une séance gratuite est ajoutée à votre programme',
+  wallet_credit: 'Un crédit vous est accordé',
+  rejected: 'Réclamation rejetée',
+};
+export const claimOutcome = (outcome: string) => CLAIM_OUTCOMES[outcome] ?? outcome.replaceAll('_', ' ');

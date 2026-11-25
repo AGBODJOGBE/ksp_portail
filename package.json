@@ -17,6 +17,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "size": "node scripts/first-load-js.mjs",
+    "routes:coverage": "node scripts/routes-coverage.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky || true"

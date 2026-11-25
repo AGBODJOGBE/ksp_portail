@@ -487,3 +487,190 @@ export type Program = z.infer<typeof programSchema>;
 
 export const acceptResultSchema = z.object({ quote: quoteSchema, program: programSchema });
 export type AcceptResult = z.infer<typeof acceptResultSchema>;
+
+/* ——— Programme, séances, réclamations (parties 8, 10 et 12) ——— */
+
+/** `CleaningSuspensionCause` : causes cumulables d'une suspension (R-SU-01). */
+export const suspensionCauseSchema = z.object({
+  /** overdue_sessions, unpaid_invoices, ksp_decision, organization_suspended. */
+  cause: z.string(),
+  since: z.string(),
+  /** Motif d'une décision de KSP. */
+  reason: z.nullable(z.string()),
+});
+export type SuspensionCause = z.infer<typeof suspensionCauseSchema>;
+
+/** `CleaningRenewal` : renouvellement proposé (R-PG-07). */
+export const renewalSchema = z.object({
+  /** proposed, accepted, declined. */
+  status: z.string(),
+  proposedAt: z.string(),
+  /** Devis de renouvellement (dans sa demande). */
+  quoteId: z.nullable(z.string()),
+  /** Dernière visite trop ancienne : une nouvelle visite précède le devis. */
+  visitRequired: z.boolean(),
+});
+export type Renewal = z.infer<typeof renewalSchema>;
+
+/** `CleaningProgram` tel que lu par le client (détail et liste). */
+export const programDetailSchema = z.extend(programSchema, {
+  customerKind: z.string(),
+  organizationId: z.nullable(z.string()),
+  /** `individual` (paiement après chaque séance) ou `organization` (facture mensuelle). */
+  payerKind: z.string(),
+  place: placeSummarySchema,
+  cleaningTypes: z.array(typeRefSchema),
+  schedule: schedulePlanSchema,
+  sessionPrice: z.optional(moneySchema),
+  total: z.optional(moneySchema),
+  /** Vide sauf programme suspendu. */
+  suspensionCauses: z.array(suspensionCauseSchema),
+  renewal: z.nullable(renewalSchema),
+  createdAt: z.string(),
+});
+export type ProgramDetail = z.infer<typeof programDetailSchema>;
+
+export const programListSchema = z.object({
+  data: z.array(programDetailSchema),
+  nextCursor: z.nullable(z.string()),
+  total: z.int(),
+});
+export type ProgramList = z.infer<typeof programListSchema>;
+
+/** `CleaningChecklistItem` : point de la liste de contrôle, coché sur place par l'équipe. */
+const checklistItemSchema = z.object({
+  code: z.string(),
+  label: z.string(),
+  cleaningTypeCode: z.nullable(z.string()),
+  checked: z.boolean(),
+  checkedAt: z.nullable(z.string()),
+});
+
+/** `CleaningIncident` : incident sur place et décision du superviseur. */
+const incidentSchema = z.object({
+  id: z.string(),
+  /** equipment, access, safety, out_of_scope_request, other. */
+  category: z.string(),
+  note: z.string(),
+  photos: z.array(photoSchema),
+  reportedAt: z.string(),
+  /** pending, resumed, rescheduled, cancelled. */
+  decision: z.string(),
+  decidedAt: z.nullable(z.string()),
+});
+export type Incident = z.infer<typeof incidentSchema>;
+
+export const sessionSchema = z.object({
+  id: z.string(),
+  programId: z.string(),
+  /** PN-000057 : la séance ne porte ni le nom du lieu ni ses types. */
+  programNumber: z.string(),
+  /** Rang dans le programme : 3 pour « séance 3/15 ». */
+  rank: z.int(),
+  sessionsCount: z.int(),
+  /** to_assign, assigned, in_progress, interrupted, completed, missed, suspended, cancelled. */
+  status: z.string(),
+  scheduledStart: z.string(),
+  scheduledEnd: z.string(),
+  /** not_due, due, paid, overdue, waived ; null pour une entreprise (facture mensuelle). */
+  paymentStatus: z.nullable(z.string()),
+  price: z.optional(moneySchema),
+  /** Frais de visite déduits, moitié du prix pour une séance manquée ou annulée tard. */
+  amountDue: optionalMoney,
+  visitFeeDeduction: optionalMoney,
+  /** Fin du délai de paiement. */
+  dueBy: z.nullable(z.string()),
+  agents: z.array(agentSchema),
+  arrival: z.nullable(z.object({ arrivedAt: z.string() })),
+  startedAt: z.nullable(z.string()),
+  completedAt: z.nullable(z.string()),
+  checklist: z.array(checklistItemSchema),
+  /** Photos `before`, `after` et `incident`, liens temporaires. */
+  photos: z.array(photoSchema),
+  incidents: z.array(incidentSchema),
+  /** Signature du client sur le téléphone de l'agent. */
+  signed: z.boolean(),
+  rating: z.nullable(z.object({ stars: z.int(), comment: z.nullable(z.string()), ratedAt: z.string() })),
+  /** Anciennes dates d'une séance reportée (un report n'est pas un statut). */
+  reschedules: z.array(
+    z.object({
+      previousStart: z.string(),
+      newStart: z.string(),
+      /** `customer` ou `ksp`. */
+      by: z.string(),
+      at: z.string(),
+      reason: z.nullable(z.string()),
+    }),
+  ),
+  cancellation: z.nullable(
+    z.object({
+      by: z.string(),
+      /** Annulée tard, par le support : une partie du prix reste due. */
+      late: z.boolean(),
+      at: z.string(),
+      /** customer, customer_late, ksp, no_agent, program_stopped. */
+      cause: z.string(),
+      reason: z.nullable(z.string()),
+    }),
+  ),
+  /** Repasse gratuite décidée sur une réclamation. */
+  isRedo: z.boolean(),
+  /** Facture de la séance (particulier). */
+  invoiceId: z.nullable(z.string()),
+  claimIds: z.array(z.string()),
+});
+export type Session = z.infer<typeof sessionSchema>;
+
+export const sessionListSchema = z.object({
+  data: z.array(sessionSchema),
+  nextCursor: z.nullable(z.string()),
+  total: z.int(),
+});
+export type SessionList = z.infer<typeof sessionListSchema>;
+
+export const claimSchema = z.object({
+  id: z.string(),
+  sessionId: z.string(),
+  programId: z.string(),
+  organizationId: z.nullable(z.string()),
+  /** incomplete_work, damage, behavior, missing_item, other. */
+  category: z.string(),
+  text: z.string(),
+  photos: z.array(photoSchema),
+  /** open, in_progress, resolved, rejected. */
+  status: z.string(),
+  /** Dans l'ordre chronologique. */
+  messages: z.array(
+    z.object({
+      id: z.string(),
+      /** `customer` ou `staff`. */
+      author: z.string(),
+      text: z.string(),
+      at: z.string(),
+    }),
+  ),
+  decision: z.nullable(
+    z.object({
+      /** free_redo, wallet_credit, rejected. */
+      outcome: z.string(),
+      creditAmount: optionalMoney,
+      /** Séance gratuite ajoutée au programme. */
+      redoSessionId: z.nullable(z.string()),
+      reason: z.string(),
+      decidedAt: z.string(),
+      /** not_required, pending (deuxième validation), approved. */
+      approvalStatus: z.string(),
+    }),
+  ),
+  openedAt: z.string(),
+  firstResponseAt: z.nullable(z.string()),
+  closedAt: z.nullable(z.string()),
+});
+export type Claim = z.infer<typeof claimSchema>;
+
+export const claimListSchema = z.object({
+  data: z.array(claimSchema),
+  nextCursor: z.nullable(z.string()),
+  total: z.int(),
+});
+export type ClaimList = z.infer<typeof claimListSchema>;

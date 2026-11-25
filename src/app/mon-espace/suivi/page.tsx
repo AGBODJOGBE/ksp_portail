@@ -6,8 +6,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Eyebrow } from '@/components/ui/eyebrow';
 import { IconArrowLeft } from '@/components/ui/icons';
 import { navigation } from '@/config/navigation';
-import { trackingTexts as t } from '@/features/cleaning';
-import { RequireSession } from '@/features/identity';
+import { CleaningTracking, trackingTexts as t } from '@/features/cleaning';
+import { ContextSwitcher, RequireSession } from '@/features/identity';
 import { paymentPaths } from '@/features/payment';
 import { pageMetadata } from '@/lib/seo/metadata';
 
@@ -18,8 +18,8 @@ export const metadata: Metadata = {
 
 /**
  * « Suivre ma demande » (F-020) : l'avancement des demandes du client, tous services confondus. Le
- * Nettoyage, seul service suivi ici jusqu'à présent, prépare sa nouvelle version (v2) : la page reste
- * en place (lien de l'en-tête), avec un état vide, et son suivi reviendra au lot suivant.
+ * Nettoyage (v2) y montre ses demandes et ses programmes en cours, avec la prochaine étape et qui doit
+ * agir ; les factures et paiements restent dans Mon espace KSP.
  */
 export default function TrackingPage() {
   return (
@@ -33,29 +33,38 @@ export default function TrackingPage() {
             <IconArrowLeft className="size-4" />
             {t.back}
           </Link>
-          <header className="max-w-reading mt-4 mb-10">
-            <Eyebrow>{t.eyebrow}</Eyebrow>
-            <h1 className="font-display text-h1 text-ink mt-3 font-bold">{t.title}</h1>
-            <p className="text-lead text-ink-muted mt-3">{t.lead}</p>
+          <header className="mt-4 mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-reading">
+              <Eyebrow>{t.eyebrow}</Eyebrow>
+              <h1 className="font-display text-h1 text-ink mt-3 font-bold">{t.title}</h1>
+              <p className="text-lead text-ink-muted mt-3">{t.lead}</p>
+            </div>
+            <div className="w-full lg:w-96 lg:shrink-0">
+              <ContextSwitcher />
+            </div>
           </header>
-          <section
-            aria-labelledby="suivi-vide-titre"
-            className="rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-8"
-          >
-            <EmptyState
-              illustration="soon"
-              title={t.emptyTitle}
-              titleAs="h2"
-              titleId="suivi-vide-titre"
-              action={
-                <ButtonLink href={paymentPaths.list} variant="secondary">
-                  {t.emptyAction}
-                </ButtonLink>
-              }
+          <div className="grid gap-8">
+            <CleaningTracking />
+            <section
+              aria-labelledby="suivi-autres-titre"
+              className="rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-8"
             >
-              {t.emptyText}
-            </EmptyState>
-          </section>
+              <EmptyState
+                compact
+                illustration="soon"
+                title={t.otherTitle}
+                titleAs="h2"
+                titleId="suivi-autres-titre"
+                action={
+                  <ButtonLink href={paymentPaths.list} variant="secondary">
+                    {t.otherAction}
+                  </ButtonLink>
+                }
+              >
+                {t.otherText}
+              </EmptyState>
+            </section>
+          </div>
         </Container>
       </RequireSession>
     </div>

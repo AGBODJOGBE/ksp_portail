@@ -424,6 +424,146 @@ export const PROGRAM = {
   organizationName: null,
 };
 
+export const SESSION_ID = '0192f1c4-de70-7000-8000-000000000d01';
+export const CLAIM_ID = '0192f1c4-de70-7000-8000-000000000f01';
+
+export function program(overrides: Record<string, unknown> = {}) {
+  return { ...PROGRAM, ...overrides };
+}
+
+export function agent(overrides: Record<string, unknown> = {}) {
+  return {
+    agentId: '0192f1c4-de70-7000-8000-00000000aa01',
+    firstName: 'Afi',
+    lastName: 'Houngbo',
+    photoUrl: null,
+    isLead: true,
+    confirmation: 'confirmed',
+    ...overrides,
+  };
+}
+
+/** Séance 3/12 du lundi 18 janvier 2027, 08:00–12:00 à Porto-Novo, à venir. */
+export function session(overrides: Record<string, unknown> = {}) {
+  return {
+    id: SESSION_ID,
+    programId: PROGRAM_ID,
+    programNumber: 'PN-000057',
+    rank: 3,
+    sessionsCount: 12,
+    status: 'assigned',
+    scheduledStart: '2027-01-18T07:00:00Z',
+    scheduledEnd: '2027-01-18T11:00:00Z',
+    paymentStatus: 'not_due',
+    price: money(23400),
+    amountDue: null,
+    visitFeeDeduction: null,
+    dueBy: null,
+    agents: [agent()],
+    arrival: null,
+    startedAt: null,
+    completedAt: null,
+    checklist: [],
+    photos: [],
+    incidents: [],
+    signed: false,
+    rating: null,
+    reschedules: [],
+    cancellation: null,
+    isRedo: false,
+    invoiceId: null,
+    claimIds: [],
+    customerName: null,
+    organizationName: null,
+    ...overrides,
+  };
+}
+
+/** Séance réalisée, à payer. */
+export function completedSession(overrides: Record<string, unknown> = {}) {
+  return session({
+    status: 'completed',
+    scheduledStart: '2026-11-23T07:00:00Z',
+    scheduledEnd: '2026-11-23T11:00:00Z',
+    arrival: {
+      arrivedAt: '2026-11-23T06:55:00Z',
+      distanceMeters: 12,
+      alert: false,
+      placeAccuracyMeters: 10,
+      arrivalAccuracyMeters: 8,
+      uncertain: false,
+    },
+    startedAt: '2026-11-23T07:02:00Z',
+    completedAt: '2026-11-23T10:50:00Z',
+    paymentStatus: 'due',
+    amountDue: money(18400),
+    visitFeeDeduction: money(5000),
+    dueBy: '2026-11-24T10:50:00Z',
+    checklist: [
+      {
+        code: 'floor',
+        label: 'Sols lavés',
+        cleaningTypeCode: 'floor',
+        checked: true,
+        checkedAt: '2026-11-23T09:30:00Z',
+      },
+    ],
+    photos: [
+      {
+        fileId: '0192f1c4-de70-7000-8000-00000000bb01',
+        kind: 'before',
+        takenAt: '2026-11-23T07:00:00Z',
+        url: 'https://files.ksp.bj/avant.jpg',
+        urlExpiresAt: '2026-11-23T07:05:00Z',
+      },
+      {
+        fileId: '0192f1c4-de70-7000-8000-00000000bb02',
+        kind: 'after',
+        takenAt: '2026-11-23T10:45:00Z',
+        url: 'https://files.ksp.bj/apres.jpg',
+        urlExpiresAt: '2026-11-23T10:50:00Z',
+      },
+    ],
+    ...overrides,
+  });
+}
+
+export function claim(overrides: Record<string, unknown> = {}) {
+  return {
+    id: CLAIM_ID,
+    sessionId: SESSION_ID,
+    programId: PROGRAM_ID,
+    customerId: 'u-1',
+    organizationId: null,
+    category: 'incomplete_work',
+    text: 'Les vitres de la cuisine n’ont pas été faites.',
+    photos: [],
+    status: 'open',
+    messages: [
+      {
+        id: '0192f1c4-de70-7000-8000-00000000cc01',
+        author: 'staff',
+        authorId: 's-1',
+        text: 'Merci, nous regardons avec l’équipe.',
+        at: '2026-11-23T14:00:00Z',
+      },
+    ],
+    decision: null,
+    openedAt: '2026-11-23T12:00:00Z',
+    firstResponseAt: '2026-11-23T14:00:00Z',
+    closedAt: null,
+    customerName: null,
+    organizationName: null,
+    ...overrides,
+  };
+}
+
+export const list = <T>(data: T[], nextCursor: string | null = null) => ({
+  data,
+  nextCursor,
+  total: data.length,
+});
+
 /* ——— Gateway simulée (fetch remplacé) ——— */
 
 export type FakeReply = { status: number; body?: unknown };
@@ -432,6 +572,8 @@ export interface FakeCall {
   path: string;
   body: unknown;
   headers: Record<string, string>;
+  /** Paramètres de la requête (`?status=…`). */
+  query: URLSearchParams;
 }
 
 export function errorBody(code: string, message: string, details: Record<string, unknown> = {}) {
@@ -462,7 +604,10 @@ export function sessionBody() {
   };
 }
 
-/** « MÉTHODE /chemin » → réponses dans l'ordre (la dernière est répétée). */
+/**
+ * « MÉTHODE /chemin » (ou « MÉTHODE /chemin?status=… ») → réponses dans l'ordre (la dernière est
+ * répétée).
+ */
 export function stubGateway(routes: Record<string, FakeReply | FakeReply[]>) {
   const calls: FakeCall[] = [];
   const queues = new Map(Object.entries(routes).map(([key, value]) => [key, [value].flat()]));
@@ -474,10 +619,15 @@ export function stubGateway(routes: Record<string, FakeReply | FakeReply[]>) {
       calls.push({
         method,
         path: url.pathname,
+        query: url.searchParams,
         body: typeof init.body === 'string' ? (JSON.parse(init.body) as unknown) : undefined,
         headers: { ...(init.headers as Record<string, string>) },
       });
-      const queue = queues.get(`${method} ${url.pathname}`);
+      // Une route filtrée par état (`GET /chemin?status=…`) répond avant la route sans filtre.
+      const status = url.searchParams.get('status');
+      const queue =
+        (status ? queues.get(`${method} ${url.pathname}?status=${status}`) : undefined) ??
+        queues.get(`${method} ${url.pathname}`);
       if (!queue?.length) throw new TypeError(`Route non simulée : ${method} ${url.pathname}`);
       const reply = (queue.length > 1 ? queue.shift() : queue[0])!;
       return new Response(reply.body === undefined ? null : JSON.stringify(reply.body), {

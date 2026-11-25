@@ -36,6 +36,11 @@ export interface OrganizationContextGateProps {
   /** Écran de repli quand le dossier ne peut pas être ouvert (liste des factures, des prestations). */
   back: { href: string; label: string };
   children: ReactNode;
+  /**
+   * Sous l'en-tête d'une page déjà affichée (liste statique) : chargement, refus et message sans bande
+   * propre, titre du refus en `h2`.
+   */
+  inline?: boolean;
 }
 
 /**
@@ -45,7 +50,12 @@ export interface OrganizationContextGateProps {
  * refuse un non-membre ou une organisation inactive, et la page le dit sans se casser. Un changement de
  * compte fait ensuite par le client n'est pas annulé.
  */
-export function OrganizationContextGate({ organizationId, back, children }: OrganizationContextGateProps) {
+export function OrganizationContextGate({
+  organizationId,
+  back,
+  children,
+  inline = false,
+}: OrganizationContextGateProps) {
   const active = useSession()?.activeContext.organizationId ?? null;
   // Décidé à l'ouverture seulement : le client peut ensuite changer de compte librement.
   const [needed] = useState(() => active !== organizationId);
@@ -75,6 +85,16 @@ export function OrganizationContextGate({ organizationId, back, children }: Orga
 
   if (!needed) return children;
 
+  if (phase.kind === 'switching' && inline) {
+    return (
+      <div role="status" className="grid gap-3">
+        <span className="sr-only">{t.switching}</span>
+        <Skeleton className="rounded-card h-24" />
+        <Skeleton className="rounded-card h-24" />
+      </div>
+    );
+  }
+
   if (phase.kind === 'switching') {
     return (
       <div role="status" className="grid gap-8">
@@ -93,13 +113,20 @@ export function OrganizationContextGate({ organizationId, back, children }: Orga
   if (phase.kind === 'refused') {
     return (
       <div className="grid gap-8">
-        <BandHeader>
-          <BandBack {...back} />
-          <Heading as="h1" size="h1" className="mt-3">
-            {phase.title}
-          </Heading>
-        </BandHeader>
+        {inline ? null : (
+          <BandHeader>
+            <BandBack {...back} />
+            <Heading as="h1" size="h1" className="mt-3">
+              {phase.title}
+            </Heading>
+          </BandHeader>
+        )}
         <div className="rounded-card border-line bg-surface grid justify-items-start gap-4 border p-5 shadow-xs sm:p-6">
+          {inline ? (
+            <Heading as="h2" size="h3">
+              {phase.title}
+            </Heading>
+          ) : null}
           {/* Refus de la gateway (non-membre, entreprise inactive) : information ; panne : erreur. */}
           <FormMessage tone={phase.retry ? 'error' : 'info'}>{phase.message}</FormMessage>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
@@ -129,7 +156,7 @@ export function OrganizationContextGate({ organizationId, back, children }: Orga
   return (
     <>
       {/* Marge plus grande que le débord de la bande de l'écran (`BandHeader`), qui remonte au-dessus de lui. */}
-      <FormMessage tone="info" className="mb-10 sm:mb-12">
+      <FormMessage tone="info" className={inline ? 'mb-6' : 'mb-10 sm:mb-12'}>
         {accountTexts.context.switched(phase.label)}
       </FormMessage>
       {children}

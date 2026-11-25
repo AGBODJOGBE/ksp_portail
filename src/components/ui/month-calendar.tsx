@@ -123,6 +123,10 @@ export function MonthCalendar({
   nextLabel,
   monthCount,
   selection,
+  range,
+  month: controlledMonth,
+  onMonthChange,
+  busy,
   className,
 }: {
   marks: ReadonlyArray<CalendarMark>;
@@ -138,19 +142,37 @@ export function MonthCalendar({
   /** Nombre de jours marqués du mois affiché, sous son nom (« 13 passages »). */
   monthCount: (count: number) => string;
   selection?: CalendarSelection;
+  /**
+   * Premier et dernier mois proposés (`AAAA-MM`), quand les jours marqués ne sont connus que mois par
+   * mois (séances lues à la demande) ; sinon, du premier au dernier jour marqué.
+   */
+  range?: { first: string; last: string };
+  /** Mois affiché, piloté par le parent (lecture des jours du mois à chaque changement). */
+  month?: string;
+  onMonthChange?: (month: string) => void;
+  /** Jours du mois en cours de lecture : la grille est annoncée occupée. */
+  busy?: boolean;
   className?: string;
 }) {
   const id = useId();
   const byDate = useMemo(() => new Map(marks.map((mark) => [mark.date, mark])), [marks]);
   const months = useMemo(() => {
     if (selection) return { first: monthOf(selection.min), last: monthOf(selection.max) };
+    if (range) return range;
     const sorted = marks.map((mark) => mark.date).sort();
     return {
       first: sorted[0] ? monthOf(sorted[0]) : null,
       last: sorted.at(-1) ? monthOf(sorted.at(-1)!) : null,
     };
-  }, [marks, selection]);
-  const [month, setMonth] = useState(initialMonth ?? months.first ?? new Date().toISOString().slice(0, 7));
+  }, [marks, selection, range]);
+  const [ownMonth, setOwnMonth] = useState(
+    initialMonth ?? months.first ?? new Date().toISOString().slice(0, 7),
+  );
+  const month = controlledMonth ?? ownMonth;
+  const setMonth = (next: string) => {
+    setOwnMonth(next);
+    onMonthChange?.(next);
+  };
   const [focused, setFocused] = useState<string | null>(null);
   const moveFocus = useRef(false);
   const grid = useRef<HTMLTableElement>(null);
@@ -230,6 +252,7 @@ export function MonthCalendar({
       <table
         ref={grid}
         aria-labelledby={`${id}-mois`}
+        aria-busy={busy || undefined}
         className="w-full table-fixed border-separate border-spacing-y-1"
       >
         <thead>

@@ -5,12 +5,10 @@ import { type ReactNode, useCallback, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
-import { IconClose, IconImage } from '@/components/ui/icons';
 import { SkeletonCards } from '@/components/ui/skeleton';
 import { cn } from '@/lib/cn';
 import { formatSlot, formatXof } from '@/lib/format';
 import { useResource } from '@/lib/use-resource';
-import { PHOTO_TYPES, uploadFile } from '@/features/file';
 import { type ValuesBody, getPlace, listPlaces } from '@/features/cleaning/api';
 import {
   MAX_COMMENT,
@@ -27,6 +25,7 @@ import { wizardTexts as t } from '@/features/cleaning/request-texts';
 import { describeSchedule, buildSchedule } from '@/features/cleaning/schedule';
 import type { Place, PlaceTypeDetail } from '@/features/cleaning/schemas';
 import { SummaryRow, TextAreaField } from './fields';
+import { PhotoPicker } from './photo-picker';
 import { PlaceForm } from './place-form';
 import { PricingFigures } from './simulation-result';
 import { useSimulation } from './use-public';
@@ -160,84 +159,16 @@ export function DetailsStep({
   onChange: (patch: Partial<RequestDraft>) => void;
   errors: Record<string, string>;
 }) {
-  const [uploading, setUploading] = useState<string | null>(null);
-  const [photoErrors, setPhotoErrors] = useState<string[]>([]);
-
-  const add = useCallback(
-    async (files: FileList | null) => {
-      if (!files?.length) return;
-      const room = MAX_PHOTOS - draft.photos.length;
-      const added: Array<{ id: string; name: string }> = [];
-      const problems: string[] = [];
-      for (const file of [...files].slice(0, room)) {
-        if (!PHOTO_TYPES.includes(file.type as (typeof PHOTO_TYPES)[number])) {
-          problems.push(t.photoError(file.name, t.photoType));
-          continue;
-        }
-        setUploading(file.name);
-        try {
-          const stored = await uploadFile(file, 'cleaning_intervention_photo');
-          added.push({ id: stored.id, name: file.name });
-        } catch (error) {
-          problems.push(t.photoError(file.name, describeCleaningError(error).message));
-        }
-      }
-      setUploading(null);
-      setPhotoErrors(problems);
-      if (added.length) onChange({ photos: [...draft.photos, ...added] });
-    },
-    [draft.photos, onChange],
-  );
-
   return (
     <div className="grid gap-8">
-      <div className="grid gap-3">
-        <p className="text-ink text-lg font-semibold">{t.photosLegend}</p>
-        <p className="text-small text-ink-muted">{t.photosHint}</p>
-        {draft.photos.length ? (
-          <ul className="flex flex-wrap gap-2">
-            {draft.photos.map((photo) => (
-              <li
-                key={photo.id}
-                className="bg-surface-muted ring-line inline-flex min-h-11 items-center gap-2 rounded-full pl-4 text-sm ring-1 ring-inset"
-              >
-                <IconImage className="text-brand-ink size-4" />
-                <span className="max-w-48 truncate">{photo.name}</span>
-                <button
-                  type="button"
-                  aria-label={t.removePhoto(photo.name)}
-                  onClick={() => onChange({ photos: draft.photos.filter((item) => item.id !== photo.id) })}
-                  className="hover:bg-surface-sunken focus-visible:outline-focus grid size-11 place-items-center rounded-full focus-visible:outline-2"
-                >
-                  <IconClose className="size-4" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        {draft.photos.length < MAX_PHOTOS ? (
-          <label className="rounded-control border-line-strong text-ink hover:bg-surface-sunken has-[:focus-visible]:outline-focus inline-flex min-h-11 cursor-pointer items-center gap-2 justify-self-start border border-dashed px-5 font-semibold has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2">
-            <IconImage className="size-5" />
-            {t.addPhoto}
-            <input
-              type="file"
-              accept={PHOTO_TYPES.join(',')}
-              multiple
-              className="sr-only"
-              disabled={uploading !== null}
-              onChange={(event) => {
-                void add(event.target.files);
-                event.target.value = '';
-              }}
-            />
-          </label>
-        ) : null}
-        <div aria-live="polite">
-          {uploading ? <p className="text-small text-ink-muted">{t.uploading(uploading)}</p> : null}
-        </div>
-        {photoErrors.length ? <FormMessage>{photoErrors.join(' ')}</FormMessage> : null}
-        {errors['photoFileIds'] ? <FormMessage>{errors['photoFileIds']}</FormMessage> : null}
-      </div>
+      <PhotoPicker
+        photos={draft.photos}
+        max={MAX_PHOTOS}
+        onChange={(photos) => onChange({ photos })}
+        legend={t.photosLegend}
+        hint={t.photosHint}
+        error={errors['photoFileIds']}
+      />
       <TextAreaField
         id="demande-commentaire"
         label={t.commentLabel}
