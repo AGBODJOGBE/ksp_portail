@@ -214,6 +214,12 @@ describe('refus de la gateway', () => {
     expect(describeRecoveryError(error(403, 'AUTH_FORBIDDEN')).kind).toBe('forbidden');
     expect(describeRecoveryError(error(422, 'RECOVERY_INVALID_TRANSITION')).kind).toBe('stale');
     expect(describeRecoveryError(error(404, 'RECOVERY_CASE_NOT_FOUND')).kind).toBe('notFound');
+    // Décisions et argent (PR 3).
+    expect(describeRecoveryError(error(422, 'RECOVERY_DECISION_CLOSED')).kind).toBe('stale');
+    expect(describeRecoveryError(error(404, 'RECOVERY_DECISION_NOT_FOUND')).kind).toBe('notFound');
+    expect(describeRecoveryError(error(422, 'RECOVERY_PAYMENT_AMOUNT_INVALID')).fields).toEqual({
+      amount: 'message de la gateway',
+    });
     expect(describeRecoveryError(error(503, 'RECOVERY_UNAVAILABLE')).kind).toBe('unavailable');
     expect(normalizeField('input.debtors[2].emails[0]')).toBe('debtors.2.emails.0');
   });

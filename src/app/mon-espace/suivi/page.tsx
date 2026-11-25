@@ -7,6 +7,7 @@ import { Eyebrow } from '@/components/ui/eyebrow';
 import { IconArrowLeft } from '@/components/ui/icons';
 import { navigation } from '@/config/navigation';
 import { CleaningTracking, trackingTexts as t } from '@/features/cleaning';
+import { RecoveryTracking } from '@/features/recovery/home';
 import { ContextSwitcher, RequireSession } from '@/features/identity';
 import { paymentPaths } from '@/features/payment';
 import { pageMetadata } from '@/lib/seo/metadata';
@@ -18,8 +19,8 @@ export const metadata: Metadata = {
 
 /**
  * « Suivre ma demande » (F-020) : l'avancement des demandes du client, tous services confondus. Le
- * Nettoyage (v2) y montre ses demandes et ses programmes en cours, avec la prochaine étape et qui doit
- * agir ; les factures et paiements restent dans Mon espace KSP.
+ * Nettoyage (v2) y montre ses demandes et ses programmes en cours, le Recouvrement ses dossiers en cours,
+ * chacun avec la prochaine étape et qui doit agir ; les factures et paiements restent dans Mon espace KSP.
  */
 export default function TrackingPage() {
   return (
@@ -45,6 +46,7 @@ export default function TrackingPage() {
           </header>
           <div className="grid gap-8">
             <CleaningTracking />
+            <RecoveryTracking />
             <section
               aria-labelledby="suivi-autres-titre"
               className="rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-8"

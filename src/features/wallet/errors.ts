@@ -54,7 +54,12 @@ const MESSAGES: Record<string, { message: string; kind: WalletErrorKind }> = {
     kind: 'stale',
   },
   RECOVERY_INVALID_TRANSITION: {
-    message: 'Les frais de ce dossier ne peuvent plus être payés : son état a changé.',
+    message: 'Ce paiement n’est plus possible : l’état du dossier a changé. Voici son état actuel.',
+    kind: 'stale',
+  },
+  // Provision d'un devis (`POST /recovery/decisions/{id}`) : décision déjà prise ou expirée.
+  RECOVERY_DECISION_CLOSED: {
+    message: 'Cette décision est déjà prise ou a expiré : rien n’a été débité. Voici son état actuel.',
     kind: 'stale',
   },
   RECOVERY_IDEMPOTENCY_KEY_REUSED: {

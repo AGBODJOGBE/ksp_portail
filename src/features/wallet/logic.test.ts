@@ -88,6 +88,8 @@ describe('portefeuille : relevé et refus', () => {
     ).toEqual({ message: 'message de la gateway', kind: 'insufficient', missing: 15000, balance: 2000 });
     expect(describeWalletError(error(422, 'RECOVERY_MANDATE_NOT_SIGNED')).kind).toBe('stale');
     expect(describeWalletError(error(422, 'RECOVERY_INVALID_TRANSITION')).kind).toBe('stale');
+    // Provision d'un devis : décision déjà prise ou expirée.
+    expect(describeWalletError(error(422, 'RECOVERY_DECISION_CLOSED')).kind).toBe('stale');
     expect(describeWalletError(error(409, 'RECOVERY_IDEMPOTENCY_KEY_REUSED')).kind).toBe('newKey');
     expect(describeWalletError(error(422, 'WALLET_DEBIT_REFUNDED')).kind).toBe('newKey');
     expect(describeWalletError(error(409, 'CLEANING_CONCURRENT_UPDATE')).kind).toBe('retry');

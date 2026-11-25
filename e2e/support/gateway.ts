@@ -82,6 +82,16 @@ export async function mockGateway(page: Page, options: GatewayOptions = {}): Pro
   const status = () => (state.deletion ? 'deletion_pending' : 'active');
   const activeContext = { type: 'individual', organizationId: null, organizationName: null };
 
+  // Préchargements des liens par le routeur de Next (en-tête `Next-Router-Prefetch`) : aucun parcours ne
+  // les teste, et ils font plus de la moitié des requêtes d'une page (en-tête, pied de page). Tous les
+  // workers partagent un seul serveur : en suite complète, ils le saturaient et occupaient les six
+  // connexions du navigateur avant les morceaux dont la page a besoin (morceaux servis en 2 à 3 s, pages
+  // restées sur « Chargement… »). Refusés, la navigation lit la page à la demande, comme sans préchargement.
+  await page.route(
+    (url) => url.searchParams.has('_rsc'),
+    (route) => (route.request().headers()['next-router-prefetch'] ? route.abort() : route.fallback()),
+  );
+
   const session = () => ({
     status: 'authenticated',
     accessToken: 'jeton-acces-e2e',

@@ -8,8 +8,8 @@ import * as z from 'zod/mini';
  *
  * Volontairement non lus (absents des schémas, donc jamais gardés par le front) : `score` (décision : il
  * n'est pas montré au créancier), `partnerAssignment` (espace pro), et les objets des décisions et des
- * étapes payantes (`promises`, `disputes`, `notices`, `feeQuotes`, `provisions`), affichés avec les
- * décisions (lot suivant).
+ * étapes payantes (`promises`, `disputes`, `notices`, `feeQuotes`, `provisions`) : une décision porte
+ * elle-même son échéancier, sa remise, son devis ou sa contestation (`decision-schemas.ts`).
  */
 
 export const moneySchema = z.object({ amount: z.int(), currency: z.literal('XOF') });
@@ -102,7 +102,7 @@ export const caseDocumentSchema = z.object({
 });
 export type RecoveryCaseDocument = z.infer<typeof caseDocumentSchema>;
 
-const installmentSchema = z.object({
+export const installmentSchema = z.object({
   id: z.nullable(z.string()),
   rank: z.int(),
   dueDate: z.string(),
@@ -124,7 +124,7 @@ const paymentPlanSchema = z.object({
 });
 
 /** `RecoveryCollection` : encaissement (brut, commission, net crédité au portefeuille). */
-const collectionSchema = z.object({
+export const collectionSchema = z.object({
   id: z.string(),
   source: z.string(),
   gross: moneySchema,

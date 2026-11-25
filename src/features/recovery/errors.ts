@@ -60,8 +60,17 @@ const GATEWAY_REASONS: Record<string, string> = {
   unknown_field: 'Ce champ n’est pas attendu.',
 };
 
-const NOT_FOUND_CODES = new Set(['RECOVERY_CASE_NOT_FOUND', 'RECOVERY_IMPORT_NOT_FOUND']);
-const STALE_CODES = new Set(['RECOVERY_INVALID_TRANSITION', 'RECOVERY_MANDATE_NOT_SIGNED']);
+const NOT_FOUND_CODES = new Set([
+  'RECOVERY_CASE_NOT_FOUND',
+  'RECOVERY_IMPORT_NOT_FOUND',
+  'RECOVERY_DECISION_NOT_FOUND',
+]);
+/** Objet changé entre-temps : la décision déjà prise ou expirée (`RECOVERY_DECISION_CLOSED`) comprise. */
+const STALE_CODES = new Set([
+  'RECOVERY_INVALID_TRANSITION',
+  'RECOVERY_MANDATE_NOT_SIGNED',
+  'RECOVERY_DECISION_CLOSED',
+]);
 
 /** `debtors[0].phones[1]` → `debtors.0.phones.1` ; `/input/debtors/0` (gateway) → `debtors.0`. */
 export function normalizeField(field: string): string {
@@ -120,6 +129,10 @@ export function describeRecoveryError(error: unknown): RecoveryErrorView {
       kind: 'duplicates',
       duplicates: duplicates.filter((item): item is string => typeof item === 'string'),
     };
+  }
+  // Paiement déclaré au-delà du reste dû (`details.due`) : message propre au champ du montant.
+  if (error.code === 'RECOVERY_PAYMENT_AMOUNT_INVALID') {
+    return { ...base, ...empty, kind: 'fields', fields: { amount: error.message } };
   }
   if (error.code === 'RECOVERY_IDEMPOTENCY_KEY_REUSED') return { ...base, ...empty, kind: 'newKey' };
   if (error.status === 429) return { ...base, ...empty, kind: 'rateLimited' };
