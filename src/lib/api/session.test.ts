@@ -114,3 +114,51 @@ describe('session du navigateur', () => {
     expect(seen).toEqual(['a', null]);
   });
 });
+
+describe('données du compte gardées dans l’onglet', () => {
+  const store = () => createSessionStore({ refresh: async () => null, now: () => NOW });
+  const ofUser = (id: string): Session => {
+    const opened = sessionOf('jeton');
+    return { ...opened, user: { ...opened.user, id } };
+  };
+
+  beforeEach(() => sessionStorage.clear());
+
+  it('la déconnexion efface les brouillons et la reprise de paiement', async () => {
+    const current = store();
+    current.set(ofUser('u1'));
+    await vi.dynamicImportSettled();
+    sessionStorage.setItem('ksp.nettoyage.demande', '{"version":3}');
+    sessionStorage.setItem('ksp:portefeuille:reprise', '/mon-espace/factures/f1');
+    sessionStorage.setItem('autre.site', 'gardé');
+
+    current.clear();
+    await vi.dynamicImportSettled();
+
+    expect(sessionStorage.getItem('ksp.nettoyage.demande')).toBeNull();
+    expect(sessionStorage.getItem('ksp:portefeuille:reprise')).toBeNull();
+    expect(sessionStorage.getItem('autre.site')).toBe('gardé');
+  });
+
+  it('un autre compte connecté dans le même onglet ne retrouve pas les brouillons du précédent', async () => {
+    store().set(ofUser('u1'));
+    await vi.dynamicImportSettled();
+    sessionStorage.setItem('ksp.recouvrement.nouveau', '{"version":1}');
+
+    store().set(ofUser('u2'));
+    await vi.dynamicImportSettled();
+
+    expect(sessionStorage.getItem('ksp.recouvrement.nouveau')).toBeNull();
+  });
+
+  it('un brouillon commencé sans compte est gardé par le compte qui se connecte, puis par ses renouvellements', async () => {
+    sessionStorage.setItem('ksp.nettoyage.demande', '{"version":3}');
+    const current = store();
+
+    current.set(ofUser('u1'));
+    current.set(ofUser('u1'));
+    await vi.dynamicImportSettled();
+
+    expect(sessionStorage.getItem('ksp.nettoyage.demande')).toBe('{"version":3}');
+  });
+});

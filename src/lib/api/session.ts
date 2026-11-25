@@ -26,6 +26,12 @@ export type RestoreResult =
 
 type Listener = (session: Session | null) => void;
 
+/**
+ * Brouillons de l'onglet rattachés au compte (`./account-data`) : chargé seulement à la connexion et à la
+ * déconnexion, pour ne pas alourdir toutes les pages qui lisent la session.
+ */
+const accountData = () => import('./account-data');
+
 /** On renouvelle un peu avant l'expiration réelle du jeton d'accès. */
 const EXPIRY_MARGIN_MS = 30_000;
 
@@ -51,6 +57,11 @@ export function createSessionStore(options: {
   const listeners = new Set<Listener>();
 
   function set(next: Session | null): void {
+    // Un autre compte dans le même onglet ne retrouve pas les brouillons du précédent.
+    if (next) {
+      const userId = next.user.id;
+      void accountData().then((data) => data.claimAccountData(userId));
+    }
     current = next;
     expiresAt = next ? expiryOf(next.accessTokenExpiresAt, now()) : 0;
     listeners.forEach((listener) => listener(current));
@@ -84,7 +95,11 @@ export function createSessionStore(options: {
       return current;
     },
     set,
-    clear: () => set(null),
+    /** Déconnexion : la session et les données du compte gardées dans l'onglet (brouillons). */
+    clear: () => {
+      void accountData().then((data) => data.clearAccountData());
+      set(null);
+    },
     /** Met à jour le profil de la session (après « Compléter mon profil »), sans toucher aux jetons. */
     updateProfile(profile: Pick<Session, 'user' | 'profileIncomplete'>): void {
       if (current) set({ ...current, user: profile.user, profileIncomplete: profile.profileIncomplete });
