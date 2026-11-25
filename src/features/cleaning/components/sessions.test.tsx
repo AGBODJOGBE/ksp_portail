@@ -168,7 +168,7 @@ describe('page d’une séance', () => {
     await waitFor(() =>
       expect(screen.queryByRole('region', { name: 'Séance à payer' })).not.toBeInTheDocument(),
     );
-    expect(screen.getByText('Séance payée.')).toBeInTheDocument();
+    expect(await screen.findByText('Séance payée.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Voir la facture' })).toHaveAttribute(
       'href',
       '/mon-espace/factures/inv-1',
