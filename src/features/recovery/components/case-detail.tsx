@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { type ReactNode, useCallback, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { BackendPending } from '@/components/ui/backend-pending';
 import { BandBack, BandHeader } from '@/components/ui/band-header';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
@@ -18,7 +17,6 @@ import { getCase } from '@/features/recovery/api';
 import { caseTexts as t } from '@/features/recovery/case-texts';
 import { describeRecoveryError, errorWithReference } from '@/features/recovery/errors';
 import { recoveryPaths } from '@/features/recovery/paths';
-import { caseActionNeeds } from '@/features/recovery/pending-texts';
 import type { RecoveryCase } from '@/features/recovery/schemas';
 import {
   caseStatus,
@@ -40,6 +38,7 @@ import {
   PricingPanel,
   StageTimeline,
 } from './case-parts';
+import { CaseMoneyActions } from './case-money';
 import { FeeStep } from './fee-step';
 import { MandateStep } from './mandate-step';
 
@@ -52,8 +51,9 @@ const mainDebtor = (recoveryCase: RecoveryCase) =>
 /**
  * Fiche d'un dossier (`/mon-espace/recouvrement/dossiers/[id]`, adresse des notifications) : action du
  * moment selon l'état (mandat, frais, complément…), frise des six étapes, montants, échéancier, débiteurs,
- * créances, paiements, pièces (ajout), frais et commission figés, onglet Journal. Le score de
- * recouvrabilité n'est jamais montré. Arrêt et paiement direct : `BackendPending` (lot suivant).
+ * créances, paiements, pièces (ajout), frais et commission figés, onglet Journal ; pour un dossier en
+ * cours, paiement reçu directement et arrêt (`CaseMoneyActions`). Le score de recouvrabilité n'est jamais
+ * montré. Le message d'une action reste affiché après la mise à jour de la fiche.
  */
 export function CaseDetail({ id }: { id: string }) {
   const { state, reload, refresh, set } = useResource(useCallback(() => getCase(id), [id]));
@@ -182,17 +182,14 @@ export function CaseDetail({ id }: { id: string }) {
         <div className="grid gap-8">
           <PricingPanel recoveryCase={recoveryCase} />
           {running && !readOnly ? (
-            <BackendPending
-              id="dossier-actions"
-              title={t.pendingActionsTitle}
-              needs={caseActionNeeds}
-              headingAs="h2"
-            >
-              {t.pendingActionsText}{' '}
-              <Link href={recoveryPaths.support} className="text-brand-ink font-semibold underline">
-                {t.contact}
-              </Link>
-            </BackendPending>
+            <CaseMoneyActions
+              recoveryCase={recoveryCase}
+              onChange={(next, message) => {
+                set(next);
+                setNotice(message);
+              }}
+              onStale={refresh}
+            />
           ) : null}
         </div>
       </div>

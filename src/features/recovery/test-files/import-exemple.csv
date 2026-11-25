@@ -1,0 +1,9 @@
+﻿debtorKind;debtorName;debtorFirstNames;debtorIfu;debtorPhone;debtorEmail;debtorAddress;invoiceReference;amount;dueDate;description;nature
+company;SARL Bénin Distribution;;3201912345678;01 97 00 00 45;compta@benin-distribution.bj;Haie Vive, Cotonou;FA-2026-0142;850 000;31/08/2026;Livraison d’août;unpaid_invoice
+person;Adjovi;Koffi;;97000046;;;FA-2026-0143;125000;2026-09-15;;service
+person;Houngbo;Marie;;+229 01 97 00 00 47;marie@;;FA-2026-0144;12500,50;15/12/2026;;loan
+entreprise;;;;12345;;;;abc;31/02/2026;;rent
+company;SARL Bénin Distribution;;3201912345678;0197000045;;;FA-2026-0142;50000;01/09/2026;;
+;;;;;;;;;;;
+company;"Ets ""Le Phare""";;;197000048;;"Rue 12; Porto-Novo";FA-2026-0145;1.250.000;2026-10-01;"Ligne
+sur deux lignes";sale

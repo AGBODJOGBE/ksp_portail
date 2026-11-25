@@ -357,7 +357,7 @@ test('nouveau dossier : saisie, pièce, brouillon, mandat signé par code, frais
   expect(gateway.forbiddenHeaders).toEqual([]);
 });
 
-test('fiche d’un dossier en cours : frise des étapes, journal, actions à venir, aucun score', async ({
+test('fiche d’un dossier en cours : frise des étapes, journal, paiement direct et arrêt, aucun score', async ({
   page,
 }) => {
   await mockGateway(page, {
@@ -395,16 +395,17 @@ test('fiche d’un dossier en cours : frise des étapes, journal, actions à ven
   await page.goto(`/mon-espace/recouvrement/dossiers/${CASE_ID}`);
   await expect(page.getByRole('heading', { level: 1, name: 'SARL Exemple Distribution' })).toBeVisible();
   await expect(page.locator('[aria-current="step"]')).toContainText('Relance amiable');
-  await expect(page.getByText('Bientôt disponible')).toBeVisible();
-  await expect(page.locator('[data-backend-needs]')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Déclarer un paiement reçu' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Arrêter le dossier' })).toBeVisible();
   await expect(page.getByText(/score/i)).toHaveCount(0);
   await page.getByRole('tab', { name: 'Journal' }).click();
   await expect(page.getByText('Relance envoyée par WhatsApp')).toBeVisible();
 });
 
-test('pages en attente du backend et vitrine : « Bientôt disponible », dépôt depuis la page publique', async ({
+test('route pas encore exposée et vitrine : « Bientôt disponible », dépôt depuis la page publique', async ({
   page,
 }) => {
+  // Sans route simulée, la gateway répond GATEWAY_ROUTE_NOT_FOUND : la liste des décisions attend le back.
   await mockGateway(page, { signedIn: true });
   await page.goto('/mon-espace/recouvrement/decisions');
   await expect(page.getByRole('heading', { level: 1, name: 'Décisions' })).toBeVisible();

@@ -18,15 +18,19 @@ export function Tabs({
   label,
   items,
   panelClassName,
+  defaultKey,
 }: {
   /** Nom accessible de la liste d'onglets. */
   label: string;
   items: ReadonlyArray<TabItem>;
   panelClassName?: string;
+  /** Onglet ouvert au premier rendu (lien vers un onglet précis) ; par défaut, le premier. */
+  defaultKey?: string;
 }) {
   const id = useId();
-  const [current, setCurrent] = useState(items[0]?.key ?? '');
-  const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set(items[0] ? [items[0].key] : []));
+  const initial = items.find((item) => item.key === defaultKey)?.key ?? items[0]?.key ?? '';
+  const [current, setCurrent] = useState(initial);
+  const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set(initial ? [initial] : []));
   const buttons = useRef<Record<string, HTMLButtonElement | null>>({});
 
   function select(key: string, focus = false) {

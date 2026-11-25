@@ -368,3 +368,108 @@ export function fileRoutes(id = FILE_ID, name = 'facture.pdf') {
     },
   };
 }
+
+/* ——— Décisions, argent et import (PR 3) ——— */
+
+export const DECISION_ID = '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d7a01';
+export const IMPORT_ID = '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d7b01';
+
+/** Dossier en cours de recouvrement, à l'étape de la relance amiable. */
+export const activeCase = (overrides: Record<string, unknown> = {}) =>
+  awaitingFee({
+    status: 'active',
+    stage: 'amicable',
+    acceptedAt: '2026-11-21T09:00:00Z',
+    fee: { ...frozen.fee, status: 'paid', paidAt: '2026-11-20T11:00:00Z' },
+    nextDeadline: null,
+    ...overrides,
+  });
+
+export const planPayload = {
+  id: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d7a11',
+  status: 'pending_creditor',
+  terms: { firstAmount: xof(50000), firstDueDate: '2026-12-01', rhythm: 'monthly', installmentsCount: 9 },
+  total: xof(850000),
+  installments: [
+    {
+      id: null,
+      rank: 1,
+      dueDate: '2026-12-01',
+      amount: xof(50000),
+      paidAmount: xof(0),
+      status: 'upcoming',
+      paidAt: null,
+    },
+    {
+      id: null,
+      rank: 2,
+      dueDate: '2027-01-01',
+      amount: xof(100000),
+      paidAmount: xof(0),
+      status: 'upcoming',
+      paidAt: null,
+    },
+  ],
+  withinScale: false,
+  violations: ['duration'],
+  proposedBy: 'debtor',
+  renegotiation: false,
+  documentId: null,
+  signedAt: null,
+  missedCount: 0,
+  createdAt: '2026-11-24T09:00:00Z',
+};
+
+export const quotePayload = {
+  id: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d7a21',
+  stage: 'bailiff',
+  partner: {
+    id: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d7a22',
+    kind: 'bailiff',
+    name: 'Me Dossou',
+    office: 'Cotonou',
+  },
+  lines: [
+    { label: 'Commandement de payer', amount: xof(45000) },
+    { label: 'Frais de déplacement', amount: xof(15000) },
+  ],
+  total: xof(60000),
+  provision: xof(30000),
+  documentId: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d7a23',
+  validUntil: '2026-12-10T22:59:00Z',
+};
+
+export const disputePayload = {
+  id: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d7a31',
+  reason: 'already_paid',
+  text: 'J’ai payé en espèces au livreur le 2 septembre.',
+  fileIds: ['0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d7a32'],
+  status: 'open',
+  openedAt: '2026-11-22T09:00:00Z',
+  creditorAnswerDueAt: '2026-12-02T09:00:00Z',
+  creditorAnswer: null,
+  creditorFileIds: [],
+  resolutionNote: null,
+  resolvedAt: null,
+};
+
+/** `RecoveryDecision` : échéancier hors barème en attente par défaut. */
+export function decision(overrides: Record<string, unknown> = {}) {
+  return {
+    id: DECISION_ID,
+    caseId: CASE_ID,
+    caseNumber: 'RC-000123',
+    kind: 'plan_off_scale',
+    status: 'pending',
+    createdAt: '2026-11-24T09:00:00Z',
+    expiresAt: '2026-11-27T09:00:00Z',
+    paymentPlan: planPayload,
+    settlement: null,
+    feeQuote: null,
+    dispute: null,
+    answeredAt: null,
+    ...overrides,
+  };
+}
+
+export const decisionPage = (decisions: unknown[]) => ({ decisions, nextCursor: null });

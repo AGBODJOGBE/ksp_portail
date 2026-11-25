@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/icons';
 import { LinkCard } from '@/components/ui/link-card';
 import { navigation } from '@/config/navigation';
-import { InvoiceTodo, billingPaths, billingTexts } from '@/features/billing';
+import { InvoiceTodo, billingPaths, billingTexts } from '@/features/billing/home';
 import { CleaningTodo, cleaningPaths, cleaningTexts } from '@/features/cleaning';
 import { NotificationBell, notificationPaths, notificationTexts } from '@/features/notification';
 import { paymentPaths, paymentTexts } from '@/features/payment';

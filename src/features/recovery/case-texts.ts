@@ -49,12 +49,6 @@ export const caseTexts = {
   rejectedTitle: 'Dossier refusé',
   rejectedNote: 'Précision de KSP',
 
-  // Actions pas encore servies.
-  pendingActionsTitle: 'Arrêter le dossier, déclarer un paiement reçu',
-  pendingActionsText:
-    'Bientôt, vous pourrez arrêter un dossier ou déclarer un paiement reçu directement de votre débiteur. En attendant, contactez KSP.',
-  contact: 'Contacter KSP',
-
   // Frise.
   timelineTitle: 'Étapes du recouvrement',
   timelineBefore: 'Les étapes commencent quand KSP accepte le dossier.',

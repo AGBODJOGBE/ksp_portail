@@ -28,6 +28,10 @@ export const spaceTexts = {
   infoAction: 'Compléter',
   decisionsTitle: (count: number) =>
     count > 1 ? `${count} décisions attendent votre réponse` : 'Une décision attend votre réponse',
+  moreDecisionsTitle: (count: number) =>
+    count > 1
+      ? `${count} autres décisions attendent votre réponse`
+      : 'Une autre décision attend votre réponse',
   decisionsText: 'Échéancier hors barème, remise, passage à l’huissier ou contestation.',
   decisionsAction: 'Voir les décisions',
   dashboardTitle: 'Recouvrement',

@@ -6,6 +6,7 @@ import { TodoItem, TodoNone, TodoPanel, TodoState } from '@/components/ui/todo-p
 import { contextKey, isBackendPending, useSession } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { useResource } from '@/lib/use-resource';
+import { decisionKind, decisionTexts } from '@/features/recovery/decision-texts';
 import { describeRecoveryError } from '@/features/recovery/errors';
 import { type RecoveryTodo as Todo, loadRecoveryTodo, todoCount } from '@/features/recovery/overview';
 import { recoveryPaths } from '@/features/recovery/paths';
@@ -15,10 +16,47 @@ import { spaceTexts as t } from '@/features/recovery/space-texts';
 const deadlineOf = (summary: RecoveryCaseSummary) =>
   summary.nextDeadline ? formatDateTime(summary.nextDeadline.dueAt) : null;
 
-/** Cartes « À faire » : mandats à signer, frais à payer, compléments, brouillons, décisions. */
+/** Décisions montrées une par une ; au-delà, une carte mène à la liste. */
+const SHOWN_DECISIONS = 5;
+
+/**
+ * Cartes « À faire » : décisions en attente (la plus proche échéance d'abord, avec la conséquence d'une
+ * absence de réponse), mandats à signer, frais à payer, compléments, brouillons.
+ */
 export function RecoveryTodoItems({ todo }: { todo: Todo }) {
+  const shown = todo.decisions.slice(0, SHOWN_DECISIONS);
+  // Décisions qui ne sont pas montrées une par une (au-delà des cinq, ou liste illisible) : une carte.
+  const rest = todo.decisions.length ? todo.decisions.length - shown.length : todo.pendingDecisions;
   return (
     <ul className="grid gap-3">
+      {shown.map((decision) => {
+        const kind = decisionKind(decision.kind);
+        return (
+          <TodoItem
+            key={`decision-${decision.id}`}
+            title={decisionTexts.todoTitle(kind.title, decision.caseNumber)}
+            text={decisionTexts.withoutAnswer(formatDateTime(decision.expiresAt), kind.withoutAnswer)}
+            media={
+              <ActionCardIcon>
+                <IconClock className="size-5" />
+              </ActionCardIcon>
+            }
+            action={{ href: recoveryPaths.decision(decision.id), label: decisionTexts.todoAction }}
+          />
+        );
+      })}
+      {rest > 0 ? (
+        <TodoItem
+          title={todo.decisions.length ? t.moreDecisionsTitle(rest) : t.decisionsTitle(rest)}
+          text={t.decisionsText}
+          media={
+            <ActionCardIcon>
+              <IconClock className="size-5" />
+            </ActionCardIcon>
+          }
+          action={{ href: recoveryPaths.decisions, label: t.decisionsAction }}
+        />
+      ) : null}
       {todo.mandates.map((summary) => (
         <TodoItem
           key={`mandat-${summary.id}`}
@@ -71,18 +109,6 @@ export function RecoveryTodoItems({ todo }: { todo: Todo }) {
           action={{ href: recoveryPaths.case(summary.id), label: t.draftAction }}
         />
       ))}
-      {todo.pendingDecisions ? (
-        <TodoItem
-          title={t.decisionsTitle(todo.pendingDecisions)}
-          text={t.decisionsText}
-          media={
-            <ActionCardIcon>
-              <IconClock className="size-5" />
-            </ActionCardIcon>
-          }
-          action={{ href: recoveryPaths.decisions, label: t.decisionsAction }}
-        />
-      ) : null}
     </ul>
   );
 }

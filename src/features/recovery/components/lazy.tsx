@@ -47,6 +47,29 @@ export const RecoveryPreferences = dynamic(
   { loading: Loading },
 );
 
+export const DecisionList = dynamic(() => import('./decision-list').then((module_) => module_.DecisionList), {
+  loading: Loading,
+});
+
+export const DecisionDetail = dynamic(
+  () => import('./decision-detail').then((module_) => module_.DecisionDetail),
+  { loading: Loading },
+);
+
+/** Reversements et relevés : lit l'onglet dans l'adresse (`?onglet=`), sous le Suspense de la page. */
+export const RecoveryStatements = dynamic(
+  () => import('./statements').then((module_) => module_.RecoveryStatements),
+  { loading: Loading },
+);
+
+export const ImportStart = dynamic(() => import('./import-start').then((module_) => module_.ImportStart), {
+  loading: Loading,
+});
+
+export const ImportDetail = dynamic(() => import('./import-detail').then((module_) => module_.ImportDetail), {
+  loading: Loading,
+});
+
 /**
  * Espace du débiteur sans compte (`/recouvrement/[token]`) : rendu dans le navigateur seulement (la
  * session vit en mémoire de l'onglet), squelette de la feuille pendant le chargement.

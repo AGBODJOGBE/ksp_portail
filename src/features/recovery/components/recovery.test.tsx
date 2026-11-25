@@ -32,11 +32,9 @@ import { CaseList } from './case-list';
 import { CaseWizard } from './case-wizard';
 import { FeeStep } from './fee-step';
 import { MandateStep } from './mandate-step';
-import { RecoveryPendingPage } from './pending-page';
 import { RecoveryPreferences } from './preferences';
 import { RecoveryHome } from './recovery-home';
 import { RecoveryTodo } from './recovery-todo';
-import { pendingPages } from '@/features/recovery/pending-texts';
 
 const push = vi.fn();
 const replace = vi.fn();
@@ -301,7 +299,7 @@ describe('mandat et frais', () => {
 });
 
 describe('fiche d’un dossier', () => {
-  it('dossier en cours : frise, actions en attente du back, score jamais montré, journal', async () => {
+  it('dossier en cours : frise, paiement direct et arrêt proposés, score jamais montré, journal', async () => {
     stubGateway({
       [`GET ${CASE}`]: {
         status: 200,
@@ -380,7 +378,9 @@ describe('fiche d’un dossier', () => {
     const current = screen.getByRole('listitem', { current: 'step' });
     expect(current).toHaveTextContent('Relance amiable');
     expect(screen.getByText(/Crédité à votre portefeuille/)).toBeInTheDocument();
-    expect(screen.getByText('Bientôt disponible')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Déclarer un paiement reçu' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Arrêter le dossier' })).toBeInTheDocument();
+    expect(screen.queryByText('Bientôt disponible')).toBeNull();
     expect(screen.queryByText(/score/i)).toBeNull();
     expect(screen.queryByText('72')).toBeNull();
     fireEvent.click(screen.getByRole('tab', { name: 'Journal' }));
@@ -568,17 +568,5 @@ describe('préférences', () => {
     expect(await screen.findByText(/permet de consulter ces préférences/)).toBeInTheDocument();
     expect(screen.getAllByLabelText('Durée maximale (mois)')[0]).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Enregistrer mes préférences' })).toBeNull();
-  });
-});
-
-describe('pages en attente du backend', () => {
-  it('décisions : « Bientôt disponible » et les routes attendues hors production', () => {
-    render(<RecoveryPendingPage id="decisions-attente" page={pendingPages.decisions} />);
-    expect(screen.getByText('Bientôt disponible')).toBeInTheDocument();
-    expect(screen.getAllByText('/api/v1/recovery/decisions', { exact: false }).length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: 'Déposer un dossier' })).toHaveAttribute(
-      'href',
-      '/mon-espace/recouvrement/nouveau',
-    );
   });
 });
