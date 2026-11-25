@@ -45,7 +45,14 @@ describe('client de la gateway', () => {
 
   it('n’envoie que des en-têtes autorisés par la politique CORS de la gateway', async () => {
     // Liste de la gateway (services/gateway, enableCors) ; Accept est toujours autorisé par le navigateur.
-    const allowed = ['accept', 'content-type', 'authorization', 'x-app-version', 'idempotency-key'];
+    const allowed = [
+      'accept',
+      'content-type',
+      'authorization',
+      'x-app-version',
+      'idempotency-key',
+      'x-debtor-session',
+    ];
     const { client, calls } = setup([json(201, {})], { getAccessToken: () => 'jeton' });
     await client.post('/api/v1/order/orders', { total: 1 }, { idempotencyKey: 'cle' });
     const sent = Object.keys(calls[0]?.init.headers ?? {}).map((name) => name.toLowerCase());
@@ -130,5 +137,79 @@ describe('client de la gateway', () => {
   it('accepte une réponse vide (204)', async () => {
     const { client } = setup([new Response(null, { status: 204 })]);
     await expect(client.delete('/api/v1/identity/sessions/s1')).resolves.toBeUndefined();
+  });
+
+  describe('session d’un débiteur sans compte (X-Debtor-Session)', () => {
+    const SESSION = 'k3Jd9fQ2mZ7xB1vR8tY4wP6sN0cH5gL2aE9uI3oK7qT';
+
+    it('envoie la session dans son en-tête, jamais le jeton du compte KSP', async () => {
+      const getAccessToken = vi.fn(() => 'jeton-du-compte');
+      const { client, calls } = setup([json(200, {})], { getAccessToken });
+      // Même si l'appelant oublie `auth: false`, la session du débiteur exclut le compte.
+      await client.get('/api/v1/recovery/debtor/case', { debtorSession: SESSION });
+      expect(calls[0]?.init.headers).toMatchObject({ 'X-Debtor-Session': SESSION });
+      expect(calls[0]?.init.headers).not.toHaveProperty('Authorization');
+      expect(getAccessToken).not.toHaveBeenCalled();
+    });
+
+    it('ne renouvelle aucune session de compte sur un 401', async () => {
+      const refreshSession = vi.fn(async () => true);
+      const { client, calls } = setup(
+        [json(401, { error: { code: 'RECOVERY_DEBTOR_SESSION_INVALID', message: 'Session expirée.' } })],
+        { refreshSession, getAccessToken: () => 'jeton' },
+      );
+      await expect(
+        client.get('/api/v1/recovery/debtor/case', { auth: false, debtorSession: SESSION }),
+      ).rejects.toMatchObject({ status: 401, code: 'RECOVERY_DEBTOR_SESSION_INVALID' });
+      expect(refreshSession).not.toHaveBeenCalled();
+      expect(calls).toHaveLength(1);
+    });
+
+    it('n’ajoute pas l’en-tête sans session', async () => {
+      const { client, calls } = setup([json(200, {})]);
+      await client.get('/api/v1/recovery/debtor/access/abc', { auth: false });
+      expect(calls[0]?.init.headers).not.toHaveProperty('X-Debtor-Session');
+    });
+  });
+
+  describe('limite de débit (429)', () => {
+    it('reprend le délai de l’en-tête Retry-After quand le corps ne le donne pas', async () => {
+      const { client } = setup([
+        json(
+          429,
+          { error: { code: 'GATEWAY_RATE_LIMITED', message: 'Trop de requêtes.' } },
+          { 'Retry-After': '42' },
+        ),
+      ]);
+      await expect(client.get('/api/v1/recovery/debtor/case')).rejects.toMatchObject({
+        status: 429,
+        details: { retryAfterSeconds: 42 },
+      });
+    });
+
+    it('garde le délai du corps en priorité', async () => {
+      const { client } = setup([
+        json(
+          429,
+          {
+            error: {
+              code: 'RECOVERY_DEBTOR_LOCKED',
+              message: 'Bloqué.',
+              details: { retryAfterSeconds: 3600 },
+            },
+          },
+          { 'Retry-After': '5' },
+        ),
+      ]);
+      await expect(client.get('/api/v1/recovery/debtor/case')).rejects.toMatchObject({
+        details: { retryAfterSeconds: 3600 },
+      });
+    });
+
+    it('ignore un Retry-After illisible', async () => {
+      const { client } = setup([json(429, {}, { 'Retry-After': 'Wed, 21 Oct 2026 07:28:00 GMT' })]);
+      const error = (await client.get('/api/v1/identity/me').catch((e: unknown) => e)) as ApiError;
+      expect(error.details).not.toHaveProperty('retryAfterSeconds');
+    });
   });
 });

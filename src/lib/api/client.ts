@@ -12,6 +12,12 @@ export interface RequestOptions {
   idempotencyKey?: string;
   /** Options de cache Next.js, côté serveur uniquement. */
   next?: { revalidate?: number | false; tags?: string[] };
+  /**
+   * Session d'un débiteur sans compte (Recouvrement, ADR-061), envoyée dans l'en-tête `X-Debtor-Session`.
+   * Exclusive du compte KSP : avec elle, aucun jeton d'accès n'est envoyé et un 401 ne renouvelle rien.
+   * Secret : jamais journalisé ni gardé par le client.
+   */
+  debtorSession?: string;
 }
 
 export interface ApiClientOptions {
@@ -37,12 +43,16 @@ export interface ApiClient {
 
 /** En-tête de corrélation créé par la gateway pour chaque requête (exposé par sa politique CORS). */
 const CORRELATION_HEADER = 'X-Correlation-Id';
+/** Délai annoncé par la gateway sur un 429, en secondes (exposé par sa politique CORS). */
+const RETRY_AFTER_HEADER = 'Retry-After';
 
 /**
  * Client unique de la gateway. Le front n'appelle aucun autre serveur (règle d'architecture).
  * - l'identifiant de corrélation est créé par la gateway (une valeur envoyée par le client est ignorée,
  *   et l'en-tête n'est pas autorisé par sa politique CORS) : il est relu dans la réponse ;
- * - sur 401, la session est renouvelée une fois puis la requête est rejouée ;
+ * - sur 401, la session est renouvelée une fois puis la requête est rejouée (pas sur une route publique ni
+ *   avec la session d'un débiteur) ;
+ * - sur 429, le délai de l'en-tête `Retry-After` complète `details.retryAfterSeconds` s'il manque ;
  * - toute erreur est convertie en ApiError (message en français affichable).
  */
 export function createApiClient(options: ApiClientOptions): ApiClient {
@@ -63,7 +73,10 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (request.body !== undefined) headers['Content-Type'] = 'application/json';
     if (request.idempotencyKey) headers['Idempotency-Key'] = request.idempotencyKey;
-    const token = request.auth === false ? null : (options.getAccessToken?.() ?? null);
+    // Session du débiteur : seul en-tête de session ajouté par le client, autorisé par le CORS de la gateway.
+    const anonymous = request.auth === false || request.debtorSession !== undefined;
+    if (request.debtorSession !== undefined) headers['X-Debtor-Session'] = request.debtorSession;
+    const token = anonymous ? null : (options.getAccessToken?.() ?? null);
     if (token) headers.Authorization = `Bearer ${token}`;
 
     // Construite hors du try : un chemin invalide est une erreur de programmation, pas une coupure réseau.
@@ -83,7 +96,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       throw ApiError.network();
     }
 
-    if (response.status === 401 && canRetry && request.auth !== false && options.refreshSession) {
+    if (response.status === 401 && canRetry && !anonymous && options.refreshSession) {
       if (await options.refreshSession()) return send<T>(method, path, request, false);
     }
 
@@ -91,7 +104,12 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     const body: unknown = await response.json().catch(() => null);
     if (!response.ok) {
       const correlationId = response.headers.get(CORRELATION_HEADER) ?? undefined;
-      throw apiErrorFromResponse(response.status, body, correlationId);
+      throw apiErrorFromResponse(
+        response.status,
+        body,
+        correlationId,
+        response.headers.get(RETRY_AFTER_HEADER),
+      );
     }
     return body as T;
   }

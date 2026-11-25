@@ -12,10 +12,6 @@
       "reason": "Clés publiques des jetons, lues par les services, pas par un écran."
     },
     {
-      "path": "/api/v1/recovery/debtor/*",
-      "reason": "Recouvrement, débiteur sans compte (ADR-061) : PR 2 à venir."
-    },
-    {
       "method": "GET",
       "path": "/api/v1/recovery/decisions",
       "reason": "Recouvrement : PR 3 à venir (décisions, arrêt, paiements directs, reversements, relevés ; le service répond 501 RECOVERY_NOT_IMPLEMENTED). Pages ou sections provisoires « Bientôt disponible »."
