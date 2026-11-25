@@ -112,7 +112,7 @@ describe('Mes factures', () => {
     stub({ status: 200, body: { data: [], nextCursor: null } });
     render(<InvoiceList />);
     expect(await screen.findByText('Aucune facture pour le moment.')).toBeInTheDocument();
-    expect(screen.getByText(/Les factures concernent les contrats d’entreprise/)).toBeInTheDocument();
+    expect(screen.getByText(/Vos factures et reçus apparaissent ici/)).toBeInTheDocument();
   });
 
   it('filtre par état depuis l’adresse (`?etat=impayee`) et signale le reste à régler', async () => {

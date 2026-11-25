@@ -34,3 +34,9 @@ export const InvoiceDetail = dynamic(
 export const BillingHistory = dynamic(() => import('./history').then((module_) => module_.BillingHistory), {
   loading: Loading,
 });
+
+/** « Prélèvement automatique » de la fiche d'un compte entreprise (R-PE-04). */
+export const BillingPreferences = dynamic(
+  () => import('./billing-preferences').then((module_) => module_.BillingPreferences),
+  { loading: Loading },
+);

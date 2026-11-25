@@ -5,17 +5,24 @@ import type { BadgeTone } from '@/components/ui/badge';
 export const billingPaths = {
   list: '/mon-espace/factures',
   invoice: (id: string) => `/mon-espace/factures/${encodeURIComponent(id)}`,
+  /**
+   * Listes du Nettoyage (adresses fixées par cleaning, recopiées ici comme dans payment et wallet). Une
+   * facture v2 ne porte que les numéros de la demande et du programme, pas leur identifiant : le lien
+   * mène à la liste, où le numéro se retrouve.
+   */
+  cleaningRequests: '/mon-espace/nettoyage/demandes',
+  cleaningPrograms: '/mon-espace/nettoyage/programmes',
 } as const;
 
 export const billingTexts = {
   title: 'Mes factures',
-  lead: 'Factures mensuelles de vos contrats d’entreprise, avec leur échéance et les règlements reçus.',
+  lead: 'Factures de vos prestations et reçus des frais de visite, avec leur échéance et les règlements reçus.',
   scope:
     'Les factures affichées sont celles du compte actif : votre compte personnel, ou l’entreprise que vous représentez.',
   empty: 'Aucune facture pour le moment.',
   emptyFiltered: 'Aucune facture dans cet état.',
   emptyHint:
-    'Les factures concernent les contrats d’entreprise : une facture est émise chaque mois, au début du mois suivant. Les prestations d’un particulier se règlent depuis leur fiche, avec le portefeuille KSP ou auprès de l’équipe KSP.',
+    'Vos factures et reçus apparaissent ici : facture d’une séance de nettoyage, reçu des frais de visite, facture mensuelle d’un compte entreprise.',
   loading: 'Chargement…',
   genericError: 'Une erreur est survenue. Réessayez dans quelques instants.',
   dashboard: {
@@ -66,6 +73,92 @@ export const billingTexts = {
     'Réglez-la ci-dessous avec le portefeuille KSP, ou en espèces, par virement ou Mobile Money auprès de l’équipe KSP, qui l’enregistre ici.',
   payTitle: 'Payer avec le portefeuille',
   cancelledNotice: 'Cette facture a été annulée par KSP (correction) : elle n’est plus à régler.',
+
+  // Factures v2 (Nettoyage, ADR-055).
+  kinds: {
+    session: 'Facture de séance',
+    visit_fee: 'Reçu des frais de visite',
+    monthly: 'Facture mensuelle',
+  } as Record<string, string>,
+  lineKinds: {
+    session: 'Séance',
+    missed_session: 'Séance manquée',
+    late_cancellation: 'Annulation tardive',
+    visit_fee: 'Frais de visite',
+    visit_fee_deduction: 'Frais de visite déduits',
+    adjustment: 'Ajustement',
+  } as Record<string, string>,
+  sessionRank: (rank: string) => `Séance ${rank}`,
+  serviceOn: (date: string) => `Prestation du ${date}`,
+  facts: {
+    origin: 'Origine',
+    kind: 'Nature',
+    month: 'Mois facturé',
+    request: 'Demande',
+    program: 'Programme',
+    session: 'Séance',
+    place: 'Lieu',
+    serviceDate: 'Date de la prestation',
+    issued: 'Émission',
+    settled: 'Règlement',
+  },
+  seeRequests: 'Mes demandes de nettoyage',
+  seePrograms: 'Mes programmes de nettoyage',
+
+  // Avoirs (R-PE-07).
+  creditNotesTitle: 'Avoirs',
+  creditNotesLead: 'Corrections émises par KSP sur cette facture.',
+  creditNote: (number: string) => `Avoir ${number}`,
+  creditIssuedOn: (date: string) => `Émis le ${date}`,
+  creditReason: 'Motif',
+  creditTotal: 'Montant de l’avoir',
+  creditApplied: 'Déduit du reste à régler',
+  creditToWallet: 'Crédité sur le portefeuille',
+
+  // Paiement par Mobile Money (R-PE-04).
+  mobileMoneyTitle: 'Payer par Mobile Money',
+  mobileMoneyLead:
+    'Validez le paiement sur votre téléphone, depuis la page du prestataire de paiement. La facture se met à jour dès qu’il confirme.',
+  mobileMoneyPay: (amount: string) => `Payer ${amount} par Mobile Money`,
+  mobileMoneyPayUnknown: 'Payer par Mobile Money',
+  mobileMoneyOpening: 'Ouverture de la page de paiement…',
+  mobileMoneyContinue: 'Continuer vers la page de paiement',
+  mobileMoneyNoCheckout: 'La page de paiement n’est pas encore prête. Réessayez dans quelques instants.',
+  mobileMoneyStale:
+    'Cette facture ne peut plus être payée : elle est déjà réglée ou annulée. Elle a été relue.',
+  mobileMoneyKeyReused: 'Le paiement n’a pas pu être préparé. Réessayez.',
+  mobileMoneyUnavailable:
+    'Le service de paiement Mobile Money est momentanément indisponible. Réessayez dans quelques instants.',
+  mobileMoneyTooMany: 'Trop de tentatives en peu de temps. Patientez une minute avant de réessayer.',
+  mobileMoneyForbidden:
+    'Vous êtes en lecture seule dans cette entreprise : seuls ses administrateurs et ses membres peuvent payer ses factures.',
+  mobileMoneyPendingText:
+    'Bientôt, vous pourrez régler une facture directement par Mobile Money. En attendant, rechargez votre portefeuille, puis payez avec.',
+  reference: (message: string, id: string) => `${message} (référence : ${id})`,
+
+  // Prélèvement automatique (R-PE-04), fiche d'un compte entreprise.
+  preferencesTitle: 'Prélèvement automatique',
+  preferencesLead:
+    'À son échéance, chaque facture mensuelle est réglée par le portefeuille de l’entreprise si son solde suffit ; sinon, elle reste à payer.',
+  autoDebitLabel: 'État actuel',
+  autoDebitOn: 'Activé',
+  autoDebitOff: 'Désactivé',
+  enable: 'Activer le prélèvement automatique',
+  disable: 'Désactiver le prélèvement automatique',
+  confirmEnableTitle: 'Activer le prélèvement automatique ?',
+  confirmEnableText:
+    'Les prochaines factures mensuelles seront débitées du portefeuille de l’entreprise à leur échéance, sans autre validation.',
+  confirmEnable: 'Oui, activer',
+  cancel: 'Annuler',
+  saving: 'Enregistrement…',
+  enabled: 'Prélèvement automatique activé.',
+  disabled: 'Prélèvement automatique désactivé.',
+  preferencesAdminOnly: 'Seul un administrateur de l’entreprise peut changer ce réglage.',
+  preferencesNotInUse:
+    'Utilisez ce compte entreprise (bouton en haut de la page) pour voir et régler son prélèvement automatique.',
+  preferencesUpdated: (date: string) => `Dernière modification le ${date}.`,
+  preferencesPendingText:
+    'Bientôt, les factures mensuelles de l’entreprise pourront être réglées automatiquement par son portefeuille, à leur échéance.',
 } as const;
 
 type StatusLabel = { label: string; tone: BadgeTone };

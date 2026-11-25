@@ -1,7 +1,8 @@
 import { ApiError } from '@/lib/api';
 import { describeWalletError } from './errors';
 import { objectPath } from './paths';
-import { statementKindLabel } from './texts';
+import { objectLinkLabel, statementKindLabel } from './texts';
+import { beneficiaryPhone, checkWithdrawal, describeWithdrawalError, withdrawalKeys } from './withdrawal';
 import {
   checkTopUpAmount,
   forgetResume,
@@ -93,5 +94,112 @@ describe('portefeuille : relevé et refus', () => {
       message: 'message de la gateway',
       kind: 'other',
     });
+  });
+});
+
+describe('retrait vers Mobile Money', () => {
+  const values = {
+    amount: '15 000',
+    operator: 'mtn' as const,
+    phone: '01 97 00 00 46',
+    name: ' Afi Dossou ',
+  };
+
+  it('saisie valide : corps du contrat, numéro béninois normalisé, nom nettoyé', () => {
+    expect(checkWithdrawal(values, 20000)).toEqual({
+      input: {
+        amount: { amount: 15000, currency: 'XOF' },
+        beneficiary: { phone: '+2290197000046', operator: 'mtn', name: 'Afi Dossou' },
+      },
+    });
+  });
+
+  it('montant vide, décimal, nul, au-delà du solde ou du plafond', () => {
+    const errorOf = (amount: string, balance: number | null = 20000) => {
+      const check = checkWithdrawal({ ...values, amount }, balance);
+      return 'errors' in check ? check.errors.amount : undefined;
+    };
+    expect(errorOf('')).toMatch(/Indiquez le montant/);
+    expect(errorOf('1500,5')).toMatch(/sans décimales/);
+    expect(errorOf('0')).toMatch(/sans décimales/);
+    expect(errorOf('25000')).toMatch(/dépasse votre solde/);
+    expect(errorOf('2000000000', null)).toMatch(/ne peut pas dépasser/);
+    expect(errorOf('20000')).toBeUndefined();
+  });
+
+  it('numéro : local, ancien à 8 chiffres, +229, étranger', () => {
+    expect(beneficiaryPhone('01 97 00 00 46')).toBe('+2290197000046');
+    expect(beneficiaryPhone('97 00 00 46')).toBe('+2290197000046');
+    expect(beneficiaryPhone('+229 97 00 00 46')).toBe('+2290197000046');
+    expect(beneficiaryPhone('00229 01 97 00 00 46')).toBe('+2290197000046');
+    const foreign = checkWithdrawal({ ...values, phone: '+33 6 12 34 56 78' }, 20000);
+    expect('errors' in foreign && foreign.errors.phone).toMatch(/numéro béninois/);
+  });
+
+  it('opérateur et nom obligatoires, nom de 120 caractères au plus', () => {
+    const check = checkWithdrawal({ ...values, operator: '', name: 'x'.repeat(121) }, 20000);
+    expect('errors' in check && check.errors).toMatchObject({
+      operator: expect.stringMatching(/opérateur/),
+      name: expect.stringMatching(/120 caractères/),
+    });
+  });
+
+  it('refus de la gateway : champ, solde, clé, droits, reprise', () => {
+    expect(
+      describeWithdrawalError(
+        new ApiError(400, 'WALLET_VALIDATION_FAILED', 'Nom requis.', { field: 'beneficiary.name' }),
+      ),
+    ).toEqual({ message: 'Nom requis.', kind: 'field', field: 'name' });
+    expect(
+      describeWithdrawalError(
+        new ApiError(400, 'GATEWAY_VALIDATION_FAILED', 'Invalide.', {
+          fields: [{ field: 'beneficiary.phone' }],
+        }),
+      ).field,
+    ).toBe('phone');
+    const insufficient = describeWithdrawalError(
+      new ApiError(422, 'WALLET_INSUFFICIENT_FUNDS', 'Solde insuffisant.', {
+        missing: { amount: 2500, currency: 'XOF' },
+      }),
+    );
+    expect(insufficient.kind).toBe('insufficient');
+    expect(insufficient.message.replace(/\s/g, ' ')).toBe('Solde insuffisant : il vous manque 2 500 F CFA.');
+    expect(describeWithdrawalError(new ApiError(409, 'WALLET_IDEMPOTENCY_KEY_REUSED', 'x')).kind).toBe(
+      'newKey',
+    );
+    expect(describeWithdrawalError(new ApiError(403, 'AUTH_FORBIDDEN', 'x')).kind).toBe('forbidden');
+    expect(describeWithdrawalError(new ApiError(409, 'WALLET_CONCURRENT_UPDATE', 'x')).kind).toBe('retry');
+    expect(describeWithdrawalError(ApiError.network()).kind).toBe('retry');
+    expect(
+      describeWithdrawalError(new ApiError(422, 'WALLET_SOMETHING', 'Refusé.', {}, 'corr-1')).message,
+    ).toBe('Refusé. (référence : corr-1)');
+  });
+
+  it('clé d’idempotence : la même pour la même saisie, neuve après un envoi ou une saisie modifiée', () => {
+    let count = 0;
+    const keys = withdrawalKeys(() => `cle-${++count}`);
+    const check = checkWithdrawal(values, 20000);
+    if (!('input' in check)) throw new Error('saisie attendue valide');
+    expect(keys.keyFor(check.input)).toBe('cle-1');
+    expect(keys.keyFor(check.input)).toBe('cle-1');
+    expect(keys.keyFor({ ...check.input, amount: { amount: 1000, currency: 'XOF' } })).toBe('cle-2');
+    keys.done();
+    expect(keys.keyFor(check.input)).toBe('cle-3');
+  });
+
+  it('relevé : libellés des nouvelles natures et liens des objets du Nettoyage v2', () => {
+    expect(statementKindLabel({ kind: 'withdrawal_hold' })).toBe('Retrait demandé');
+    expect(statementKindLabel({ kind: 'withdrawal_settlement' })).toBe('Retrait versé');
+    expect(statementKindLabel({ kind: 'withdrawal_release' })).toBe('Retrait rendu');
+    expect(statementKindLabel({ kind: 'service_credit' })).toBe('Crédit KSP');
+    expect(objectPath({ objectType: 'cleaning_session', objectId: 's1' })).toBe(
+      '/mon-espace/nettoyage/seances/s1',
+    );
+    expect(objectPath({ objectType: 'cleaning_request', objectId: 'r1' })).toBe(
+      '/mon-espace/nettoyage/demandes/r1',
+    );
+    expect(objectPath({ objectType: 'cleaning_visit_fee', objectId: 'v1' })).toBeNull();
+    expect(objectLinkLabel('cleaning_request')).toBe('Voir la demande');
+    expect(objectLinkLabel('billing_invoice')).toBe('Voir la facture');
   });
 });

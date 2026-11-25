@@ -12,6 +12,7 @@ import { createOrganization, listMyOrganizations, type OrganizationInput } from 
 import { type AccountField, describeAccountError } from '@/features/identity/account-errors';
 import type { Membership } from '@/features/identity/schemas';
 import { accountTexts, identityPaths, organizationStatus } from '@/features/identity/texts';
+import { ReceivedInvitations } from './organization-invitations';
 import { Loading, Section } from './space-parts';
 
 const t = accountTexts.organizations;
@@ -145,7 +146,10 @@ function OrganizationForm({ onCreated }: { onCreated: (membership: Membership) =
   );
 }
 
-/** « Mon entreprise » : mes comptes entreprise avec leur état, et la demande d'un nouveau compte (ADR-027). */
+/**
+ * « Mon entreprise » : invitations reçues (R-CP-03), mes comptes entreprise avec leur état, et la demande
+ * d'un nouveau compte (ADR-027).
+ */
 export function OrganizationSpace() {
   const { state, reload, set } = useResource(useCallback(() => listMyOrganizations(), []));
   const [sent, setSent] = useState<string | null>(null);
@@ -167,6 +171,16 @@ export function OrganizationSpace() {
   const showForm = formOpen || memberships.length === 0;
   return (
     <div className="grid gap-8">
+      {/* Invitations à rejoindre une entreprise (R-CP-03) : acceptée, elle rejoint la liste. */}
+      <ReceivedInvitations
+        onAccepted={(membership) =>
+          set([
+            membership,
+            ...memberships.filter((item) => item.organization.id !== membership.organization.id),
+          ])
+        }
+      />
+
       <section aria-labelledby="entreprises-titre" className="grid gap-4">
         <Heading as="h2" size="h3" id="entreprises-titre">
           {t.listTitle}

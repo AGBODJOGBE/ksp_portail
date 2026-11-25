@@ -10,6 +10,7 @@ import { cn } from '@/lib/cn';
 import { formatShortDate, formatXof } from '@/lib/format';
 import { usePagedList } from '@/lib/use-paged-list';
 import { INVOICE_STATUSES, type InvoiceStatusFilter, listInvoices } from '@/features/billing/api';
+import { filled, invoiceKind, invoiceMonth } from '@/features/billing/invoice-view';
 import {
   billingPaths,
   billingTexts as t,
@@ -97,7 +98,10 @@ function Invoices({ status }: { status: InvoiceStatusFilter | undefined }) {
                   {[
                     t.source[invoice.source] ?? invoice.source,
                     invoice.organization?.legalName,
-                    t.month(invoice.periodIndex),
+                    // v1 : le mois du contrat ; v2 : la nature, la séance et le lieu.
+                    invoiceMonth(invoice) ?? invoiceKind(invoice),
+                    filled(invoice.sessionRank) ? t.sessionRank(filled(invoice.sessionRank)!) : null,
+                    filled(invoice.placeLabel),
                     invoice.status === 'paid' && invoice.paidAt
                       ? t.paidOn(formatShortDate(invoice.paidAt))
                       : t.dueOn(formatShortDate(invoice.dueAt)),

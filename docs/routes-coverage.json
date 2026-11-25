@@ -14,6 +14,25 @@
     {
       "path": "/api/v1/recovery/*",
       "reason": "Recouvrement : lots 3 et 4, à venir."
+    },
+    {
+      "path": "/api/v1/identity/mfa/*",
+      "reason": "Double authentification du personnel KSP (rôles du back-office) : écrans du back-office, pas du portail client."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/payment/payments",
+      "reason": "Dépréciée (ADR-046, ADR-055) : l'argent passe par le portefeuille (recharge, paiement d'une facture ou d'une séance par Mobile Money via son service)."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/file/files/{id}",
+      "reason": "Aucun écran client n'en a besoin : la confirmation de l'envoi (POST file/files/{id}/complete) rend déjà l'état vérifié (available ou rejected), et les photos s'affichent par les liens temporaires des routes du Nettoyage. Pas de photo de profil au contrat du profil."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/file/files/{id}/download-url",
+      "reason": "Aucun écran client ne relit un fichier par son identifiant : les photos du Nettoyage arrivent avec leur lien temporaire, et les documents ont leur propre route (document/…/download-url)."
     }
   ]
 }
