@@ -30,6 +30,14 @@ export interface FilePickerTexts {
 const GENERIC = 'Une erreur est survenue. Réessayez dans quelques instants.';
 
 /**
+ * Où va le fichier : le service file avec sa finalité (`purpose`), ou un dépôt propre à un service
+ * (`upload`), par exemple les pièces d'un débiteur sans compte, déposées par recovery avec sa session.
+ */
+type FileSource =
+  | { purpose: FilePurpose; upload?: never }
+  | { upload: (file: File) => Promise<{ id: string }>; purpose?: never };
+
+/**
  * Fichiers joints à un formulaire (photos du Nettoyage, pièces du Recouvrement) : chaque fichier est déposé
  * aussitôt par le service file (déclaration, envoi direct au stockage, confirmation, ADR-038) ; seul son
  * identifiant part ensuite avec le formulaire. Types et poids du contrat de la finalité vérifiés avant
@@ -38,6 +46,7 @@ const GENERIC = 'Une erreur est survenue. Réessayez dans quelques instants.';
  */
 export function FilePicker({
   purpose,
+  upload,
   accept,
   maxBytes,
   files,
@@ -50,8 +59,7 @@ export function FilePicker({
   texts: t,
   error,
   disabled,
-}: {
-  purpose: FilePurpose;
+}: FileSource & {
   /** Types MIME acceptés. */
   accept: ReadonlyArray<string>;
   /** Poids maximal d'un fichier, en octets. */
@@ -89,7 +97,7 @@ export function FilePicker({
         }
         setUploading(file.name);
         try {
-          const stored = await uploadFile(file, purpose);
+          const stored = upload ? await upload(file) : await uploadFile(file, purpose);
           added.push({ id: stored.id, name: file.name });
         } catch (caught) {
           refused.push(t.refused(file.name, caught instanceof ApiError ? caught.message : GENERIC));
@@ -99,7 +107,7 @@ export function FilePicker({
       setProblems(refused);
       if (added.length) onChange([...files, ...added]);
     },
-    [accept, count, files, max, maxBytes, onChange, purpose, t],
+    [accept, count, files, max, maxBytes, onChange, purpose, upload, t],
   );
 
   const chip = (file: PickedFile, removable: boolean) => (

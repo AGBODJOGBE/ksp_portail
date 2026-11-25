@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { BandHeader, BandTitle } from '@/components/ui/band-header';
 import { Button } from '@/components/ui/button';
@@ -52,14 +52,15 @@ function Detail({ programId, id }: { programId: string; id: string }) {
   const state = resource.state;
   // Après un paiement, la séance relue n'est plus « à payer » et son panneau disparaît : on garde
   // la confirmation visible, sinon le client ne voit jamais que le paiement a réussi.
-  const wasPayable = useRef(false);
-  const [justPaid, setJustPaid] = useState(false);
+  // Calculé pendant le rendu (et non dans un effet) pour que la confirmation remplace le panneau
+  // dans le même affichage, sans instant vide.
   const paymentStatus = state.status === 'ready' ? state.data.paymentStatus : undefined;
-  useEffect(() => {
-    if (paymentStatus === undefined) return;
-    if (wasPayable.current && paymentStatus === 'paid') setJustPaid(true);
-    wasPayable.current = isPayable(paymentStatus);
-  }, [paymentStatus]);
+  const [seenStatus, setSeenStatus] = useState(paymentStatus);
+  const [justPaid, setJustPaid] = useState(false);
+  if (paymentStatus !== seenStatus) {
+    setSeenStatus(paymentStatus);
+    if (paymentStatus === 'paid' && seenStatus !== undefined && isPayable(seenStatus)) setJustPaid(true);
+  }
   const backToProgram = {
     href: cleaningPaths.program(programId),
     label: program.status === 'ready' ? t.backToProgram(program.data.number) : programTexts.back,

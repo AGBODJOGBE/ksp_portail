@@ -47,10 +47,11 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },
-      // Pages ouvertes par un lien personnel (paiement, signature) : le jeton est dans l'adresse. Il ne
-      // part vers aucun autre site (prestataire, stockage du PDF) et la page n'est jamais indexée. La
-      // page est rendue à chaque requête : Next la sert déjà en `no-store`.
-      ...['/payer/:token', '/signer/:token'].map((source) => ({
+      // Pages ouvertes par un lien personnel (paiement, signature, débiteur du Recouvrement) : le jeton est
+      // dans l'adresse. Il ne part vers aucun autre site (prestataire, stockage du PDF) et la page n'est
+      // jamais indexée. La page est rendue à chaque requête : Next la sert déjà en `no-store`. La vitrine
+      // `/recouvrement` (sans jeton) n'est pas concernée.
+      ...['/payer/:token', '/signer/:token', '/recouvrement/:token'].map((source) => ({
         source,
         headers: [
           { key: 'Referrer-Policy', value: 'no-referrer' },

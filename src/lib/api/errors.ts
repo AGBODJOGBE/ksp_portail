@@ -57,15 +57,30 @@ const DEFAULT_MESSAGES: Record<number, string> = {
   503: 'Service momentanément indisponible. Réessayez dans quelques instants.',
 };
 
-export function apiErrorFromResponse(status: number, body: unknown, correlationId?: string): ApiError {
+/**
+ * Erreur de la gateway. Sur un 429, `retryAfter` (en-tête `Retry-After`) complète
+ * `details.retryAfterSeconds` quand le corps ne le donne pas : les écrans ne lisent que ce détail.
+ */
+export function apiErrorFromResponse(
+  status: number,
+  body: unknown,
+  correlationId?: string,
+  retryAfter?: string | null,
+): ApiError {
   const error = (body as ErrorBody | null)?.error;
   const code = typeof error?.code === 'string' ? error.code : `HTTP_${status}`;
   const message =
     typeof error?.message === 'string'
       ? error.message
       : (DEFAULT_MESSAGES[status] ?? 'Une erreur est survenue. Réessayez plus tard.');
-  const details =
-    error?.details && typeof error.details === 'object' ? (error.details as Record<string, unknown>) : {};
+  const details: Record<string, unknown> =
+    error?.details && typeof error.details === 'object'
+      ? { ...(error.details as Record<string, unknown>) }
+      : {};
+  // `Retry-After` en secondes entières ; une date HTTP ou une valeur illisible est ignorée.
+  const delay = Number(retryAfter);
+  if (status === 429 && Number.isInteger(delay) && delay > 0 && typeof details.retryAfterSeconds !== 'number')
+    details.retryAfterSeconds = delay;
   const id = typeof error?.correlationId === 'string' ? error.correlationId : correlationId;
   return new ApiError(status, code, message, details, id);
 }

@@ -10,7 +10,9 @@ import type { Page, Route } from '@playwright/test';
 const GATEWAY = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 /** En-têtes autorisés par la politique CORS de la gateway (services/gateway, enableCors). */
-const ALLOWED_HEADERS = 'Content-Type, Authorization, X-App-Version, Idempotency-Key';
+const ALLOWED_HEADERS = 'Content-Type, Authorization, X-App-Version, Idempotency-Key, X-Debtor-Session';
+/** En-têtes `x-` acceptés par la gateway : version de l'application, session d'un débiteur (ADR-061). */
+const ALLOWED_X_HEADERS = new Set(['x-app-version', 'x-debtor-session']);
 
 export const VALID_CODE = '482913';
 
@@ -36,7 +38,7 @@ export interface ExtraRequest {
 }
 
 export interface FakeGateway {
-  /** En-têtes refusés par la gateway réelle (préfixe `x-` hors `x-app-version`) vus dans les requêtes. */
+  /** En-têtes refusés par la gateway réelle (préfixe `x-` hors `x-app-version` et `x-debtor-session`). */
   forbiddenHeaders: string[];
   calls: Array<{ method: string; path: string; body: unknown }>;
   /** Appels refusés à la session restreinte (`GATEWAY_ACCOUNT_DELETION_PENDING`) : jamais attendus. */
@@ -117,7 +119,9 @@ export async function mockGateway(page: Page, options: GatewayOptions = {}): Pro
       : undefined;
     gateway.calls.push({ method: request.method(), path, body });
     gateway.forbiddenHeaders.push(
-      ...Object.keys(request.headers()).filter((name) => name.startsWith('x-') && name !== 'x-app-version'),
+      ...Object.keys(request.headers()).filter(
+        (name) => name.startsWith('x-') && !ALLOWED_X_HEADERS.has(name),
+      ),
     );
     const reply = (status: number, json: unknown) => route.fulfill({ status, headers: cors, json });
     const authorized = request.headers().authorization === 'Bearer jeton-acces-e2e' && state.signedIn;

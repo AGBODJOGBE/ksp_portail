@@ -46,3 +46,16 @@ export const RecoveryPreferences = dynamic(
   () => import('./preferences').then((module_) => module_.RecoveryPreferences),
   { loading: Loading },
 );
+
+/**
+ * Espace du débiteur sans compte (`/recouvrement/[token]`) : rendu dans le navigateur seulement (la
+ * session vit en mémoire de l'onglet), squelette de la feuille pendant le chargement.
+ */
+export const DebtorSpace = dynamic(() => import('./debtor-space').then((module_) => module_.DebtorSpace), {
+  ssr: false,
+  loading: () => (
+    <p role="status" className="rounded-card border-line bg-surface text-ink-muted border p-6 sm:p-10">
+      {LOADING}
+    </p>
+  ),
+});

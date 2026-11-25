@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 import { FieldError, FormMessage, TextField, fieldIds } from '@/components/ui/field';
 import { cn } from '@/lib/cn';
 import { formatTime, isPast } from '@/lib/format';
+import { useCountdown } from '@/lib/use-countdown';
 import { cleanSigningCode, describeDocumentError, isSigningCodeComplete } from '@/features/document/logic';
 import type { CodeDelivery } from '@/features/document/schemas';
 import { channelLabel, documentTexts as t } from '@/features/document/texts';
-import { useCountdown } from './use-countdown';
 
 const OPTION = cn(
   'flex min-h-14 cursor-pointer items-start gap-3 rounded-control border bg-surface p-4',
