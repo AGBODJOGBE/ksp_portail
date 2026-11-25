@@ -9,7 +9,7 @@ import { formatDateTime, formatTime } from '@/lib/format';
 import { sessionTexts as t } from '@/features/cleaning/program-texts';
 import type { CleaningPhoto, Session } from '@/features/cleaning/schemas';
 import { incidentCategory, incidentDecision } from '@/features/cleaning/status-texts';
-import { Panel, SummaryRow } from './fields';
+import { Panel, SummaryRow } from '@/components/ui/form-fields';
 
 /*
  * Parties en lecture d'une séance : déroulé (arrivée, début, fin, signature, liste de contrôle), photos

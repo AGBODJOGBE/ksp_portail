@@ -20,7 +20,7 @@ import {
   formatDay,
 } from '@/features/cleaning/schedule';
 import { SCHEDULE_NOTICES, scheduleTexts as t } from '@/features/cleaning/simulator-texts';
-import { ChoicePill, Fieldset, SelectField } from './fields';
+import { ChoicePill, Fieldset, SelectField } from '@/components/ui/form-fields';
 import { useSchedulePreview } from './use-public';
 
 /** Dates montrées dans l'aperçu avant « et N autres ». */

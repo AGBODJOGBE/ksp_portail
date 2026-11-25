@@ -10,6 +10,7 @@ import {
   IconClock,
   IconInvoice,
   IconNettoyage,
+  IconRecouvrement,
   IconUser,
   IconWallet,
 } from '@/components/ui/icons';
@@ -19,6 +20,7 @@ import { InvoiceTodo, billingPaths, billingTexts } from '@/features/billing';
 import { CleaningTodo, cleaningPaths, cleaningTexts } from '@/features/cleaning';
 import { NotificationBell, notificationPaths, notificationTexts } from '@/features/notification';
 import { paymentPaths, paymentTexts } from '@/features/payment';
+import { RecoveryTodo, recoveryPaths, recoveryTexts } from '@/features/recovery/home';
 import { WalletBalanceLink, walletPaths, walletTexts } from '@/features/wallet';
 import {
   AccountOverview,
@@ -36,7 +38,7 @@ import { pageMetadata } from '@/lib/seo/metadata';
  * dans le navigateur (F-005, option A). Dans l'ordre : le compte (salutation, compte actif, portefeuille,
  * notifications), « À faire maintenant » (seulement ce qui attend le client), les raccourcis des
  * services, puis « Bientôt ». Le Nettoyage (v2) y met ses frais de visite à régler et ses devis à
- * accepter.
+ * accepter ; le Recouvrement, ses mandats à signer, frais à payer et compléments demandés.
  */
 
 export const metadata: Metadata = {
@@ -52,6 +54,12 @@ export default function AccountPage() {
       title: cleaningTexts.space.title,
       text: cleaningTexts.space.homeLinkText,
       icon: <IconNettoyage className="size-5" />,
+    },
+    {
+      href: recoveryPaths.space,
+      title: recoveryTexts.title,
+      text: recoveryTexts.homeLinkText,
+      icon: <IconRecouvrement className="size-5" />,
     },
     {
       href: billingPaths.list,
@@ -128,6 +136,8 @@ export default function AccountPage() {
               <CleaningTodo />
               <InvoiceTodo />
               <AccountTodo />
+              {/* En dernier : il n'apparaît que s'il y a un dossier à faire avancer. */}
+              <RecoveryTodo />
             </div>
           </section>
 

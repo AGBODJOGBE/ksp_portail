@@ -22,7 +22,7 @@ export const deletionTexts = {
       'À la date prévue, vos données personnelles sont effacées (nom, numéro de téléphone, e-mail). Vos factures et paiements sont conservés 10 ans, comme l’exige la loi comptable.',
     ],
     conditions:
-      'La suppression est refusée tant qu’une opération est en cours : prestation ou demande de devis, facture à régler, paiement en attente ou en vérification, argent dans votre portefeuille (solde à utiliser, fonds à vous reverser, somme due à KSP, reversement en cours).',
+      'La suppression est refusée tant qu’une opération est en cours : prestation ou demande de devis, dossier de recouvrement, facture à régler, paiement en attente ou en vérification, argent dans votre portefeuille (solde à utiliser, fonds à vous reverser, somme due à KSP, reversement en cours).',
     start: 'Supprimer mon compte',
     confirmTitle: 'Confirmer la suppression de votre compte ?',
     confirmText:
@@ -84,6 +84,12 @@ export const deletionObstacleKinds: Record<string, { label: string; href: string
   funds_owed: { label: 'Fonds à vous reverser', href: '/mon-espace/portefeuille' },
   negative_balance: { label: 'Somme due à KSP', href: '/mon-espace/portefeuille' },
   payout_in_progress: { label: 'Reversement en cours', href: '/mon-espace/portefeuille' },
+  // Recouvrement (`services/recovery/src/application/obligations.use-cases.ts`) : dossier en examen, actif ou
+  // suspendu, du compte ou de l'organisation.
+  open_recovery_case: {
+    label: 'Dossier de recouvrement en cours',
+    href: '/mon-espace/recouvrement/dossiers',
+  },
 };
 
 /** Repli par service, pour une nature encore inconnue du portail (liste ouverte du contrat). */
@@ -93,6 +99,7 @@ const obstacleServices: Record<string, { label: string; href: string }> = {
   payment: { label: 'Paiement', href: '/mon-espace/paiements' },
   identity: { label: 'Compte entreprise', href: '/mon-espace/entreprise' },
   wallet: { label: 'Portefeuille', href: '/mon-espace/portefeuille' },
+  recovery: { label: 'Recouvrement', href: '/mon-espace/recouvrement' },
 };
 
 /**

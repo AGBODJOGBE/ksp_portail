@@ -8,14 +8,18 @@ import type {
   SectionIntro,
   Step,
 } from '@/components/sections/types';
+import { recoveryPaths } from './paths';
+import { FEE_RULE } from './texts';
 
 /*
- * Page Recouvrement (phase 1). Textes provisoires (à valider), prêts pour Payload CMS.
- * Parcours P1 de la spécification des fronts. Aucun taux de commission, délai ni chiffre n'est donné :
- * les conditions sont présentées au client avant la signature du mandat.
+ * Page Recouvrement. Textes provisoires (à valider), prêts pour Payload CMS. Parcours réel du service
+ * (ADR-060) : dossier déposé en ligne, mandat signé par code, frais de dossier payés par le portefeuille,
+ * examen par KSP, relances du débiteur, sommes créditées au portefeuille. Aucun taux de commission ni
+ * montant n'est donné : ils sont calculés par KSP et présentés avant la signature du mandat. Les frais de
+ * dossier sont des frais d'étude, jamais remboursés (décision du 25 novembre 2026).
  */
 
-const depositAction: PageAction = { kind: 'account', label: 'Déposer un dossier' };
+const depositAction: PageAction = { kind: 'link', label: 'Déposer un dossier', href: recoveryPaths.newCase };
 const adviceAction: PageAction = {
   kind: 'contact',
   label: 'Demander un conseil',
@@ -26,35 +30,35 @@ export const recouvrementContent = {
   metadata: {
     title: 'Recouvrement de créances',
     description:
-      'Confiez vos créances impayées au Groupe KSP : dépôt du dossier en ligne, mandat signé par code, relances, paiement du débiteur par mobile money et suivi en direct dans Mon espace KSP.',
+      'Confiez vos créances impayées au Groupe KSP : dossier déposé en ligne, mandat signé par code, relances par WhatsApp, SMS ou e-mail, paiement du débiteur par mobile money et sommes créditées à votre portefeuille.',
   },
   hero: {
     metierId: 'recouvrement',
     title: 'Récupérez vos impayés, suivez chaque dossier en direct',
-    lead: 'Factures clients, sommes prêtées, loyers en retard : confiez votre créance à KSP. Nous relançons votre débiteur, il paie par mobile money, et vous suivez chaque étape depuis votre espace.',
+    lead: 'Factures clients, sommes prêtées, ventes ou services impayés : confiez votre créance à KSP. Nous relançons votre débiteur, il paie par mobile money, et les sommes recouvrées sont créditées à votre portefeuille.',
     actions: [depositAction, adviceAction],
     note: 'Le dépôt d’un dossier se fait depuis Mon espace KSP, avec un seul compte pour tous les services du groupe.',
     highlightsTitle: 'Avec KSP Recouvrement',
     highlights: [
       'Dossier et pièces déposés en ligne',
+      'Frais et commission connus avant la signature',
       'Mandat signé par code, sans déplacement',
-      'Paiement du débiteur par mobile money',
-      'Étapes, paiements et reversements suivis en direct',
+      'Sommes recouvrées créditées à votre portefeuille',
     ],
   } satisfies MetierHeroContent,
   offers: {
     intro: {
       eyebrow: 'Nos offres',
       title: 'Une offre pour chaque créancier',
-      lead: 'Entreprise, particulier ou bailleur : le parcours est le même, adapté à votre situation.',
+      lead: 'Entreprise ou particulier : le parcours est le même, adapté à votre débiteur.',
     } satisfies SectionIntro,
     items: [
       {
         title: 'Entreprises',
         text: 'Vos factures clients restent impayées ? Confiez-nous vos dossiers et concentrez-vous sur votre activité.',
         points: [
-          'Un dossier par créance',
-          'Relances et mise en demeure',
+          'Jusqu’à 200 factures d’un même débiteur par dossier',
+          'Relances, puis mise en demeure si nécessaire',
           'Suivi de tous vos dossiers au même endroit',
         ],
       },
@@ -63,17 +67,18 @@ export const recouvrementContent = {
         text: 'Une somme prêtée ou due qui ne revient pas : KSP prend le relais auprès de votre débiteur.',
         points: [
           'Démarche entièrement en ligne',
-          'Échéancier signé par le débiteur',
+          'Échéancier signé par le débiteur, dans les limites que vous fixez',
           'Chaque paiement visible en direct',
         ],
       },
       {
         title: 'Bailleurs',
-        text: 'Des loyers en retard : KSP relance votre locataire et organise le règlement de la dette.',
+        status: 'Bientôt',
+        text: 'Des loyers en retard : le recouvrement des loyers impayés arrive avec la gestion locative de KSP.',
         points: [
           'Relances du locataire',
           'Paiement par mobile money',
-          'Reversements suivis dans votre espace',
+          'Sommes créditées à votre portefeuille',
         ],
       },
     ] satisfies ReadonlyArray<Offer>,
@@ -88,45 +93,50 @@ export const recouvrementContent = {
       {
         actor: 'client',
         title: 'Vous déposez votre dossier',
-        text: 'Connectez-vous à Mon espace KSP et déposez votre dossier avec ses pièces justificatives.',
-      },
-      {
-        actor: 'ksp',
-        title: 'KSP analyse et accepte le dossier',
-        text: 'Notre équipe étudie le dossier, l’accepte puis le confie à un agent de recouvrement.',
+        text: 'Dans Mon espace KSP : votre débiteur, vos factures ou sommes dues, vos pièces justificatives. Les frais et la commission s’affichent pendant la saisie.',
       },
       {
         actor: 'client',
         title: 'Vous signez le mandat',
-        text: 'Vous recevez le mandat dans votre espace et le signez en ligne, avec un code de confirmation.',
+        text: 'Le mandat reprend les frais et la commission. Vous le lisez et le signez en ligne, avec un code reçu par WhatsApp, SMS ou e-mail.',
+      },
+      {
+        actor: 'client',
+        title: 'Vous payez les frais de dossier',
+        text: 'Avec votre portefeuille KSP. Ces frais couvrent l’étude de votre dossier : ils ne sont pas remboursés, quelle que soit la décision.',
       },
       {
         actor: 'ksp',
-        title: 'L’agent relance votre débiteur',
-        text: 'Relances, mise en demeure si nécessaire, puis mise en place d’un échéancier signé par le débiteur.',
+        title: 'KSP examine votre dossier',
+        text: 'Sous 2 jours ouvrés : le dossier est accepté, un complément vous est demandé, ou il est refusé avec son motif.',
+      },
+      {
+        actor: 'ksp',
+        title: 'KSP relance votre débiteur',
+        text: 'Par WhatsApp, SMS ou e-mail, puis mise en demeure si nécessaire. Le débiteur peut proposer un échéancier dans les limites que vous avez fixées.',
       },
       {
         actor: 'tiers',
         actorLabel: 'Votre débiteur',
         title: 'Le débiteur paie par mobile money',
-        text: 'Il reçoit un lien par SMS et règle chaque échéance par mobile money.',
+        text: 'Il reçoit un lien personnel et règle en une fois ou à chaque échéance.',
       },
       {
         actor: 'ksp',
-        title: 'Vous êtes crédité',
-        text: 'Chaque somme encaissée vous est reversée, déduction faite de la commission de KSP.',
+        title: 'Les sommes sont créditées à votre portefeuille',
+        text: 'Chaque somme encaissée est créditée à votre portefeuille KSP, commission déduite. Vous la retirez vers votre compte mobile money quand vous le souhaitez.',
       },
       {
         actor: 'client',
         title: 'Vous suivez tout en direct',
-        text: 'Étapes, actions menées, échéancier, paiements et reversements : tout est visible dans Mon espace KSP.',
+        text: 'Étapes, actions menées, échéancier et paiements : tout est visible dans Mon espace KSP.',
       },
     ] satisfies ReadonlyArray<Step>,
   },
   remuneration: {
     eyebrow: 'Rémunération',
-    title: 'Une commission sur les sommes recouvrées',
-    text: 'KSP se rémunère par une commission prélevée sur les sommes encaissées auprès de votre débiteur. Les conditions vous sont présentées avant la signature du mandat : vous vous engagez en connaissance de cause.',
+    title: 'Des frais d’étude, puis une commission sur les sommes recouvrées',
+    text: `Au dépôt, les frais de dossier sont payés avec votre portefeuille KSP. ${FEE_RULE} Ensuite, KSP se rémunère par une commission prélevée sur les sommes encaissées. Frais et commission sont calculés pendant la saisie et figés dans le mandat, avant votre signature.`,
   },
   advice: {
     eyebrow: 'Conseil',
@@ -151,32 +161,40 @@ export const recouvrementContent = {
     {
       question: 'Quelles créances pouvez-vous recouvrer ?',
       answer:
-        'Factures impayées d’une entreprise, somme due à un particulier, loyers en retard. Décrivez votre situation : nous vous disons si le dossier peut être pris en charge.',
+        'Factures impayées d’une entreprise, somme prêtée ou due par un particulier, vente ou service non payé, chèque impayé. Les loyers impayés arrivent bientôt, avec la gestion locative.',
     },
     {
       question: 'Quelles pièces dois-je fournir ?',
       answer:
-        'Tout document qui établit la créance et les échanges avec votre débiteur. La liste des pièces attendues vous est indiquée au moment du dépôt du dossier.',
+        'Tout document qui établit la créance : factures, contrat, bon de livraison, reconnaissance de dette, échanges écrits avec votre débiteur. Une pièce au moins, vingt au plus, en PDF ou en image.',
     },
     {
       question: 'Dois-je créer un compte ?',
       answer:
-        'Oui, pour déposer un dossier et le suivre. Un seul compte KSP, créé avec votre numéro de téléphone ou votre adresse e-mail, vous donne accès à tous les services du groupe.',
+        'Oui, pour déposer un dossier et le suivre. Un seul compte KSP, créé avec votre numéro de téléphone, vous donne accès à tous les services du groupe. Une entreprise dépose ses dossiers depuis son compte entreprise.',
     },
     {
       question: 'Comment se passe la signature du mandat ?',
       answer:
-        'Une fois votre dossier accepté, le mandat est mis à votre disposition dans votre espace. Vous le signez en ligne avec un code de confirmation, sans vous déplacer.',
+        'Après la saisie du dossier, KSP prépare le mandat avec les frais et la commission. Vous le lisez puis le signez en ligne avec un code reçu par WhatsApp, SMS ou e-mail, sans vous déplacer.',
     },
     {
       question: 'Combien coûte le recouvrement ?',
-      answer:
-        'KSP se rémunère par une commission sur les sommes recouvrées. Les conditions vous sont présentées avant la signature du mandat.',
+      answer: `Des frais de dossier au dépôt, payés avec votre portefeuille KSP, puis une commission sur les sommes recouvrées. Les deux sont calculés pendant la saisie et figés dans le mandat. ${FEE_RULE}`,
+    },
+    {
+      question: 'Que se passe-t-il si mon dossier est refusé ?',
+      answer: `KSP vous indique le motif. ${FEE_RULE}`,
     },
     {
       question: 'Comment mon débiteur paie-t-il ?',
       answer:
-        'Il reçoit un lien par SMS et paie par mobile money, en une fois ou selon l’échéancier qu’il a signé. Chaque paiement apparaît dans votre espace.',
+        'Il est contacté par WhatsApp, SMS ou e-mail et reçoit un lien personnel pour payer par mobile money, en une fois ou selon l’échéancier qu’il a signé. Chaque paiement apparaît dans votre espace.',
+    },
+    {
+      question: 'Comment suis-je payé ?',
+      answer:
+        'Chaque somme encaissée est créditée à votre portefeuille KSP, commission déduite. Vous la retirez vers votre compte mobile money depuis Mon espace KSP.',
     },
   ] satisfies ReadonlyArray<FaqItem>,
   cta: {

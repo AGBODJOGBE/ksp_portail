@@ -184,7 +184,10 @@ export function WalletPay<T>({ pay, amount, label = t.pay, returnTo, onPaid, onS
         <p className="text-small text-ink-muted">{t.confirmHint}</p>
         <div className="flex flex-wrap gap-3">
           <Button variant="action" onClick={confirm} disabled={busy} aria-busy={busy || undefined}>
-            {busy ? t.paying : amount ? t.confirm(formatXof(amount)) : t.confirmUnknown}
+            {/* Libellé avec le montant : il passe à la ligne sur un téléphone plutôt que de déborder. */}
+            <span className="py-2 text-center whitespace-normal">
+              {busy ? t.paying : amount ? t.confirm(formatXof(amount)) : t.confirmUnknown}
+            </span>
           </Button>
           <Button variant="ghost" onClick={cancel} disabled={busy}>
             {t.cancel}

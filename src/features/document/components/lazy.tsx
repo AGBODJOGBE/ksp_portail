@@ -20,3 +20,9 @@ export const DocumentDetail = dynamic(
   () => import('./document-detail').then((module_) => module_.DocumentDetail),
   { loading: Loading },
 );
+
+/** Signature d'un document dans l'écran d'un autre service (mandat du Recouvrement). */
+export const DocumentSigning = dynamic(
+  () => import('./document-signing').then((module_) => module_.DocumentSigning),
+  { loading: Loading },
+);

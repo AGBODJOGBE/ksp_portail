@@ -211,6 +211,17 @@ describe('Supprimer mon compte (ADR-036)', () => {
     }
   });
 
+  it('dossier de recouvrement en cours, et repli sur le service recovery', () => {
+    expect(deletionObstacle({ service: 'recovery', kind: 'open_recovery_case' })).toEqual({
+      label: 'Dossier de recouvrement en cours',
+      href: '/mon-espace/recouvrement/dossiers',
+    });
+    expect(deletionObstacle({ service: 'recovery', kind: 'nouvelle_nature' })).toEqual({
+      label: 'Recouvrement',
+      href: '/mon-espace/recouvrement',
+    });
+  });
+
   it('nature encore inconnue du portefeuille : repli sur le service', () => {
     expect(deletionObstacle({ service: 'wallet', kind: 'nouvelle_nature' })).toEqual({
       label: 'Portefeuille',

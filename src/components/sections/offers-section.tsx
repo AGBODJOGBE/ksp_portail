@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { IconCheck } from '@/components/ui/icons';
 import { Card } from '@/components/ui/card';
 import { Section, type SectionTone } from '@/components/ui/section';
@@ -57,7 +58,10 @@ export function OfferGrid({
           >
             {indexFormat.format(index + 1)}
           </span>
-          <h3 className="font-display text-h3 text-ink mt-4 font-semibold">{offer.title}</h3>
+          <h3 className="font-display text-h3 text-ink mt-4 flex flex-wrap items-center gap-2 font-semibold">
+            {offer.title}
+            {offer.status ? <Badge tone="accent">{offer.status}</Badge> : null}
+          </h3>
           <p className="text-ink-muted mt-3">{frenchSpacing(offer.text)}</p>
           {offer.points && offer.points.length > 0 ? (
             <ul className="border-line text-small text-ink mt-6 space-y-2.5 border-t pt-5">

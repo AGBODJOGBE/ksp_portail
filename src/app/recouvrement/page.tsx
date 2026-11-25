@@ -8,7 +8,7 @@ import { PageActions } from '@/components/sections/page-actions';
 import { PendingSection } from '@/components/sections/pending-section';
 import { StepsSection } from '@/components/sections/steps-section';
 import { getMetier } from '@/config/metiers';
-import { recouvrementContent as content } from '@/features/recovery';
+import { recouvrementContent as content } from '@/features/recovery/server';
 import { BreadcrumbJsonLd } from '@/lib/seo/json-ld';
 import { pageMetadata } from '@/lib/seo/metadata';
 

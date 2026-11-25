@@ -34,7 +34,7 @@ import {
   describeCleaningError,
   errorWithReference,
 } from '@/features/cleaning/errors';
-import { idempotentSubmission } from '@/features/cleaning/idempotency';
+import { idempotentSubmission } from '@/lib/idempotency';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import { requestTexts as t } from '@/features/cleaning/request-texts';
 import { describeSchedule } from '@/features/cleaning/schedule';
@@ -52,7 +52,7 @@ import {
 import { CURRENT_TERMS_VERSION } from '@/features/cleaning/terms';
 import { cleaningTexts } from '@/features/cleaning/texts';
 import { AgentList } from './agents';
-import { Panel, SelectField, SummaryRow, TextAreaField } from './fields';
+import { Panel, SelectField, SummaryRow, TextAreaField } from '@/components/ui/form-fields';
 import { QuoteHistory, QuoteSection } from './quote-section';
 import { PricingFigures } from './simulation-result';
 import { SlotFields } from './slot-fields';

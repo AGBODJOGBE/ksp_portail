@@ -14,7 +14,7 @@ import {
   describeCleaningError,
   errorWithReference,
 } from '@/features/cleaning/errors';
-import { idempotentSubmission } from '@/features/cleaning/idempotency';
+import { idempotentSubmission } from '@/lib/idempotency';
 import { requestTexts as t } from '@/features/cleaning/request-texts';
 import type { Money, PaymentOutcome } from '@/features/cleaning/schemas';
 

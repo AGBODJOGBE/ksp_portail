@@ -13,12 +13,12 @@ import {
   describeCleaningError,
   errorWithReference,
 } from '@/features/cleaning/errors';
-import { idempotentSubmission } from '@/features/cleaning/idempotency';
+import { idempotentSubmission } from '@/lib/idempotency';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import { sessionTexts as t } from '@/features/cleaning/program-texts';
 import type { Claim, Session } from '@/features/cleaning/schemas';
 import { CLAIM_CATEGORIES } from '@/features/cleaning/status-texts';
-import { ChoicePill, Fieldset, Panel, TextAreaField } from './fields';
+import { ChoicePill, Fieldset, Panel, TextAreaField } from '@/components/ui/form-fields';
 import { type PickedPhoto, PhotoPicker } from './photo-picker';
 
 /** Bornes du contrat (`CleaningRateSessionBody`, `CleaningOpenClaimBody`). */

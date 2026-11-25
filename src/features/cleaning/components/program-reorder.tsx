@@ -16,13 +16,13 @@ import {
   errorWithReference,
   fieldMessage,
 } from '@/features/cleaning/errors';
-import { idempotentSubmission } from '@/features/cleaning/idempotency';
+import { idempotentSubmission } from '@/lib/idempotency';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import { programTexts, reorderTexts as t } from '@/features/cleaning/program-texts';
 import { type ScheduleDraft, buildSchedule, draftFromPlan } from '@/features/cleaning/schedule';
 import type { CleaningRequest, ProgramDetail } from '@/features/cleaning/schemas';
 import { wizardTexts } from '@/features/cleaning/request-texts';
-import { Panel } from './fields';
+import { Panel } from '@/components/ui/form-fields';
 import { ScheduleFields } from './schedule-fields';
 
 /**

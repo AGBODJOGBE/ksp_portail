@@ -100,7 +100,7 @@ const METIER_PAGES = [
   {
     path: '/recouvrement',
     links: {
-      'Déposer un dossier': '/mon-espace',
+      'Déposer un dossier': '/mon-espace/recouvrement/nouveau',
       'Demander un conseil': '/contact?sujet=recouvrement-conseil',
     },
   },
@@ -133,7 +133,9 @@ for (const { path, links } of METIER_PAGES) {
   });
 }
 
-test('« Déposer un dossier » mène à Mon espace KSP, qui demande la connexion', async ({ page }) => {
+test('« Déposer un dossier » mène à l’assistant du Recouvrement, qui demande la connexion', async ({
+  page,
+}) => {
   await mockGateway(page);
   await page.goto('/recouvrement');
   await page
@@ -141,7 +143,7 @@ test('« Déposer un dossier » mène à Mon espace KSP, qui demande la connexio
     .getByRole('link', { name: /Déposer un dossier/ })
     .first()
     .click();
-  await expect(page).toHaveURL(/\/connexion\?retour=%2Fmon-espace$/);
+  await expect(page).toHaveURL(/\/connexion\?retour=%2Fmon-espace%2Frecouvrement%2Fnouveau$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Se connecter', exact: true })).toBeVisible();
 });
 

@@ -19,7 +19,7 @@ import {
   describeCleaningError,
   errorWithReference,
 } from '@/features/cleaning/errors';
-import { idempotentSubmission } from '@/features/cleaning/idempotency';
+import { idempotentSubmission } from '@/lib/idempotency';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import { claimTexts as t } from '@/features/cleaning/program-texts';
 import type { Claim } from '@/features/cleaning/schemas';
@@ -30,7 +30,7 @@ import {
   claimStatus,
 } from '@/features/cleaning/status-texts';
 import { cleaningTexts } from '@/features/cleaning/texts';
-import { Panel, TextAreaField } from './fields';
+import { Panel, TextAreaField } from '@/components/ui/form-fields';
 import { SessionPhotos } from './session-parts';
 
 const MAX_MESSAGE = 2000;

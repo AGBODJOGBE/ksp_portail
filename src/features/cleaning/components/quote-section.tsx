@@ -21,13 +21,13 @@ import {
   describeCleaningError,
   errorWithReference,
 } from '@/features/cleaning/errors';
-import { idempotentSubmission } from '@/features/cleaning/idempotency';
+import { idempotentSubmission } from '@/lib/idempotency';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import { quoteTexts as t, requestTexts } from '@/features/cleaning/request-texts';
 import { describeSchedule } from '@/features/cleaning/schedule';
 import type { AcceptResult, CleaningRequest, Comparison, Quote } from '@/features/cleaning/schemas';
 import { quoteKind, quoteStatus } from '@/features/cleaning/status-texts';
-import { SelectField, SummaryRow, TextAreaField } from './fields';
+import { SelectField, SummaryRow, TextAreaField } from '@/components/ui/form-fields';
 
 /** Dates du programme montrées avant « et N autres ». */
 const SHOWN_DATES = 8;

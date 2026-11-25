@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { BandHeader, BandTitle } from '@/components/ui/band-header';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ import {
   sessionStatus,
 } from '@/features/cleaning/status-texts';
 import { AgentList } from './agents';
-import { Panel, SummaryRow } from './fields';
+import { Panel, SummaryRow } from '@/components/ui/form-fields';
 import { CleaningPay } from './pay-buttons';
 import { SessionChange } from './session-actions';
 import { SessionClaim, SessionRating } from './session-feedback';
@@ -50,6 +50,16 @@ function Detail({ programId, id }: { programId: string; id: string }) {
   const program = useResource(loadProgram).state;
   const role = useOrganizationRole();
   const state = resource.state;
+  // Après un paiement, la séance relue n'est plus « à payer » et son panneau disparaît : on garde
+  // la confirmation visible, sinon le client ne voit jamais que le paiement a réussi.
+  const wasPayable = useRef(false);
+  const [justPaid, setJustPaid] = useState(false);
+  const paymentStatus = state.status === 'ready' ? state.data.paymentStatus : undefined;
+  useEffect(() => {
+    if (paymentStatus === undefined) return;
+    if (wasPayable.current && paymentStatus === 'paid') setJustPaid(true);
+    wasPayable.current = isPayable(paymentStatus);
+  }, [paymentStatus]);
   const backToProgram = {
     href: cleaningPaths.program(programId),
     label: program.status === 'ready' ? t.backToProgram(program.data.number) : programTexts.back,
@@ -123,6 +133,9 @@ function Detail({ programId, id }: { programId: string; id: string }) {
 
       {isPayable(session.paymentStatus) ? (
         <PayPanel session={session} canAct={canAct} onChanged={resource.refresh} />
+      ) : null}
+      {justPaid && session.paymentStatus === 'paid' ? (
+        <FormMessage tone="success">{t.paid}</FormMessage>
       ) : null}
       <Closure session={session} />
       {upcoming && canAct ? (
