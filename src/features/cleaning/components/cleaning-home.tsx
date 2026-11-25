@@ -26,7 +26,7 @@ import {
   suspensionCause,
 } from '@/features/cleaning/status-texts';
 import { CleaningTabs } from './cleaning-tabs';
-import { Panel } from './fields';
+import { Panel } from '@/components/ui/form-fields';
 
 type Todo = Pick<CleaningOverview, 'requests' | 'sessionsToPay' | 'suspended'>;
 

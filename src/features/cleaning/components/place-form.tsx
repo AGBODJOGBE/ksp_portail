@@ -13,10 +13,10 @@ import {
   updatePlace,
 } from '@/features/cleaning/api';
 import { type CleaningErrorView, describeCleaningError, fieldMessage } from '@/features/cleaning/errors';
-import { idempotentSubmission } from '@/features/cleaning/idempotency';
+import { idempotentSubmission } from '@/lib/idempotency';
 import { placeTexts as t } from '@/features/cleaning/place-texts';
 import type { Catalog, Place } from '@/features/cleaning/schemas';
-import { SelectField } from './fields';
+import { SelectField } from '@/components/ui/form-fields';
 import { PlaceMap, type PlacedPoint } from './place-map';
 
 const MAX_NAME = 100;

@@ -59,6 +59,9 @@ describe('portefeuille : relevé et refus', () => {
   it('objet payé → écran du portail', () => {
     expect(objectPath({ objectType: 'billing_invoice', objectId: 'f 1' })).toBe('/mon-espace/factures/f%201');
     // Mission du Nettoyage v1 : plus d'écran.
+    expect(objectPath({ objectType: 'recovery_case_fee', objectId: 'c1' })).toBe(
+      '/mon-espace/recouvrement/dossiers/c1',
+    );
     expect(objectPath({ objectType: 'cleaning_mission', objectId: 'm1' })).toBeNull();
     expect(objectPath({ objectType: 'autre', objectId: 'x' })).toBeNull();
   });
@@ -77,6 +80,15 @@ describe('portefeuille : relevé et refus', () => {
         error(422, 'WALLET_INSUFFICIENT_FUNDS', { missing: xof(4000), balance: xof(1000) }),
       ),
     ).toEqual({ message: 'message de la gateway', kind: 'insufficient', missing: 4000, balance: 1000 });
+    // Frais d'un dossier de recouvrement : même forme que le portefeuille.
+    expect(
+      describeWalletError(
+        error(422, 'RECOVERY_INSUFFICIENT_FUNDS', { missing: xof(15000), balance: xof(2000) }),
+      ),
+    ).toEqual({ message: 'message de la gateway', kind: 'insufficient', missing: 15000, balance: 2000 });
+    expect(describeWalletError(error(422, 'RECOVERY_MANDATE_NOT_SIGNED')).kind).toBe('stale');
+    expect(describeWalletError(error(422, 'RECOVERY_INVALID_TRANSITION')).kind).toBe('stale');
+    expect(describeWalletError(error(409, 'RECOVERY_IDEMPOTENCY_KEY_REUSED')).kind).toBe('newKey');
     expect(describeWalletError(error(422, 'WALLET_DEBIT_REFUNDED')).kind).toBe('newKey');
     expect(describeWalletError(error(409, 'CLEANING_CONCURRENT_UPDATE')).kind).toBe('retry');
     expect(describeWalletError(error(409, 'BILLING_CONCURRENT_UPDATE')).kind).toBe('retry');

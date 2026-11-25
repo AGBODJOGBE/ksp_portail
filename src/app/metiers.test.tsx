@@ -22,7 +22,7 @@ const PAGES: ReadonlyArray<{ path: string; Page: PageComponent; h1: RegExp; acti
     Page: RecouvrementPage,
     h1: /Récupérez vos impayés/,
     actions: [
-      { name: 'Déposer un dossier', href: '/mon-espace' },
+      { name: 'Déposer un dossier', href: '/mon-espace/recouvrement/nouveau' },
       { name: 'Demander un conseil', href: '/contact?sujet=recouvrement-conseil' },
     ],
   },

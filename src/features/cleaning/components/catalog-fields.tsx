@@ -16,7 +16,7 @@ import { cn } from '@/lib/cn';
 import { visibleOffers } from '@/features/cleaning/draft';
 import type { Catalog, Parameter, PlaceTypeDetail } from '@/features/cleaning/schemas';
 import { simulatorTexts as t } from '@/features/cleaning/simulator-texts';
-import { ChoicePill, Fieldset, SelectField } from './fields';
+import { ChoicePill, Fieldset, SelectField } from '@/components/ui/form-fields';
 
 /*
  * Champs pilotés par le catalogue de la gateway : lieu (catégories et lieux), types de nettoyage (packs

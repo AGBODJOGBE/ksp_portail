@@ -30,7 +30,7 @@ import {
   request,
   simulation,
 } from './fixtures.test-utils';
-import { idempotentSubmission } from './idempotency';
+import { idempotentSubmission } from '@/lib/idempotency';
 import { cleaningPaths } from './paths';
 import { buildSchedule, describeSchedule, emptySchedule } from './schedule';
 import {

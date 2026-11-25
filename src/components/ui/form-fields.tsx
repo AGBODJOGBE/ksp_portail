@@ -4,9 +4,10 @@ import { IconCheck } from '@/components/ui/icons';
 import { cn } from '@/lib/cn';
 
 /*
- * Briques de formulaire du Nettoyage : groupe de champs avec légende, choix en pastilles (boutons radio
- * ou cases), liste déroulante et zone de texte reliées à leur aide et à leur erreur. Cibles de 44 px,
- * focus visible, erreur sous le champ.
+ * Briques de formulaire des espaces connectés (Nettoyage, Recouvrement) : groupe de champs avec légende,
+ * choix en pastilles (boutons radio ou cases), liste déroulante et zone de texte reliées à leur aide et à
+ * leur erreur, ligne de récapitulatif, carte de section. Cibles de 44 px, focus visible, erreur sous le
+ * champ.
  */
 
 export function Fieldset({
@@ -198,6 +199,7 @@ export function Panel({
   children,
   className,
   action,
+  flat = false,
   as: Tag = 'section',
 }: {
   id: string;
@@ -205,12 +207,14 @@ export function Panel({
   children: ReactNode;
   className?: string;
   action?: ReactNode;
+  /** Sans carte (section d'un ensemble déjà encadré, comme un onglet). */
+  flat?: boolean;
   as?: 'section' | 'div';
 }) {
   return (
     <Tag
       aria-labelledby={id}
-      className={cn('rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-7', className)}
+      className={cn(!flat && 'rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-7', className)}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id={id} className="font-display text-h3 text-ink font-semibold">

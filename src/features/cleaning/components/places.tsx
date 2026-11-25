@@ -23,7 +23,7 @@ import { placeTexts as t } from '@/features/cleaning/place-texts';
 import type { Place } from '@/features/cleaning/schemas';
 import { cleaningTexts } from '@/features/cleaning/texts';
 import { PlaceTypeIcon } from './catalog-fields';
-import { Panel, SummaryRow } from './fields';
+import { Panel, SummaryRow } from '@/components/ui/form-fields';
 import { PlaceForm } from './place-form';
 import { useCatalog, usePlaceType } from './use-public';
 

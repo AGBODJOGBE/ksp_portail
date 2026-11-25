@@ -3,5 +3,5 @@
  * d'un lien de signature pour une personne sans compte, et document de « Mon espace KSP ».
  */
 // Écrans client chargés à la demande (voir components/lazy.tsx).
-export { DocumentDetail, PublicSigning } from './components/lazy';
+export { DocumentDetail, DocumentSigning, PublicSigning } from './components/lazy';
 export { documentTexts } from './texts';

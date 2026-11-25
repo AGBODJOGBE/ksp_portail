@@ -25,7 +25,7 @@ import { buildSchedule } from '@/features/cleaning/schedule';
 import type { PlaceTypeDetail, Simulation } from '@/features/cleaning/schemas';
 import { simulatorTexts as t } from '@/features/cleaning/simulator-texts';
 import { CleaningTypePicker, ParameterFields, PlaceTypePicker } from './catalog-fields';
-import { ChoicePill, SelectField } from './fields';
+import { ChoicePill, SelectField } from '@/components/ui/form-fields';
 import { ScheduleFields } from './schedule-fields';
 import { SimulationResult } from './simulation-result';
 import { type LiveState, useCatalog, usePlaceType, useSimulation, useZones } from './use-public';

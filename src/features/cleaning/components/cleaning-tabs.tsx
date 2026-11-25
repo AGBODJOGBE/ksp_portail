@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { type KeyboardEvent, type ReactNode, useCallback, useId, useRef, useState } from 'react';
+import { type ReactNode, useCallback } from 'react';
+import { Tabs } from '@/components/ui/tabs';
 import { TodoState } from '@/components/ui/todo-panel';
-import { cn } from '@/lib/cn';
 import { type Resource, type ResourceState, useResource } from '@/lib/use-resource';
 import { listClaims, listPlaces, listPrograms, listRequests } from '@/features/cleaning/api';
 import { describeCleaningError } from '@/features/cleaning/errors';
@@ -25,80 +25,15 @@ type Tab = (typeof TABS)[number];
  * liste n'est lue qu'à l'ouverture de son onglet.
  */
 export function CleaningTabs() {
-  const id = useId();
-  const [current, setCurrent] = useState<Tab>('requests');
-  const [opened, setOpened] = useState<ReadonlySet<Tab>>(() => new Set(['requests']));
-  const buttons = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
-
-  function select(tab: Tab, focus = false) {
-    setCurrent(tab);
-    setOpened((previous) => new Set(previous).add(tab));
-    if (focus) buttons.current[tab]?.focus();
-  }
-
-  function onKey(event: KeyboardEvent<HTMLButtonElement>) {
-    const index = TABS.indexOf(current);
-    const moves: Record<string, number> = {
-      ArrowRight: (index + 1) % TABS.length,
-      ArrowLeft: (index - 1 + TABS.length) % TABS.length,
-      Home: 0,
-      End: TABS.length - 1,
-    };
-    const next = moves[event.key];
-    if (next === undefined) return;
-    event.preventDefault();
-    select(TABS[next]!, true);
-  }
-
   return (
     <section
       aria-label={t.tabsLabel}
       className="rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-7"
     >
-      <div
-        role="tablist"
-        aria-label={t.tabsLabel}
-        className="border-line -mx-1 flex [scrollbar-width:none] gap-1 overflow-x-auto border-b px-1"
-      >
-        {TABS.map((tab) => {
-          const selected = tab === current;
-          return (
-            <button
-              key={tab}
-              ref={(element) => {
-                buttons.current[tab] = element;
-              }}
-              type="button"
-              role="tab"
-              id={`${id}-${tab}`}
-              aria-selected={selected}
-              aria-controls={`${id}-${tab}-panneau`}
-              tabIndex={selected ? 0 : -1}
-              onClick={() => select(tab)}
-              onKeyDown={onKey}
-              className={cn(
-                'focus-visible:outline-focus -mb-px inline-flex min-h-11 shrink-0 items-center border-b-2 px-4 font-semibold whitespace-nowrap focus-visible:outline-2 focus-visible:-outline-offset-2',
-                selected ? 'border-action text-ink' : 'text-ink-muted hover:text-ink border-transparent',
-              )}
-            >
-              {t.tabs[tab]}
-            </button>
-          );
-        })}
-      </div>
-      {TABS.map((tab) => (
-        <div
-          key={tab}
-          role="tabpanel"
-          id={`${id}-${tab}-panneau`}
-          aria-labelledby={`${id}-${tab}`}
-          hidden={tab !== current}
-          tabIndex={0}
-          className="focus-visible:outline-focus mt-5 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4"
-        >
-          {opened.has(tab) ? <TabContent tab={tab} /> : null}
-        </div>
-      ))}
+      <Tabs
+        label={t.tabsLabel}
+        items={TABS.map((tab) => ({ key: tab, label: t.tabs[tab], render: () => <TabContent tab={tab} /> }))}
+      />
     </section>
   );
 }

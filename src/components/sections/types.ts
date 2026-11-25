@@ -58,6 +58,8 @@ export type Offer = {
   title: string;
   text: string;
   points?: ReadonlyArray<string>;
+  /** Offre pas encore ouverte (« Bientôt ») : étiquette à côté du titre. */
+  status?: string;
 };
 
 export type FaqItem = { question: string; answer: string };

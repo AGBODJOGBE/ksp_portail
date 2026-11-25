@@ -6,7 +6,7 @@ import { IconClose } from '@/components/ui/icons';
 import { beninDate } from '@/lib/format';
 import { MAX_SLOTS, type SlotDraft } from '@/features/cleaning/draft';
 import { wizardTexts as t } from '@/features/cleaning/request-texts';
-import { Fieldset } from './fields';
+import { Fieldset } from '@/components/ui/form-fields';
 
 /**
  * Créneaux de disponibilité pour la visite (1 à 3) : jour et plage horaire, heure du Bénin. Le délai

@@ -49,6 +49,18 @@ const MESSAGES: Record<string, { message: string; kind: WalletErrorKind }> = {
     message: 'Cette facture ne peut plus être payée : elle est déjà réglée ou annulée.',
     kind: 'stale',
   },
+  RECOVERY_MANDATE_NOT_SIGNED: {
+    message: 'Le mandat doit être signé avant le paiement des frais de dossier.',
+    kind: 'stale',
+  },
+  RECOVERY_INVALID_TRANSITION: {
+    message: 'Les frais de ce dossier ne peuvent plus être payés : son état a changé.',
+    kind: 'stale',
+  },
+  RECOVERY_IDEMPOTENCY_KEY_REUSED: {
+    message: 'Le paiement n’a pas pu être préparé. Réessayez.',
+    kind: 'newKey',
+  },
   CLEANING_PAYMENT_VIA_INVOICE: {
     message: 'Une prestation d’entreprise se règle par sa facture mensuelle, dans « Mes factures ».',
     kind: 'other',
@@ -74,7 +86,8 @@ const amountOf = (value: unknown): number | undefined =>
  */
 export function describeWalletError(error: unknown): WalletErrorView {
   if (!(error instanceof ApiError)) return { message: walletTexts.genericError, kind: 'other' };
-  if (error.code === 'WALLET_INSUFFICIENT_FUNDS') {
+  // Même forme pour les frais d'un dossier de recouvrement (`fee/pay`, ADR-060) : `details.missing`, `details.balance`.
+  if (error.code === 'WALLET_INSUFFICIENT_FUNDS' || error.code === 'RECOVERY_INSUFFICIENT_FUNDS') {
     return {
       message: error.message,
       kind: 'insufficient',

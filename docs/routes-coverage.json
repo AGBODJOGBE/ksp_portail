@@ -12,8 +12,42 @@
       "reason": "Clés publiques des jetons, lues par les services, pas par un écran."
     },
     {
-      "path": "/api/v1/recovery/*",
-      "reason": "Recouvrement : lots 3 et 4, à venir."
+      "path": "/api/v1/recovery/debtor/*",
+      "reason": "Recouvrement, débiteur sans compte (ADR-061) : PR 2 à venir."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/recovery/decisions",
+      "reason": "Recouvrement : PR 3 à venir (décisions, arrêt, paiements directs, reversements, relevés ; le service répond 501 RECOVERY_NOT_IMPLEMENTED). Pages ou sections provisoires « Bientôt disponible »."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/recovery/decisions/{id}",
+      "reason": "Recouvrement : PR 3 à venir (décisions, arrêt, paiements directs, reversements, relevés ; le service répond 501 RECOVERY_NOT_IMPLEMENTED). Pages ou sections provisoires « Bientôt disponible »."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/recovery/cases/{id}/stop",
+      "reason": "Recouvrement : PR 3 à venir (décisions, arrêt, paiements directs, reversements, relevés ; le service répond 501 RECOVERY_NOT_IMPLEMENTED). Pages ou sections provisoires « Bientôt disponible »."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/recovery/cases/{id}/direct-payments",
+      "reason": "Recouvrement : PR 3 à venir (décisions, arrêt, paiements directs, reversements, relevés ; le service répond 501 RECOVERY_NOT_IMPLEMENTED). Pages ou sections provisoires « Bientôt disponible »."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/recovery/remittances",
+      "reason": "Recouvrement : PR 3 à venir (décisions, arrêt, paiements directs, reversements, relevés ; le service répond 501 RECOVERY_NOT_IMPLEMENTED). Pages ou sections provisoires « Bientôt disponible »."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/recovery/statements",
+      "reason": "Recouvrement : PR 3 à venir (décisions, arrêt, paiements directs, reversements, relevés ; le service répond 501 RECOVERY_NOT_IMPLEMENTED). Pages ou sections provisoires « Bientôt disponible »."
+    },
+    {
+      "path": "/api/v1/recovery/imports*",
+      "reason": "Recouvrement : PR 3 à venir (import d’un tableur ; finalité file recovery_import absente). Pages provisoires « Bientôt disponible »."
     },
     {
       "path": "/api/v1/identity/mfa/*",

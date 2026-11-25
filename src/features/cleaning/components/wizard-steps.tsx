@@ -24,7 +24,7 @@ import { cleaningPaths } from '@/features/cleaning/paths';
 import { wizardTexts as t } from '@/features/cleaning/request-texts';
 import { describeSchedule, buildSchedule } from '@/features/cleaning/schedule';
 import type { Place, PlaceTypeDetail } from '@/features/cleaning/schemas';
-import { SummaryRow, TextAreaField } from './fields';
+import { SummaryRow, TextAreaField } from '@/components/ui/form-fields';
 import { PhotoPicker } from './photo-picker';
 import { PlaceForm } from './place-form';
 import { PricingFigures } from './simulation-result';

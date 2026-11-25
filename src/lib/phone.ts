@@ -50,3 +50,13 @@ export function formatPhone(value: string): string {
   if (!match) return value;
   return `+229 ${match[1]!.replace(/(\d{2})(?=\d)/g, '$1 ')}`;
 }
+
+/**
+ * Numéro saisi en un seul champ (bénéficiaire d'un retrait, débiteur d'un dossier) → E.164, ou `null` :
+ * 8 ou 10 chiffres sans indicatif sont lus comme un numéro béninois, le reste suit `normalizePhone`.
+ */
+export function phoneFromInput(value: string): string | null {
+  const compact = compactPhone(value);
+  if (/^\d{8}$|^\d{10}$/.test(compact)) return normalizePhone(`+229${compact}`);
+  return normalizePhone(compact);
+}

@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, ButtonArrow, ButtonLink } from '@/components/ui/button';
+import { Button, ButtonLink } from '@/components/ui/button';
 import { FormMessage } from '@/components/ui/field';
-import { IconArrowLeft, IconArrowRight, IconCheck } from '@/components/ui/icons';
+import { IconCheck } from '@/components/ui/icons';
 import { SkeletonCards } from '@/components/ui/skeleton';
-import { cn } from '@/lib/cn';
+import { WizardNav, WizardProgress } from '@/components/ui/wizard';
 import { session, useSession } from '@/lib/api';
 import { RequireSession, identityPaths, useOrganizationRole } from '@/features/identity';
 import { type SubmitRequestBody, getPlace, listCatalog, submitRequest } from '@/features/cleaning/api';
@@ -32,14 +32,14 @@ import {
   writeDraft,
 } from '@/features/cleaning/draft';
 import { describeCleaningError, errorWithReference } from '@/features/cleaning/errors';
-import { idempotentSubmission } from '@/features/cleaning/idempotency';
+import { idempotentSubmission } from '@/lib/idempotency';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import { wizardTexts as t } from '@/features/cleaning/request-texts';
 import { buildSchedule } from '@/features/cleaning/schedule';
 import type { CleaningRequest, Place } from '@/features/cleaning/schemas';
 import { CURRENT_TERMS_VERSION } from '@/features/cleaning/terms';
 import { CleaningTypePicker, ParameterFields, PlaceTypePicker } from './catalog-fields';
-import { TextAreaField } from './fields';
+import { TextAreaField } from '@/components/ui/form-fields';
 import { ScheduleFields } from './schedule-fields';
 import { SimulationResult } from './simulation-result';
 import { visibleValueErrors } from './simulator';
@@ -216,7 +216,11 @@ export function RequestWizard() {
 
   return (
     <div className="grid gap-6">
-      <Progress index={index} />
+      <WizardProgress
+        steps={STEPS.map((name) => t.steps[name])}
+        index={index}
+        progressLabel={t.progress(index + 1, STEPS.length)}
+      />
       <section
         aria-labelledby="etape-titre"
         className="rounded-panel border-line bg-surface border p-5 shadow-xs sm:p-8"
@@ -385,14 +389,16 @@ export function RequestWizard() {
       </section>
 
       <WizardNav
-        index={index}
+        showBack={index > 0}
         busy={busy}
+        backLabel={t.back}
+        nextLabel={step === 'review' ? (busy ? t.submitting : t.submit) : t.next}
+        arrow={step !== 'review'}
         onBack={() => {
           const previous = STEPS[index - 1];
           if (previous) goTo(previous);
         }}
         onNext={step === 'review' ? () => void send() : next}
-        last={step === 'review'}
       />
       <p className="text-center">
         <button
@@ -409,82 +415,6 @@ export function RequestWizard() {
           {t.restart}
         </button>
       </p>
-    </div>
-  );
-}
-
-/** Fil des étapes : « Étape n sur 7 » et la barre de progression. */
-function Progress({ index }: { index: number }) {
-  return (
-    <div className="grid gap-3">
-      <p className="text-small text-ink-muted font-semibold">
-        {t.progress(index + 1, STEPS.length)}
-        {/* Sur téléphone, le nom de l'étape suit le compteur (les libellés sous la barre sont masqués). */}
-        <span className="text-ink sm:hidden" aria-hidden="true">
-          {` · ${t.steps[STEPS[index] ?? 'type']}`}
-        </span>
-      </p>
-      <ol className="grid grid-cols-7 gap-1.5" aria-label={t.progress(index + 1, STEPS.length)}>
-        {STEPS.map((name, position) => (
-          <li key={name} className="grid gap-1.5">
-            <span
-              aria-hidden="true"
-              className={cn(
-                'h-1.5 rounded-full',
-                position < index ? 'bg-action' : position === index ? 'bg-action progress-grow' : 'bg-line',
-              )}
-            />
-            <span
-              className={cn(
-                'text-xs leading-tight',
-                'max-sm:sr-only',
-                position === index ? 'text-ink font-semibold' : 'text-ink-muted',
-              )}
-            >
-              <span className="sr-only">
-                {position < index ? 'Faite : ' : position === index ? 'En cours : ' : 'À venir : '}
-              </span>
-              {t.steps[name]}
-            </span>
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
-
-/** Boutons « Retour » et « Continuer » / « Envoyer », fixés en bas de l'écran du téléphone. */
-function WizardNav({
-  index,
-  busy,
-  last,
-  onBack,
-  onNext,
-}: {
-  index: number;
-  busy: boolean;
-  last: boolean;
-  onBack: () => void;
-  onNext: () => void;
-}) {
-  return (
-    <div className="border-line bg-surface/95 sticky bottom-0 z-30 -mx-4 flex items-center justify-between gap-3 border-t px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
-      {index > 0 ? (
-        <Button variant="secondary" onClick={onBack} disabled={busy}>
-          <IconArrowLeft />
-          {t.back}
-        </Button>
-      ) : (
-        <span />
-      )}
-      <Button variant="action" size="lg" onClick={onNext} disabled={busy}>
-        {last ? (busy ? t.submitting : t.submit) : t.next}
-        {last ? null : (
-          <ButtonArrow>
-            <IconArrowRight />
-          </ButtonArrow>
-        )}
-      </Button>
     </div>
   );
 }

@@ -17,15 +17,18 @@ const NO_PARENT = {
   message: 'Import relatif limité au dossier courant : utiliser @/.',
 };
 
-/** Une fonctionnalité ne s'importe que par son API publique : `@/features/<domaine>` (ou `/server`). */
+/**
+ * Une fonctionnalité ne s'importe que par son API publique : `@/features/<domaine>`, ou l'un de ses points
+ * d'entrée sans relais d'écrans : `/server` (pages rendues par le serveur) et `/home` (accueil de Mon espace).
+ */
 const featureInternals = (/** @type {string} */ self = '') => ({
-  regex: `^@/features/${self ? `(?!${self}/)` : ''}[^/]+/(?!server$).+`,
-  message: 'Importer une fonctionnalité par son API publique : @/features/<domaine>.',
+  regex: `^@/features/${self ? `(?!${self}/)` : ''}[^/]+/(?!(?:server|home)$).+`,
+  message: 'Importer une fonctionnalité par son API publique : @/features/<domaine> (ou /server, /home).',
 });
 
 /** Dans une fonctionnalité, ses propres fichiers s'importent directement, jamais par son index (cycles). */
 const selfIndex = (/** @type {string} */ self) => ({
-  regex: `^@/features/${self}(/server)?$`,
+  regex: `^@/features/${self}(/(?:server|home))?$`,
   message: 'Dans sa propre fonctionnalité, importer le fichier voulu (@/features/<domaine>/…), pas l’index.',
 });
 

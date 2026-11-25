@@ -28,7 +28,7 @@ import {
   describeCleaningError,
   errorWithReference,
 } from '@/features/cleaning/errors';
-import { idempotentSubmission } from '@/features/cleaning/idempotency';
+import { idempotentSubmission } from '@/lib/idempotency';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import { programTexts as t } from '@/features/cleaning/program-texts';
 import { describeSchedule } from '@/features/cleaning/schedule';
@@ -44,7 +44,7 @@ import {
 } from '@/features/cleaning/status-texts';
 import { CURRENT_TERMS_VERSION } from '@/features/cleaning/terms';
 import { cleaningTexts } from '@/features/cleaning/texts';
-import { Panel, SummaryRow } from './fields';
+import { Panel, SummaryRow } from '@/components/ui/form-fields';
 import { ProgramProgress } from './program-list';
 
 /**

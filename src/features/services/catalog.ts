@@ -4,7 +4,7 @@ import { nettoyageContent } from '@/features/cleaning';
 import { livraisonContent } from '@/features/delivery';
 import { impressionContent } from '@/features/print';
 import { immobilierContent, QUOTE_ID } from '@/features/realestate';
-import { recouvrementContent } from '@/features/recovery';
+import { recouvrementContent } from '@/features/recovery/server';
 import { CATEGORY_LABELS, normalize, type ServiceEntry } from './search';
 
 /** Service avant la préparation de son texte de recherche. */
@@ -18,7 +18,8 @@ type Draft = Omit<ServiceEntry, 'search'>;
  * Fichier serveur : il lit les contenus de toutes les pages métiers (le navigateur ne reçoit que la liste).
  */
 
-type Offer = { title: string; text: string; points?: ReadonlyArray<string> };
+/** Offre d'une page métier ; `status` : offre pas encore ouverte (« Bientôt »). */
+type Offer = { title: string; text: string; points?: ReadonlyArray<string>; status?: string };
 
 function describe(offer: Offer): string {
   return offer.points?.length ? `${offer.text} ${offer.points.join(', ')}.` : offer.text;
@@ -37,7 +38,7 @@ function fromOffers(
     title: title(offer),
     description: describe(offer),
     href,
-    ...(status ? { status } : {}),
+    ...((offer.status ?? status) ? { status: offer.status ?? status } : {}),
   }));
 }
 

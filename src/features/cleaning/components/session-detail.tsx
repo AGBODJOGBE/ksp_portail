@@ -25,7 +25,7 @@ import {
   sessionStatus,
 } from '@/features/cleaning/status-texts';
 import { AgentList } from './agents';
-import { Panel, SummaryRow } from './fields';
+import { Panel, SummaryRow } from '@/components/ui/form-fields';
 import { CleaningPay } from './pay-buttons';
 import { SessionChange } from './session-actions';
 import { SessionClaim, SessionRating } from './session-feedback';

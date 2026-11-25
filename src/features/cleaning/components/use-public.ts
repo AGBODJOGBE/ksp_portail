@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
+import { type LiveState as GenericLiveState, useLive as useLiveCalculation } from '@/lib/use-live';
 import { useResource } from '@/lib/use-resource';
 import {
   type SchedulePlan,
@@ -20,9 +21,6 @@ import type { PlaceTypeDetail, SchedulePreview, Simulation, Zone } from '@/featu
  * résultat reste affiché pendant le nouveau calcul.
  */
 
-/** Pause de saisie avant un calcul : évite un appel par touche (limite de la gateway par adresse). */
-export const LIVE_DELAY_MS = 600;
-
 export function useCatalog() {
   return useResource(listCatalog);
 }
@@ -40,43 +38,10 @@ export function usePlaceType(placeTypeId: string | null) {
   return useResource<PlaceTypeDetail | null>(load);
 }
 
-export type LiveState<T> =
-  | { status: 'idle' }
-  | { status: 'loading'; last: T | null }
-  | { status: 'ready'; data: T }
-  | { status: 'error'; error: CleaningErrorView; last: T | null };
+export type LiveState<T> = GenericLiveState<T, CleaningErrorView>;
 
 function useLive<B, T>(body: B | null, run: (body: B, signal: AbortSignal) => Promise<T>): LiveState<T> {
-  const key = body === null ? null : JSON.stringify(body);
-  // Résultat du dernier calcul terminé, avec la saisie qui l'a produit.
-  const [done, setDone] = useState<{ key: string; result: LiveState<T> } | null>(null);
-  const [last, setLast] = useState<T | null>(null);
-
-  useEffect(() => {
-    if (key === null) return;
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => {
-      run(JSON.parse(key) as B, controller.signal).then(
-        (data) => {
-          if (controller.signal.aborted) return;
-          setLast(data);
-          setDone({ key, result: { status: 'ready', data } });
-        },
-        (error: unknown) => {
-          if (controller.signal.aborted || (error as Error)?.name === 'AbortError') return;
-          setDone({ key, result: { status: 'error', error: describeCleaningError(error), last: null } });
-        },
-      );
-    }, LIVE_DELAY_MS);
-    return () => {
-      window.clearTimeout(timer);
-      controller.abort();
-    };
-  }, [key, run]);
-
-  if (key === null) return { status: 'idle' };
-  if (done?.key !== key) return { status: 'loading', last };
-  return done.result.status === 'error' ? { ...done.result, last } : done.result;
+  return useLiveCalculation(body, run, describeCleaningError);
 }
 
 /** Estimation en direct (`POST /cleaning/simulations`), null tant que la saisie n'est pas complète. */

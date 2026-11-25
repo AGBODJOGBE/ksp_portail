@@ -11,12 +11,12 @@ import {
   describeCleaningError,
   errorWithReference,
 } from '@/features/cleaning/errors';
-import { idempotentSubmission } from '@/features/cleaning/idempotency';
+import { idempotentSubmission } from '@/lib/idempotency';
 import { cleaningPaths } from '@/features/cleaning/paths';
 import { sessionTexts as t } from '@/features/cleaning/program-texts';
 import type { Session } from '@/features/cleaning/schemas';
 import { CURRENT_TERMS_VERSION } from '@/features/cleaning/terms';
-import { Panel } from './fields';
+import { Panel } from '@/components/ui/form-fields';
 
 /**
  * Délai avant la séance pendant lequel le client agit seul (partie 12, R-RP-01 : « plus de 24 h avant »,

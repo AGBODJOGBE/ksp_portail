@@ -1,6 +1,6 @@
 import { ApiError } from '@/lib/api';
 import { formatXof } from '@/lib/format';
-import { compactPhone, isBeninPhone, normalizePhone } from '@/lib/phone';
+import { isBeninPhone, phoneFromInput } from '@/lib/phone';
 import type { WithdrawalInput, WithdrawalOperator } from './api';
 import { withdrawalTexts as t } from './withdrawal-texts';
 
@@ -38,9 +38,7 @@ export const FIELD_ORDER: ReadonlyArray<WithdrawalField> = ['amount', 'operator'
  * ne va que vers un compte Mobile Money du Bénin.
  */
 export function beneficiaryPhone(value: string): string | null {
-  const compact = compactPhone(value);
-  if (/^\d{8}$|^\d{10}$/.test(compact)) return normalizePhone(`+229${compact}`);
-  return normalizePhone(compact);
+  return phoneFromInput(value);
 }
 
 /**
