@@ -9,9 +9,17 @@ import { usePagedList } from '@/lib/use-paged-list';
 import { listStatement } from '@/features/wallet/api';
 import { objectPath } from '@/features/wallet/paths';
 import type { StatementLine } from '@/features/wallet/schemas';
-import { statementKindLabel, walletTexts as t } from '@/features/wallet/texts';
+import { objectLinkLabel, statementKindLabel, walletTexts as t } from '@/features/wallet/texts';
 
-const TONES: Record<string, BadgeTone> = { top_up: 'success', service_payment: 'neutral', refund: 'brand' };
+const TONES: Record<string, BadgeTone> = {
+  top_up: 'success',
+  service_payment: 'neutral',
+  refund: 'brand',
+  service_credit: 'brand',
+  withdrawal_hold: 'warning',
+  withdrawal_settlement: 'neutral',
+  withdrawal_release: 'brand',
+};
 
 function Line({ line }: { line: StatementLine }) {
   const credit = line.direction === 'credit';
@@ -30,7 +38,7 @@ function Line({ line }: { line: StatementLine }) {
             href={path}
             className="text-action-ink inline-flex min-h-11 items-center gap-1 text-sm font-semibold underline-offset-4 hover:underline"
           >
-            {t.seeInvoice}
+            {objectLinkLabel(line.object.objectType)}
             <IconArrowRight className="size-4" />
           </Link>
         ) : null}

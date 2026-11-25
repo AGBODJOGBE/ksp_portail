@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { type ReactNode, useCallback, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { BandBack, BandHeader } from '@/components/ui/band-header';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,10 @@ import { frenchSpacing } from '@/lib/typography';
 import { useResource } from '@/lib/use-resource';
 import { changeBillingEmail, confirmBillingEmail, getMyOrganization } from '@/features/identity/api';
 import { describeAccountError } from '@/features/identity/account-errors';
+import { memberTexts } from '@/features/identity/member-texts';
 import { accountTexts, identityPaths, organizationStatus } from '@/features/identity/texts';
 import { EmailVerification } from './email-verification';
+import { OrganizationMembers } from './organization-members';
 import { Fact, Loading, Section } from './space-parts';
 import { useSwitchContext } from './use-switch-context';
 
@@ -25,12 +27,35 @@ function BackLink() {
   return <BandBack href={identityPaths.organizations} label={t.back} />;
 }
 
-/** Fiche d'un compte entreprise : état et suite, informations, e-mail de facturation, passage en contexte. */
-export function OrganizationDetail({ id }: { id: string }) {
+/**
+ * Fiche d'un compte entreprise : état et suite, informations, membres, e-mail de facturation, passage en
+ * contexte. `billing` : réglages de facturation de l'entreprise (prélèvement automatique), fournis par la
+ * route pour que cette fonctionnalité n'importe pas la facturation.
+ */
+export function OrganizationDetail({ id, billing }: { id: string; billing?: ReactNode }) {
   const { state, reload, set } = useResource(useCallback(() => getMyOrganization(id), [id]));
   const activeOrganization = useSession()?.activeContext.organizationId ?? null;
   const context = useSwitchContext();
   const [pendingBilling, setPendingBilling] = useState<string | null | undefined>(undefined);
+  // Départ de l'entreprise (« Quitter l'entreprise ») : la fiche n'est plus lisible, on le dit.
+  const [left, setLeft] = useState<{ name: string; personal: boolean } | null>(null);
+
+  if (left) {
+    return (
+      <div className="grid gap-8">
+        <BandHeader>
+          <BackLink />
+        </BandHeader>
+        <div className="rounded-card border-line bg-surface grid justify-items-start gap-4 border p-5 shadow-xs sm:p-6">
+          <FormMessage tone="success">
+            {left.personal
+              ? `${memberTexts.left(left.name)} ${memberTexts.backToPersonal}`
+              : memberTexts.left(left.name)}
+          </FormMessage>
+        </div>
+      </div>
+    );
+  }
 
   if (state.status === 'loading') return <Loading label={accountTexts.common.loading} />;
   if (state.status === 'error') {
@@ -112,6 +137,12 @@ export function OrganizationDetail({ id }: { id: string }) {
         </dl>
       </Section>
 
+      <OrganizationMembers
+        organization={organization}
+        myRole={membership.role}
+        onLeft={(personal) => setLeft({ name: organization.legalName, personal })}
+      />
+
       <Section id="entreprise-facturation-titre" title={t.billingTitle} lead={t.billingLead}>
         <EmailVerification
           id="entreprise-email"
@@ -134,6 +165,8 @@ export function OrganizationDetail({ id }: { id: string }) {
           }
         />
       </Section>
+
+      {billing}
     </div>
   );
 }

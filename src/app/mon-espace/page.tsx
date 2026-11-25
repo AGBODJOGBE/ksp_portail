@@ -22,8 +22,8 @@ import { paymentPaths, paymentTexts } from '@/features/payment';
 import { WalletBalanceLink, walletPaths, walletTexts } from '@/features/wallet';
 import {
   AccountOverview,
+  AccountTodo,
   ContextSwitcher,
-  ProfileTodo,
   RequireSession,
   accountTexts,
   identityPaths,
@@ -127,7 +127,7 @@ export default function AccountPage() {
             <div className="mt-8 grid gap-10">
               <CleaningTodo />
               <InvoiceTodo />
-              <ProfileTodo />
+              <AccountTodo />
             </div>
           </section>
 

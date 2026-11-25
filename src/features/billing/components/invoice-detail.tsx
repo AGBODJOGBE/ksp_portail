@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import Link from 'next/link';
+import { type ReactNode, useCallback, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { BandBack, BandHeader } from '@/components/ui/band-header';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,18 @@ import { formatExclusiveEndDate, formatNumber, formatShortDate, formatXof } from
 import { useResource } from '@/lib/use-resource';
 import { WalletPay } from '@/features/wallet';
 import { getInvoice, payInvoice } from '@/features/billing/api';
+import {
+  filled,
+  hasPeriod,
+  invoiceKind,
+  invoiceMonth,
+  invoiceSummary,
+  lineDetails,
+  serviceDate,
+} from '@/features/billing/invoice-view';
+import type { CreditNote } from '@/features/billing/schemas';
 import { billingPaths, billingTexts as t, invoiceMethods, invoiceStatus } from '@/features/billing/texts';
+import { InvoiceMobileMoney } from './invoice-mobile-money';
 
 /** Factures payables avec le portefeuille (le reste dû est débité en entier par billing, ADR-046). */
 const PAYABLE = new Set(['pending_payment', 'overdue']);
@@ -36,7 +48,82 @@ function BackLink() {
   return <BandBack href={billingPaths.list} label={t.back} />;
 }
 
-/** Détail d'une facture : période, lignes, total, échéance, règlements. */
+/** Numéro d'un dossier du Nettoyage et lien vers sa liste (la facture n'en porte pas l'identifiant). */
+function CleaningReference({ number, href, label }: { number: string; href: string; label: string }) {
+  return (
+    <span className="flex flex-wrap items-baseline gap-x-3">
+      <span>{number}</span>
+      <Link
+        href={href}
+        className="text-action-ink text-small inline-flex min-h-11 items-center font-semibold underline-offset-4 hover:underline sm:min-h-0"
+      >
+        {label}
+      </Link>
+    </span>
+  );
+}
+
+/** Avoirs émis sur la facture (R-PE-07) : numéro, date, motif, lignes et où est allé le montant. */
+function CreditNotes({ notes }: { notes: ReadonlyArray<CreditNote> }) {
+  return (
+    <section
+      aria-labelledby="facture-avoirs"
+      className="rounded-card border-line bg-surface grid gap-4 border p-5 sm:p-6"
+    >
+      <div className="grid gap-1">
+        <Heading as="h2" size="h3" id="facture-avoirs">
+          {t.creditNotesTitle}
+        </Heading>
+        <p className="text-small text-ink-muted">{t.creditNotesLead}</p>
+      </div>
+      <ul className="divide-line border-line grid divide-y border-y">
+        {notes.map((note) => (
+          <li key={note.id} className="grid gap-2 py-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+              <p className="text-ink font-semibold">{t.creditNote(note.number)}</p>
+              <p className="text-ink font-semibold tabular-nums">{formatXof(note.total)}</p>
+            </div>
+            <p className="text-small text-ink-muted">{t.creditIssuedOn(formatShortDate(note.issuedAt))}</p>
+            <p className="text-ink">
+              <span className="text-ink-muted">{`${t.creditReason} : `}</span>
+              {note.reason}
+            </p>
+            {note.lines.length ? (
+              <ul className="text-small text-ink-muted grid gap-0.5">
+                {note.lines.map((line, index) => (
+                  <li key={`${line.label}-${index}`} className="flex justify-between gap-4">
+                    <span>{line.label}</span>
+                    <span className="tabular-nums">{formatXof(line.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <dl className="text-small grid gap-x-6 gap-y-1 sm:grid-cols-2">
+              {note.appliedToBalance.amount > 0 ? (
+                <div className="flex justify-between gap-4 sm:block">
+                  <dt className="text-ink-muted">{t.creditApplied}</dt>
+                  <dd className="text-ink font-medium tabular-nums">{formatXof(note.appliedToBalance)}</dd>
+                </div>
+              ) : null}
+              {note.creditedToWallet.amount > 0 ? (
+                <div className="flex justify-between gap-4 sm:block">
+                  <dt className="text-ink-muted">{t.creditToWallet}</dt>
+                  <dd className="text-ink font-medium tabular-nums">{formatXof(note.creditedToWallet)}</dd>
+                </div>
+              ) : null}
+            </dl>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * Détail d'une facture : v1 (mois d'un contrat, période) ou v2 (séance, frais de visite, mensuelle ;
+ * demande, programme, lieu, date), lignes, total, échéance, avoirs, règlements ; paiement par Mobile Money
+ * ou par le portefeuille tant qu'il reste à régler.
+ */
 export function InvoiceDetail({ id }: { id: string }) {
   const { state, reload, refresh, set } = useResource(useCallback(() => getInvoice(id), [id]));
   // Paiement par le portefeuille enregistré : montant et solde restant, annoncés (zone `status`).
@@ -77,12 +164,45 @@ export function InvoiceDetail({ id }: { id: string }) {
 
   const invoice = state.data;
   const status = invoiceStatus(invoice.status);
-  const facts: ReadonlyArray<readonly [string, string | null]> = [
-    ['Origine', t.source[invoice.source] ?? invoice.source],
-    ['Mois facturé', t.month(invoice.periodIndex)],
-    ['Émission', formatShortDate(invoice.issuedAt)],
-    ['Règlement', invoice.paidAt ? t.paidOn(formatShortDate(invoice.paidAt)) : null],
+  const kind = invoiceKind(invoice);
+  const requestNumber = filled(invoice.requestNumber);
+  const programNumber = filled(invoice.programNumber);
+  // Facture v1 : la période du contrat ; v2 : nature, séance, lieu et date (champs vides masqués).
+  const lead =
+    hasPeriod(invoice) && invoice.periodStart && invoice.periodEnd
+      ? t.period(formatShortDate(invoice.periodStart), formatExclusiveEndDate(invoice.periodEnd))
+      : invoiceSummary(invoice);
+  const facts: ReadonlyArray<readonly [string, ReactNode]> = [
+    [t.facts.origin, t.source[invoice.source] ?? invoice.source],
+    [t.facts.kind, kind],
+    [t.facts.month, invoiceMonth(invoice)],
+    [
+      t.facts.request,
+      requestNumber ? (
+        <CleaningReference
+          number={requestNumber}
+          href={billingPaths.cleaningRequests}
+          label={t.seeRequests}
+        />
+      ) : null,
+    ],
+    [
+      t.facts.program,
+      programNumber ? (
+        <CleaningReference
+          number={programNumber}
+          href={billingPaths.cleaningPrograms}
+          label={t.seePrograms}
+        />
+      ) : null,
+    ],
+    [t.facts.session, filled(invoice.sessionRank)],
+    [t.facts.place, filled(invoice.placeLabel)],
+    [t.facts.serviceDate, serviceDate(invoice.serviceDate)],
+    [t.facts.issued, formatShortDate(invoice.issuedAt)],
+    [t.facts.settled, invoice.paidAt ? t.paidOn(formatShortDate(invoice.paidAt)) : null],
   ];
+  const payable = PAYABLE.has(invoice.status) && invoice.balance.amount > 0;
 
   return (
     <div className="grid gap-8">
@@ -147,9 +267,7 @@ export function InvoiceDetail({ id }: { id: string }) {
         <Heading as="h1" size="h1" className="mt-3">
           {t.invoice(invoice.number)}
         </Heading>
-        <p className="text-lead text-ink-muted mt-3">
-          {t.period(formatShortDate(invoice.periodStart), formatExclusiveEndDate(invoice.periodEnd))}
-        </p>
+        {lead ? <p className="text-lead text-ink-muted mt-3">{lead}</p> : null}
       </BandHeader>
 
       {invoice.status === 'overdue' ? <FormMessage>{`${t.overdueNotice} ${t.howToPay}`}</FormMessage> : null}
@@ -159,24 +277,28 @@ export function InvoiceDetail({ id }: { id: string }) {
       {invoice.status === 'cancelled' ? <FormMessage tone="info">{t.cancelledNotice}</FormMessage> : null}
       <FormMessage tone="success">{paid}</FormMessage>
 
-      {PAYABLE.has(invoice.status) && invoice.balance.amount > 0 ? (
-        <section
-          aria-labelledby="facture-payer"
-          className="signature-edge rounded-card border-line bg-surface shadow-card grid gap-4 border p-5 sm:p-6"
-        >
-          <Heading as="h2" size="h3" id="facture-payer">
-            {t.payTitle}
-          </Heading>
-          <WalletPay
-            pay={(key) => payInvoice(invoice.id, key)}
-            amount={invoice.balance}
-            onPaid={(updated, notice) => {
-              set(updated);
-              setPaid(notice);
-            }}
-            onStale={refresh}
-          />
-        </section>
+      {payable ? (
+        // Deux moyens : Mobile Money d'abord (R-PE-04), puis le portefeuille (ADR-046).
+        <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+          <InvoiceMobileMoney invoice={invoice} onStale={refresh} />
+          <section
+            aria-labelledby="facture-payer"
+            className="rounded-card border-line bg-surface shadow-card grid gap-4 border p-5 sm:p-6"
+          >
+            <Heading as="h2" size="h3" id="facture-payer">
+              {t.payTitle}
+            </Heading>
+            <WalletPay
+              pay={(key) => payInvoice(invoice.id, key)}
+              amount={invoice.balance}
+              onPaid={(updated, notice) => {
+                set(updated);
+                setPaid(notice);
+              }}
+              onStale={refresh}
+            />
+          </section>
+        </div>
       ) : null}
 
       {invoice.organization ? (
@@ -208,13 +330,13 @@ export function InvoiceDetail({ id }: { id: string }) {
         </Heading>
         {/* Téléphone : lignes empilées ; à partir de 640 px : tableau. */}
         <ul className="divide-line border-line grid divide-y border-y sm:hidden">
-          {invoice.lines.map((line) => (
-            <li
-              key={`${line.label}-${line.amount.amount}`}
-              className="flex items-start justify-between gap-4 py-2.5"
-            >
+          {invoice.lines.map((line, index) => (
+            <li key={`${line.label}-${index}`} className="flex items-start justify-between gap-4 py-2.5">
               <span className="min-w-0">
                 <span className="text-ink block font-medium">{line.label}</span>
+                {lineDetails(line) ? (
+                  <span className="text-small text-ink-muted block">{lineDetails(line)}</span>
+                ) : null}
                 <span className="text-small text-ink-muted tabular-nums">
                   {formatNumber(line.quantity)} × {formatXof(line.unitPrice)}
                 </span>
@@ -242,10 +364,13 @@ export function InvoiceDetail({ id }: { id: string }) {
               </tr>
             </thead>
             <tbody className="tabular-nums">
-              {invoice.lines.map((line) => (
-                <tr key={`${line.label}-${line.amount.amount}`} className="border-line border-b">
+              {invoice.lines.map((line, index) => (
+                <tr key={`${line.label}-${index}`} className="border-line border-b">
                   <th scope="row" className="text-ink py-2 pr-3 font-medium">
                     {line.label}
+                    {lineDetails(line) ? (
+                      <span className="text-small text-ink-muted block font-normal">{lineDetails(line)}</span>
+                    ) : null}
                   </th>
                   <td className="px-3 py-2 text-right">{formatNumber(line.quantity)}</td>
                   <td className="px-3 py-2 text-right">{formatXof(line.unitPrice)}</td>
@@ -255,7 +380,8 @@ export function InvoiceDetail({ id }: { id: string }) {
             </tbody>
           </table>
         </div>
-        <p className="text-small text-ink-muted">{t.prorata}</p>
+        {/* Prorata des jours facturables : facture mensuelle v1 (avec sa période) seulement. */}
+        {!kind && hasPeriod(invoice) ? <p className="text-small text-ink-muted">{t.prorata}</p> : null}
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[11rem_1fr]">
           {facts
             .filter(([, value]) => value)
@@ -267,6 +393,8 @@ export function InvoiceDetail({ id }: { id: string }) {
             ))}
         </dl>
       </section>
+
+      {invoice.creditNotes?.length ? <CreditNotes notes={invoice.creditNotes} /> : null}
 
       <section
         aria-labelledby="facture-reglements"

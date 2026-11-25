@@ -61,8 +61,11 @@ export const DeletionRequested = dynamic(
   { loading: Loading },
 );
 
-/** E-mail à ajouter ou à vérifier, dans la rubrique « À faire » de l'accueil de l'espace. */
-export const ProfileTodo = dynamic(() => import('./profile-todo').then((module_) => module_.ProfileTodo));
+/**
+ * Rubrique « À faire » de l'accueil de l'espace : invitations à rejoindre une entreprise, e-mail à ajouter
+ * ou à vérifier.
+ */
+export const AccountTodo = dynamic(() => import('./account-todo').then((module_) => module_.AccountTodo));
 
 const ContextGate = dynamic(
   () => import('./organization-context-gate').then((module_) => module_.OrganizationContextGate),

@@ -83,3 +83,42 @@ export function describeAccountError(error: unknown): AccountErrorView {
       return { message };
   }
 }
+
+/** Champ du formulaire d'invitation auquel une erreur se rattache. */
+export type MemberField = 'phone' | 'role';
+
+export interface MemberErrorView {
+  message: string;
+  field?: MemberField;
+  /** Organisation inconnue, ou l'utilisateur n'en est plus membre. */
+  notFound?: boolean;
+}
+
+const asMemberField = (value: unknown): MemberField | undefined =>
+  value === 'phone' || value === 'role' ? value : undefined;
+
+/**
+ * Erreurs des membres et des invitations (R-CP-03) : numéro ou rôle refusé, déjà membre, entreprise pas
+ * validée, dernier administrateur, invitation close. Le message de la gateway (déjà en français) est
+ * affiché ; le code décide du champ en cause.
+ */
+export function describeMemberError(error: unknown): MemberErrorView {
+  if (!(error instanceof ApiError)) return { message: accountTexts.common.genericError };
+  const { code, message, details } = error;
+  switch (code) {
+    case 'IDENTITY_MEMBER_INVALID':
+      return { message, field: asMemberField(details.field) };
+    case 'IDENTITY_MEMBER_ALREADY_EXISTS':
+      return { message, field: 'phone' };
+    case 'GATEWAY_VALIDATION_FAILED': {
+      const fields = Array.isArray(details.fields) ? (details.fields as Array<{ field?: unknown }>) : [];
+      const field = fields.map((item) => asMemberField(item.field)).find(Boolean);
+      return field ? { message, field } : { message };
+    }
+    case 'IDENTITY_ORGANIZATION_NOT_FOUND':
+      return { message: accountTexts.organization.notFound, notFound: true };
+    default:
+      // Droits, entreprise pas validée, dernier administrateur, membre ou invitation introuvable ou close.
+      return { message };
+  }
+}

@@ -7,7 +7,8 @@
  *    dépendance).
  * 2. Garde le périmètre du portail : tout sauf le back-office (`/admin/*`) et l'espace pro (F-021 :
  *    `/cleaning/agent/*`, `/recovery/partner/*`, routes de terrain des séances et des visites).
- * 3. Trouve les appels réellement écrits dans `src/features/<domaine>/api.ts` et `src/lib/api` (méthode
+ * 3. Trouve les appels réellement écrits dans `src/features/<domaine>/api.ts` (et ses modules d'appels
+ *    chargés à la demande, `*-api.ts`) et `src/lib/api` (méthode
  *    et chemin ; constantes, objets de chemins et petites fonctions de chemin du même fichier résolus ;
  *    paramètres normalisés en `{}`).
  * 4. Affiche, par domaine : routes intégrées, non intégrées, exclues volontairement (raison lue dans
@@ -96,8 +97,13 @@ function sourceFiles() {
   const files = [];
   const features = join(ROOT, 'src', 'features');
   for (const entry of readdirSync(features, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
     const file = join(features, entry.name, 'api.ts');
-    if (entry.isDirectory() && existsSync(file)) files.push(file);
+    if (existsSync(file)) files.push(file);
+    // Appels d'écrans chargés à la demande, hors du `api.ts` que lisent toutes les pages (`members-api.ts`).
+    for (const name of readdirSync(join(features, entry.name))) {
+      if (name.endsWith('-api.ts')) files.push(join(features, entry.name, name));
+    }
   }
   const lib = join(ROOT, 'src', 'lib', 'api');
   for (const name of readdirSync(lib)) {

@@ -3,12 +3,12 @@
 export const walletTexts = {
   title: 'Mon portefeuille',
   homeLinkText: 'Votre solde prépayé KSP : rechargez-le par Mobile Money, payez vos prestations et factures.',
-  lead: 'Rechargez par Mobile Money, puis payez vos prestations et vos factures depuis votre solde, sans ressaisir votre numéro.',
+  lead: 'Rechargez par Mobile Money, puis payez vos prestations et vos factures depuis votre solde, sans ressaisir votre numéro. Votre solde se retire aussi vers Mobile Money.',
   scope:
     'Le portefeuille affiché est celui du compte actif : votre compte personnel, ou l’entreprise que vous représentez.',
   balance: 'Solde disponible',
   balanceOf: (name: string) => `Solde de ${name}`,
-  balanceHint: 'Utilisable pour toutes les prestations KSP. Il n’est pas retirable.',
+  balanceHint: 'Utilisable pour toutes les prestations KSP, et retirable vers Mobile Money.',
   lastEntry: (date: string) => `Dernière opération le ${date}`,
   loading: 'Chargement…',
   retry: 'Réessayer',
@@ -40,7 +40,7 @@ export const walletTexts = {
   // Relevé.
   statementTitle: 'Relevé',
   statementEmpty: 'Aucune opération pour le moment.',
-  statementEmptyHint: 'Vos recharges, paiements et remboursements apparaîtront ici.',
+  statementEmptyHint: 'Vos recharges, paiements, remboursements et retraits apparaîtront ici.',
   loadMore: 'Afficher plus',
   loadingMore: 'Chargement…',
   balanceAfter: (amount: string) => `Solde après : ${amount}`,
@@ -48,11 +48,19 @@ export const walletTexts = {
     top_up: 'Recharge',
     service_payment: 'Paiement',
     refund: 'Remboursement',
+    // CDC Nettoyage v2 (R-WL-04) : crédit décidé par un service (geste commercial, réclamation…).
+    service_credit: 'Crédit KSP',
+    // Retrait vers Mobile Money : montant retenu, virement fait, ou montant rendu (refus, échec).
+    withdrawal_hold: 'Retrait demandé',
+    withdrawal_settlement: 'Retrait versé',
+    withdrawal_release: 'Retrait rendu',
   } as Record<string, string>,
   otherKind: 'Opération',
   credit: 'Crédit',
   debit: 'Débit',
   seeInvoice: 'Voir la facture',
+  seeSession: 'Voir la séance',
+  seeRequest: 'Voir la demande',
 
   // Reversements (fonds dus au titulaire, ADR-041).
   payoutsTitle: 'Reversements',
@@ -99,6 +107,13 @@ export const walletTexts = {
   topUpMinimum: (amount: string) => `La recharge minimum est de ${amount}.`,
   payWithWalletHint: 'Payé depuis votre solde prépayé KSP, rechargeable par Mobile Money.',
 } as const;
+
+/** Libellé du lien vers l'objet payé (`objectPath`). */
+export function objectLinkLabel(objectType: string): string {
+  if (objectType === 'cleaning_session') return walletTexts.seeSession;
+  if (objectType === 'cleaning_request') return walletTexts.seeRequest;
+  return walletTexts.seeInvoice;
+}
 
 /** Libellé du type d'une ligne du relevé ; type inconnu : libellé neutre. */
 export function statementKindLabel(line: { kind: string }): string {

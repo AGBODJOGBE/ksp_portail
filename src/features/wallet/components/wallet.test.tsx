@@ -61,6 +61,7 @@ const errorBody = (code: string, message: string, details: Record<string, unknow
 });
 
 type Reply = { status: number; body?: unknown };
+const EMPTY_PAGE: Reply = { status: 200, body: { data: [], nextCursor: null } };
 interface Call {
   method: string;
   path: string;
@@ -69,10 +70,18 @@ interface Call {
   headers: Record<string, string>;
 }
 
-/** Gateway simulée : « MÉTHODE /chemin » → réponses dans l'ordre (la dernière est répétée). */
+/**
+ * Gateway simulée : « MÉTHODE /chemin » → réponses dans l'ordre (la dernière est répétée). « Mes retraits »
+ * (affiché sur tout portefeuille) répond une liste vide quand le test ne le précise pas.
+ */
 function stubGateway(routes: Record<string, Reply | Reply[]>) {
   const calls: Call[] = [];
-  const queues = new Map(Object.entries(routes).map(([key, value]) => [key, [value].flat()]));
+  const queues = new Map(
+    Object.entries({ [`GET ${WALLET}/withdrawals`]: EMPTY_PAGE, ...routes }).map(([key, value]) => [
+      key,
+      [value].flat(),
+    ]),
+  );
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: string | URL, init: RequestInit = {}) => {
@@ -477,5 +486,318 @@ describe('Retour d’une recharge', () => {
       'href',
       '/mon-espace/portefeuille',
     );
+  });
+});
+
+function withdrawal(overrides: Record<string, unknown> = {}) {
+  return {
+    id: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d9001',
+    holder: { type: 'user', id: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d9e11' },
+    amount: xof(30000),
+    status: 'requested',
+    beneficiaryOperator: 'moov',
+    beneficiaryPhoneMasked: '+229 •• •• 46',
+    requestedBy: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d9e11',
+    requestedAt: '2026-11-25T09:00:00Z',
+    processedBy: null,
+    processedAt: null,
+    approvedBy: null,
+    approvedAt: null,
+    rejectedAt: null,
+    rejectionReason: null,
+    paymentPayoutId: null,
+    completedAt: null,
+    failedAt: null,
+    ...overrides,
+  };
+}
+
+const prepaid = (balance: number, inProgress = 0) => ({
+  holder: { type: 'user', id: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d9e11' },
+  balance: xof(balance),
+  lastEntryAt: '2026-11-25T09:00:00Z',
+  ...(inProgress ? { withdrawalsInProgress: xof(inProgress) } : {}),
+});
+
+describe('Retirer vers Mobile Money', () => {
+  const empty = { status: 200, body: { data: [], nextCursor: null } };
+
+  it('saisie préremplie, contrôles, récapitulatif, envoi idempotent, solde et « Mes retraits » relus', async () => {
+    const calls = stubGateway({
+      [`GET ${WALLET}`]: { status: 200, body: wallet(30000) },
+      [`GET ${WALLET}/statement`]: empty,
+      [`GET ${WALLET}/withdrawals`]: [
+        empty,
+        { status: 200, body: { data: [withdrawal()], nextCursor: null } },
+      ],
+      [`POST ${WALLET}/withdrawals`]: [
+        { status: 503, body: errorBody('WALLET_UNAVAILABLE', 'Portefeuille momentanément indisponible.') },
+        { status: 201, body: { withdrawal: withdrawal(), wallet: prepaid(0, 30000), created: true } },
+      ],
+    });
+    render(<WalletSpace />);
+    const section = await screen.findByRole('region', { name: 'Retirer vers Mobile Money' });
+    // Numéro et nom repris de la session, modifiables.
+    expect(within(section).getByLabelText(/Numéro Mobile Money/)).toHaveValue('+229 01 97 00 00 45');
+    expect(within(section).getByLabelText(/Nom du titulaire/)).toHaveValue('Koffi Adjovi');
+    expect(await screen.findByText('Aucun retrait pour le moment.')).toBeInTheDocument();
+
+    // Montant au-delà du solde et opérateur manquant : refusés avant l'envoi, focus sur le montant.
+    const amount = within(section).getByLabelText(/Montant à retirer/);
+    fireEvent.change(amount, { target: { value: '50 000' } });
+    fireEvent.click(within(section).getByRole('button', { name: 'Vérifier ma demande' }));
+    expect(
+      within(section).getByText(/dépasse votre solde disponible \(30\s000\sF\sCFA\)/),
+    ).toBeInTheDocument();
+    expect(within(section).getByText('Choisissez l’opérateur du compte Mobile Money.')).toBeInTheDocument();
+    expect(amount).toHaveFocus();
+
+    // Numéro local, sans indicatif : la forme envoyée est montrée sous le champ.
+    fireEvent.click(within(section).getByRole('button', { name: /Tout retirer/ }));
+    fireEvent.click(within(section).getByRole('radio', { name: 'Moov' }));
+    fireEvent.change(within(section).getByLabelText(/Numéro Mobile Money/), {
+      target: { value: '01 97 00 00 46' },
+    });
+    expect(plain(within(section).getByText(/Numéro utilisé/).textContent)).toBe(
+      'Numéro utilisé : +229 01 97 00 00 46.',
+    );
+    fireEvent.click(within(section).getByRole('button', { name: 'Vérifier ma demande' }));
+
+    // Récapitulatif : rien n'est envoyé avant la confirmation.
+    expect(within(section).getByText('Vérifiez votre demande')).toHaveFocus();
+    expect(plain(within(section).getByText('Vers').nextElementSibling?.textContent)).toBe(
+      'Moov +229 01 97 00 00 46',
+    );
+    expect(calls.some((call) => call.method === 'POST')).toBe(false);
+    fireEvent.click(within(section).getByRole('button', { name: /Confirmer le retrait de 30\s000\sF\sCFA/ }));
+    expect(await within(section).findByText('Portefeuille momentanément indisponible.')).toBeInTheDocument();
+    fireEvent.click(within(section).getByRole('button', { name: /Confirmer le retrait/ }));
+    expect(
+      await within(section).findByText(/Demande de retrait de 30\s000\sF\sCFA enregistrée/),
+    ).toHaveFocus();
+    expect(within(section).getByText(/Nouveau solde : 0\sF\sCFA/)).toBeInTheDocument();
+
+    const posts = calls.filter((call) => call.method === 'POST');
+    expect(posts[0]?.body).toEqual({
+      amount: xof(30000),
+      beneficiary: { phone: '+2290197000046', operator: 'moov', name: 'Koffi Adjovi' },
+    });
+    expect(posts[0]?.headers['Idempotency-Key']).toMatch(/^[A-Za-z0-9_-]{8,100}$/);
+    // Service injoignable : même saisie, même clé (un seul retrait).
+    expect(posts[1]?.headers['Idempotency-Key']).toBe(posts[0]?.headers['Idempotency-Key']);
+
+    // Solde de la réponse (retenue faite) et « Mes retraits » relu.
+    const balance = screen.getByRole('region', { name: 'Solde disponible' });
+    expect(plain(balance.textContent)).toContain('En cours de retrait : 30 000 F CFA, déjà déduit du solde.');
+    const list = screen.getByRole('region', { name: 'Mes retraits' });
+    expect(await within(list).findByText('Vers Moov +229 •• •• 46')).toBeInTheDocument();
+    expect(within(list).getByText('Demandé')).toBeInTheDocument();
+    expect(within(list).getByText('KSP vérifie votre demande.')).toBeInTheDocument();
+
+    // Solde vidé par la demande : plus rien à retirer.
+    fireEvent.click(within(section).getByRole('button', { name: 'Faire une autre demande' }));
+    expect(within(section).getByText(/Votre solde est vide/)).toBeInTheDocument();
+  });
+
+  it('clé neuve quand la saisie change ; solde insuffisant : message, portefeuille relu', async () => {
+    const calls = stubGateway({
+      [`GET ${WALLET}`]: [
+        { status: 200, body: wallet(20000) },
+        { status: 200, body: wallet(5000) },
+      ],
+      [`GET ${WALLET}/statement`]: empty,
+      [`POST ${WALLET}/withdrawals`]: [
+        { status: 503, body: errorBody('WALLET_UNAVAILABLE', 'Indisponible.') },
+        {
+          status: 422,
+          body: errorBody('WALLET_INSUFFICIENT_FUNDS', 'Solde insuffisant.', {
+            balance: xof(5000),
+            missing: xof(5000),
+          }),
+        },
+      ],
+    });
+    render(<WalletSpace />);
+    const section = await screen.findByRole('region', { name: 'Retirer vers Mobile Money' });
+    fireEvent.change(within(section).getByLabelText(/Montant à retirer/), { target: { value: '15000' } });
+    fireEvent.click(within(section).getByRole('radio', { name: 'MTN' }));
+    fireEvent.click(within(section).getByRole('button', { name: 'Vérifier ma demande' }));
+    fireEvent.click(within(section).getByRole('button', { name: /Confirmer le retrait de 15\s000/ }));
+    expect(await within(section).findByText('Indisponible.')).toBeInTheDocument();
+
+    fireEvent.click(within(section).getByRole('button', { name: 'Modifier' }));
+    fireEvent.change(within(section).getByLabelText(/Montant à retirer/), { target: { value: '10000' } });
+    fireEvent.click(within(section).getByRole('button', { name: 'Vérifier ma demande' }));
+    fireEvent.click(within(section).getByRole('button', { name: /Confirmer le retrait de 10\s000/ }));
+    expect(
+      await within(section).findByText(/Solde insuffisant : il vous manque 5\s000\sF\sCFA/),
+    ).toBeInTheDocument();
+    const posts = calls.filter((call) => call.method === 'POST');
+    expect(posts[1]?.headers['Idempotency-Key']).not.toBe(posts[0]?.headers['Idempotency-Key']);
+    // Le solde est relu sur la gateway.
+    await waitFor(() =>
+      expect(plain(screen.getByRole('region', { name: 'Solde disponible' }).textContent)).toContain(
+        '5 000 F CFA',
+      ),
+    );
+  });
+
+  it('numéro refusé par la gateway : retour à la saisie, erreur sous le champ', async () => {
+    stubGateway({
+      [`GET ${WALLET}`]: { status: 200, body: wallet(20000) },
+      [`GET ${WALLET}/statement`]: empty,
+      [`POST ${WALLET}/withdrawals`]: {
+        status: 400,
+        body: errorBody(
+          'WALLET_VALIDATION_FAILED',
+          'Numéro béninois au format international attendu (+229…).',
+          { field: 'beneficiary.phone' },
+        ),
+      },
+    });
+    render(<WalletSpace />);
+    const section = await screen.findByRole('region', { name: 'Retirer vers Mobile Money' });
+    fireEvent.change(within(section).getByLabelText(/Montant à retirer/), { target: { value: '5000' } });
+    fireEvent.click(within(section).getByRole('radio', { name: 'Celtiis' }));
+    fireEvent.click(within(section).getByRole('button', { name: 'Vérifier ma demande' }));
+    fireEvent.click(within(section).getByRole('button', { name: /Confirmer le retrait/ }));
+    expect(await within(section).findByText(/format international attendu/)).toBeInTheDocument();
+    expect(within(section).getByLabelText(/Numéro Mobile Money/)).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('numéro étranger refusé avant l’envoi ; solde vide : rien à retirer', async () => {
+    stubGateway({
+      [`GET ${WALLET}`]: [
+        { status: 200, body: wallet(8000) },
+        { status: 200, body: wallet(0) },
+      ],
+      [`GET ${WALLET}/statement`]: empty,
+    });
+    const { unmount } = render(<WalletSpace />);
+    const section = await screen.findByRole('region', { name: 'Retirer vers Mobile Money' });
+    fireEvent.change(within(section).getByLabelText(/Numéro Mobile Money/), {
+      target: { value: '+33 6 12 34 56 78' },
+    });
+    fireEvent.click(within(section).getByRole('button', { name: 'Vérifier ma demande' }));
+    expect(within(section).getByText(/Indiquez un numéro béninois à 10 chiffres/)).toBeInTheDocument();
+    unmount();
+
+    render(<WalletSpace />);
+    const emptied = await screen.findByRole('region', { name: 'Retirer vers Mobile Money' });
+    expect(within(emptied).getByText(/Votre solde est vide/)).toBeInTheDocument();
+    expect(within(emptied).queryByRole('button', { name: 'Vérifier ma demande' })).toBeNull();
+  });
+
+  it('entreprise : un membre suit les retraits mais ne peut pas en demander', async () => {
+    signIn(true);
+    stubGateway({
+      [`GET ${WALLET}`]: { status: 200, body: wallet(150000) },
+      [`GET ${WALLET}/statement`]: empty,
+      [`GET ${WALLET}/withdrawals`]: {
+        status: 200,
+        body: {
+          data: [
+            withdrawal({
+              status: 'rejected',
+              rejectedAt: '2026-11-20T10:00:00Z',
+              rejectionReason: 'Titulaire du compte différent de l’entreprise.',
+            }),
+            withdrawal({
+              id: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d9002',
+              status: 'completed',
+              beneficiaryOperator: 'mtn',
+              completedAt: '2026-11-18T10:00:00Z',
+            }),
+            withdrawal({
+              id: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d9003',
+              status: 'failed',
+              failedAt: '2026-11-17T10:00:00Z',
+            }),
+          ],
+          nextCursor: null,
+        },
+      },
+      [`GET /api/v1/identity/organizations/${ORGANIZATION_ID}`]: {
+        status: 200,
+        body: { organization: { id: ORGANIZATION_ID }, role: 'org_member', pendingBillingEmail: null },
+      },
+    });
+    render(<WalletSpace />);
+    const section = await screen.findByRole('region', { name: 'Retirer vers Mobile Money' });
+    expect(within(section).getByText(/Seuls les administrateurs de l’entreprise/)).toBeInTheDocument();
+    expect(within(section).queryByRole('button', { name: 'Vérifier ma demande' })).toBeNull();
+    const list = screen.getByRole('region', { name: 'Mes retraits' });
+    expect(await within(list).findByText('Refusé')).toBeInTheDocument();
+    expect(within(list).getByText(/Motif : Titulaire du compte différent/)).toBeInTheDocument();
+    expect(within(list).getByText(/Refusé le .* : le montant est revenu à votre solde/)).toBeInTheDocument();
+    expect(within(list).getByText('Versé')).toBeInTheDocument();
+    expect(within(list).getByText(/Échec du virement le/)).toBeInTheDocument();
+  });
+
+  it('entreprise, administrateur : formulaire de retrait proposé', async () => {
+    signIn(true);
+    stubGateway({
+      [`GET ${WALLET}`]: { status: 200, body: wallet(150000) },
+      [`GET ${WALLET}/statement`]: empty,
+      [`GET /api/v1/identity/organizations/${ORGANIZATION_ID}`]: {
+        status: 200,
+        body: { organization: { id: ORGANIZATION_ID }, role: 'org_admin', pendingBillingEmail: null },
+      },
+    });
+    render(<WalletSpace />);
+    const section = await screen.findByRole('region', { name: 'Retirer vers Mobile Money' });
+    expect(within(section).getByRole('button', { name: 'Vérifier ma demande' })).toBeInTheDocument();
+  });
+
+  it('relevé : natures du retrait et crédit KSP, lien vers une séance du Nettoyage', async () => {
+    const SESSION_ID = '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d7101';
+    stubGateway({
+      [`GET ${WALLET}`]: { status: 200, body: wallet(9800) },
+      [`GET ${WALLET}/statement`]: {
+        status: 200,
+        body: {
+          data: [
+            line({ kind: 'withdrawal_hold', description: 'Retrait vers Mobile Money', object: null }),
+            line({
+              transactionId: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d7002',
+              kind: 'withdrawal_release',
+              direction: 'credit',
+              description: 'Retrait refusé',
+              object: null,
+            }),
+            line({
+              transactionId: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d7003',
+              kind: 'service_credit',
+              direction: 'credit',
+              description: 'Geste commercial',
+              object: null,
+            }),
+            line({
+              transactionId: '0192f1c4-7a2b-7c3d-8e4f-5a6b7c8d7004',
+              description: 'Séance 3/15 — PN-2026-000012',
+              object: {
+                service: 'cleaning',
+                objectType: 'cleaning_session',
+                objectId: SESSION_ID,
+                part: null,
+              },
+            }),
+          ],
+          nextCursor: null,
+        },
+      },
+    });
+    render(<WalletSpace />);
+    const statement = await screen.findByRole('region', { name: 'Relevé' });
+    expect(await within(statement).findByText('Retrait demandé')).toBeInTheDocument();
+    expect(within(statement).getByText('Retrait rendu')).toBeInTheDocument();
+    expect(within(statement).getByText('Crédit KSP')).toBeInTheDocument();
+    expect(within(statement).getByRole('link', { name: 'Voir la séance' })).toHaveAttribute(
+      'href',
+      `/mon-espace/nettoyage/seances/${SESSION_ID}`,
+    );
+    // Le prépayé est désormais retirable (ADR-055 décision 8).
+    expect(screen.getByText(/retirable vers Mobile Money/)).toBeInTheDocument();
+    expect(screen.queryByText(/n’est pas retirable/)).toBeNull();
   });
 });

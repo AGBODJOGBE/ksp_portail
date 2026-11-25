@@ -19,8 +19,18 @@ const moneySchema = z.object({ amount: z.int(), currency: z.literal('XOF') });
  * dans ce schéma : le paiement par le portefeuille (fiche d'une facture) relit aussi
  * `GET /wallet/me` et ne doit pas échouer pour une rubrique qu'il n'affiche pas.
  */
+/**
+ * `PrepaidWallet` : solde prépayé. `withdrawalsInProgress` (v2, R-WL-04) : retraits vers Mobile Money
+ * demandés et pas encore terminés, **déjà déduits** du solde ; facultatif (envoyé seulement s'il est utile).
+ */
+export const prepaidWalletSchema = z.object({
+  balance: moneySchema,
+  lastEntryAt: z.nullable(z.string()),
+  withdrawalsInProgress: z.optional(moneySchema),
+});
+
 export const walletSchema = z.object({
-  prepaid: z.optional(z.object({ balance: moneySchema, lastEntryAt: z.nullable(z.string()) })),
+  prepaid: z.optional(prepaidWalletSchema),
   topUpLimits: z.optional(z.object({ min: moneySchema, max: moneySchema })),
   totalCollected: z.optional(moneySchema),
   payoutsInProgress: z.optional(moneySchema),
@@ -87,7 +97,41 @@ export const payoutListSchema = z.object({
   nextCursor: z.nullable(z.string()),
 });
 
+/**
+ * `Withdrawal` (R-WL-04, ADR-055 décision 8) : retrait du portefeuille prépayé vers Mobile Money, réduit à ce
+ * que lit le client. Statuts `requested`, `awaiting_approval`, `submitted`, `completed`, `failed` (montant
+ * rendu) et `rejected` (montant rendu, motif) ; un statut inconnu s'affiche avec un libellé neutre.
+ */
+export const withdrawalSchema = z.object({
+  id: z.string(),
+  amount: moneySchema,
+  status: z.string(),
+  /** `mtn`, `moov` ou `celtiis`. */
+  beneficiaryOperator: z.string(),
+  beneficiaryPhoneMasked: z.string(),
+  requestedAt: z.string(),
+  rejectedAt: z.nullable(z.string()),
+  rejectionReason: z.nullable(z.string()),
+  completedAt: z.nullable(z.string()),
+  failedAt: z.nullable(z.string()),
+});
+
+export const withdrawalListSchema = z.object({
+  data: z.array(withdrawalSchema),
+  nextCursor: z.nullable(z.string()),
+});
+
+/** `WithdrawalCreated` : le retrait, le portefeuille prépayé après la retenue, `created` à false pour un renvoi. */
+export const withdrawalCreatedSchema = z.object({
+  withdrawal: withdrawalSchema,
+  wallet: prepaidWalletSchema,
+  created: z.boolean(),
+});
+
 export type Money = z.infer<typeof moneySchema>;
+export type Withdrawal = z.infer<typeof withdrawalSchema>;
+export type WithdrawalList = z.infer<typeof withdrawalListSchema>;
+export type WithdrawalCreated = z.infer<typeof withdrawalCreatedSchema>;
 export type Payout = z.infer<typeof payoutSchema>;
 export type PayoutList = z.infer<typeof payoutListSchema>;
 export type Wallet = z.infer<typeof walletSchema>;
