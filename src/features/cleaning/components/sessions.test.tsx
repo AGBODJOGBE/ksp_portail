@@ -141,6 +141,40 @@ describe('page d’une séance', () => {
     expect(await within(panel).findByText('Séance payée.')).toBeInTheDocument();
   });
 
+  it('après le paiement, la confirmation reste visible quand la séance relue n’est plus à payer', async () => {
+    signIn();
+    stubGateway(
+      routes(completedSession(), {
+        [`GET ${SESSION}`]: [
+          { status: 200, body: completedSession() },
+          { status: 200, body: completedSession({ paymentStatus: 'paid', invoiceId: 'inv-1' }) },
+        ],
+        [`POST ${SESSION}/pay`]: {
+          status: 200,
+          body: {
+            status: 'paid',
+            amount: money(18400),
+            walletTransactionId: 't-1',
+            paymentId: null,
+            checkoutUrl: null,
+            invoiceId: 'inv-1',
+          },
+        },
+      }),
+    );
+    render(<SessionDetail programId={PROGRAM_ID} id={SESSION_ID} />);
+    const panel = await screen.findByRole('region', { name: 'Séance à payer' });
+    fireEvent.click(within(panel).getByRole('button', { name: /Payer avec mon portefeuille/ }));
+    await waitFor(() =>
+      expect(screen.queryByRole('region', { name: 'Séance à payer' })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText('Séance payée.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Voir la facture' })).toHaveAttribute(
+      'href',
+      '/mon-espace/factures/inv-1',
+    );
+  });
+
   it('séance réalisée : déroulé, liste de contrôle, photos avant et après, facture', async () => {
     signIn();
     stubGateway(routes(completedSession({ paymentStatus: 'paid', invoiceId: 'inv-9' })));
