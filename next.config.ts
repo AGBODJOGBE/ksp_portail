@@ -16,7 +16,8 @@ const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https:",
+  // Le stockage des fichiers (photos, pièces) ; en local il est en http (MinIO), d'où sa mention explicite.
+  `img-src 'self' data: blob: https:${fileStorageOrigin ? ` ${fileStorageOrigin}` : ''}`,
   "font-src 'self' data:",
   `connect-src 'self' ${apiUrl}${fileStorageOrigin ? ` ${fileStorageOrigin}` : ''}${isDev ? ' ws:' : ''}`,
   "frame-ancestors 'none'",
